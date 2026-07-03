@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/router/app_router.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
+import '../../domain/entities/business_entity.dart';
+
+/// Quick-info card shown when a map marker is tapped.
+class BusinessMarkerSheet extends StatelessWidget {
+  const BusinessMarkerSheet({required this.business, super.key});
+  final BusinessEntity business;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: business.logoUrl != null
+                  ? Image.network(business.logoUrl!, width: 64, height: 64, fit: BoxFit.cover)
+                  : Container(
+                      width: 64, height: 64, color: AppColors.primary.withValues(alpha: 0.1),
+                      child: const Icon(Icons.storefront, color: AppColors.primary),
+                    ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(business.name, style: AppTextStyles.h3, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(business.category, style: AppTextStyles.bodySmall),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (business.rating != null) ...[
+                        const Icon(Icons.star, size: 14, color: AppColors.warning),
+                        const SizedBox(width: 2),
+                        Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodySmall),
+                        const SizedBox(width: 10),
+                      ],
+                      if (business.distanceKm != null)
+                        Text('${business.distanceKm!.toStringAsFixed(1)} km away',
+                            style: AppTextStyles.bodySmall),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.arrow_forward_ios, size: 18),
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.push(AppRoutes.businessDetailsPath(business.id));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

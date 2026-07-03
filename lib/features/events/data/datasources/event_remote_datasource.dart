@@ -1,0 +1,64 @@
+import 'package:dio/dio.dart';
+
+import '../../../../core/error/exceptions.dart';
+import '../models/event_model.dart';
+
+abstract class EventRemoteDataSource {
+  Future<List<EventModel>> getEvents({
+    String? category,
+    String? businessId,
+    DateTime? fromDate,
+    DateTime? toDate,
+  });
+  Future<EventModel> getEventDetails(String id);
+  Future<void> createEvent(EventModel event);
+}
+
+class EventRemoteDataSourceImpl implements EventRemoteDataSource {
+  EventRemoteDataSourceImpl(this._dio);
+  final Dio _dio;
+
+  @override
+  Future<List<EventModel>> getEvents({
+    String? category,
+    String? businessId,
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) async {
+    try {
+      final Response<dynamic> response = await _dio.get<dynamic>(
+        '/events',
+        queryParameters: <String, dynamic>{
+          if (category != null) 'category': category,
+          if (businessId != null) 'businessId': businessId,
+          if (fromDate != null) 'from': fromDate.toIso8601String(),
+          if (toDate != null) 'to': toDate.toIso8601String(),
+        },
+      );
+      return (response.data['data'] as List<dynamic>)
+          .map((dynamic e) => EventModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to load events');
+    }
+  }
+
+  @override
+  Future<EventModel> getEventDetails(String id) async {
+    try {
+      final Response<dynamic> response = await _dio.get<dynamic>('/events/$id');
+      return EventModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to load event');
+    }
+  }
+
+  @override
+  Future<void> createEvent(EventModel event) async {
+    try {
+      await _dio.post<dynamic>('/events', data: event.toCreateJson());
+    } on DioException catch (e) {
+      throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to create event');
+    }
+  }
+}
