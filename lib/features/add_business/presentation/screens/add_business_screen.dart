@@ -117,6 +117,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

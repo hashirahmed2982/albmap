@@ -126,6 +126,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             GradientHeader(

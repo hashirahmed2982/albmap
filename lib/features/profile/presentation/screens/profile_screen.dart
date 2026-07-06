@@ -25,6 +25,7 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -46,7 +47,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+      padding: EdgeInsets.fromLTRB(20, 28 + MediaQuery.of(context).padding.top, 20, 28),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,

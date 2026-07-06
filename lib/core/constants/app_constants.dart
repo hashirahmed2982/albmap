@@ -10,20 +10,17 @@ class AppConstants {
     defaultValue: true,
   );
 
-  /// Google Maps requires a valid API key configured natively in
-  /// AndroidManifest.xml / AppDelegate.swift. Without one, the native
-  /// GoogleMap view throws an uncatchable native exception that kills the
-  /// whole app process (not a normal Dart exception — try/catch can't stop
-  /// it). So Discover Map checks this flag *before* ever mounting the
-  /// GoogleMap widget, falling back to a list view instead.
-  ///
-  /// Set to true only once you've completed docs/GOOGLE_MAPS_SETUP.md,
-  /// either by flipping the default here or running with
-  /// --dart-define=MAPS_CONFIGURED=true
-  static const bool googleMapsConfigured = bool.fromEnvironment(
-    'MAPS_CONFIGURED',
-    defaultValue: false,
+  // Map tile source — using flutter_map (OpenStreetMap-compatible), which
+  // has no native SDK/API-key crash risk unlike Google Maps. Point this at
+  // a tile provider of your choice; OSM's public server is fine for dev
+  // but its usage policy disallows production traffic at scale — swap in
+  // a MapTiler/Stadia Maps/self-hosted URL (with {z}/{x}/{y} placeholders)
+  // before shipping.
+  static const String mapTileUrlTemplate = String.fromEnvironment(
+    'MAP_TILE_URL',
+    defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   );
+  static const String mapTileUserAgentPackageName = 'com.example.albmap';
 
   // API
   static const String baseUrl = String.fromEnvironment(

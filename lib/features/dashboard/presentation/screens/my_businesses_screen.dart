@@ -68,6 +68,7 @@ class MyBusinessesScreen extends ConsumerWidget {
         label: const Text('Add Business'),
       ),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             GradientHeader(

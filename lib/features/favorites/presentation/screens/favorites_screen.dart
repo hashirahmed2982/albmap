@@ -40,6 +40,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             GradientHeader(

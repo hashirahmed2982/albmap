@@ -14,6 +14,7 @@ class AboutUsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [

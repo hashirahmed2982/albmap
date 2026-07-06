@@ -33,6 +33,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
           final Color accent = categoryColor(business.category);
 
           return SafeArea(
+            top: false,
             child: Column(
               children: [
                 GradientHeader(

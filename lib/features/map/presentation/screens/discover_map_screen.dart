@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-
+import 'package:latlong2/latlong.dart';
+import 'dart:ui' as ui;
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../domain/entities/business_entity.dart';
 import '../providers/business_providers.dart';
@@ -16,15 +16,15 @@ import '../widgets/filter_bottom_sheet.dart';
 enum _ViewMode { map, list }
 
 /// 3. Discover Map Screen — main app screen. The user explicitly picks
-/// between a Map view and a List view via a segmented toggle; this is a
-/// preference, not something the app decides for them.
+/// between a Map view and a List view via a segmented toggle.
 ///
-/// Safety note: [AppConstants.googleMapsConfigured] still gates whether the
-/// native GoogleMap widget is ever mounted — a missing/invalid Maps API key
-/// crashes the whole app process at the native level, uncatchable from Dart
-/// (see docs/GOOGLE_MAPS_SETUP.md). So if the user selects Map view while
-/// it isn't configured yet, we show an explanatory card with a one-tap
-/// switch to List view instead of ever building a GoogleMap widget.
+/// Uses flutter_map (OpenStreetMap-compatible, open source) instead of
+/// Google Maps — it's a pure-Dart widget with no native SDK or API key, so
+/// there's no equivalent of the "missing key crashes the whole app" failure
+/// mode Google Maps has. Tile source is configured in AppConstants —
+/// point it at MapTiler/Stadia/self-hosted tiles before shipping to
+/// production (OSM's free public server disallows production-scale
+/// traffic per its usage policy).
 class DiscoverMapScreen extends ConsumerStatefulWidget {
   const DiscoverMapScreen({super.key});
 
@@ -33,11 +33,11 @@ class DiscoverMapScreen extends ConsumerStatefulWidget {
 }
 
 class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
-  GoogleMapController? _mapController;
+  final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   String _localQuery = '';
   String? _selectedCategory;
-  late _ViewMode _viewMode;
+  _ViewMode _viewMode = _ViewMode.map;
 
   static const double _barHeight = 52;
 
@@ -45,20 +45,16 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
     'Restaurants', 'Cafes', 'Shops', 'Services', 'Health', 'Entertainment',
   ];
 
-  static const CameraPosition _defaultCamera = CameraPosition(
-    target: LatLng(41.3275, 19.8187), // Tirana, Albania as sensible default
-    zoom: 13,
-  );
+  // Tirana, Albania as a sensible default center.
+  static const LatLng _defaultCenter = LatLng(41.3275, 19.8187);
+  static const double _defaultZoom = 13;
 
   @override
   void initState() {
     super.initState();
-    _viewMode = AppConstants.googleMapsConfigured ? _ViewMode.map : _ViewMode.list;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (AppConstants.googleMapsConfigured) {
-        await ref.read(locationControllerProvider.notifier).refresh();
-        _recenterOnUser();
-      }
+      await ref.read(locationControllerProvider.notifier).refresh();
+      _recenterOnUser();
       ref.read(businessListControllerProvider.notifier).load();
     });
   }
@@ -66,30 +62,15 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
   void _recenterOnUser() {
     final position = ref.read(locationControllerProvider);
-    if (position != null && _mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(LatLng(position.latitude, position.longitude), 14),
-      );
+    if (position != null) {
+      _mapController.move(LatLng(position.latitude, position.longitude), 14);
     }
-  }
-
-  Set<Marker> _buildMarkers(List<BusinessEntity> businesses) {
-    return businesses.map((b) {
-      return Marker(
-        markerId: MarkerId(b.id),
-        position: LatLng(b.latitude, b.longitude),
-        infoWindow: InfoWindow(title: b.name),
-        onTap: () => showModalBottomSheet(
-          context: context,
-          builder: (_) => BusinessMarkerSheet(business: b),
-        ),
-      );
-    }).toSet();
   }
 
   List<BusinessEntity> _filtered(List<BusinessEntity> all) {
@@ -112,6 +93,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             _buildHeader(context, resultCount: displayed.length),
@@ -125,9 +107,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
                       onRefresh: () async =>
                           ref.read(businessListControllerProvider.notifier).load(),
                     )
-                  : (AppConstants.googleMapsConfigured
-                      ? _buildMap(listState)
-                      : _buildMapUnavailable()),
+                  : _buildMap(displayed, listState),
             ),
           ],
         ),
@@ -141,14 +121,11 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            AppColors.primary.withValues(alpha: 0.08),
-            AppColors.background,
-          ],
+          colors: [AppColors.primary.withValues(alpha: 0.08), AppColors.background],
         ),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: EdgeInsets.fromLTRB(16, 12 + MediaQuery.of(context).padding.top, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -159,16 +136,25 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
                   height: _barHeight,
                   child: Material(
                     elevation: 2,
+                    color: AppColors.surface,
                     shadowColor: Colors.black.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
                     child: TextField(
                       controller: _searchController,
                       onChanged: (v) => setState(() => _localQuery = v),
-                      decoration: const InputDecoration(
+                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                      cursorColor: AppColors.primary,
+                      textAlignVertical: TextAlignVertical.center,
+                      decoration: InputDecoration(
                         hintText: 'Search businesses...',
-                        prefixIcon: Icon(Icons.search, color: AppColors.primary),
+                        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
+                        prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
+                        isDense: true,
+                        filled: true,
+                        fillColor: AppColors.surface,
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                       ),
                     ),
                   ),
@@ -251,22 +237,70 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
     );
   }
 
-  Widget _buildMap(BusinessListState listState) {
+  Widget _buildMap(List<BusinessEntity> businesses, BusinessListState listState) {
+    final position = ref.watch(locationControllerProvider);
+
     return Stack(
       children: [
-        GoogleMap(
-          initialCameraPosition: _defaultCamera,
-          onMapCreated: (controller) {
-            _mapController = controller;
-            _recenterOnUser();
-          },
-          myLocationEnabled: true,
-          myLocationButtonEnabled: false,
-          zoomControlsEnabled: false,
-          markers: _buildMarkers(listState.businesses),
+        FlutterMap(
+          mapController: _mapController,
+          options: const MapOptions(
+            initialCenter: _defaultCenter,
+            initialZoom: _defaultZoom,
+            minZoom: 3,
+            maxZoom: 18,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: AppConstants.mapTileUrlTemplate,
+              userAgentPackageName: AppConstants.mapTileUserAgentPackageName,
+              maxNativeZoom: 19,
+            ),
+            MarkerLayer(
+              markers: [
+                if (position != null)
+                  Marker(
+                    point: LatLng(position.latitude, position.longitude),
+                    width: 22,
+                    height: 22,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.info,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
+                      ),
+                    ),
+                  ),
+                for (final business in businesses)
+                  Marker(
+                    point: LatLng(business.latitude, business.longitude),
+                    width: 42,
+                    height: 42,
+                    child: GestureDetector(
+                      onTap: () => showModalBottomSheet(
+                        context: context,
+                        builder: (_) => BusinessMarkerSheet(business: business),
+                      ),
+                      child: _MapPin(color: categoryColor(business.category), icon: categoryIcon(business.category)),
+                    ),
+                  ),
+              ],
+            ),
+            // Required attribution for OpenStreetMap-derived tiles — check
+            // your specific tile provider's attribution requirements if you
+            // switch away from the default OSM URL.
+            const RichAttributionWidget(
+              attributions: [
+                TextSourceAttribution('OpenStreetMap contributors'),
+              ],
+            ),
+          ],
         ),
+
         if (listState.isLoading)
           const Positioned(top: 16, left: 0, right: 0, child: LoadingIndicator()),
+
         if (listState.errorMessage != null && listState.businesses.isEmpty)
           Positioned.fill(
             child: Container(
@@ -277,6 +311,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
               ),
             ),
           ),
+
         Positioned(
           bottom: 16, right: 16,
           child: FloatingActionButton(
@@ -293,42 +328,54 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
       ],
     );
   }
+}
 
-  Widget _buildMapUnavailable() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 88, height: 88,
-              decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: const Icon(Icons.map_outlined, size: 40, color: AppColors.warning),
-            ),
-            const SizedBox(height: 20),
-            Text("Map view isn't set up yet", style: AppTextStyles.h3, textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            const Text(
-              "A Google Maps API key hasn't been configured for this app. "
-              'You can still browse every business using List view.',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: 220,
-              child: PrimaryButton(
-                label: 'Switch to List view',
-                icon: Icons.view_list_outlined,
-                onPressed: () => setState(() => _viewMode = _ViewMode.list),
-              ),
-            ),
-          ],
+/// Teardrop-style map pin, colored per business category — flutter_map has
+/// no built-in marker icon system like Google Maps, markers are just
+/// arbitrary widgets, so this is hand-rolled but fully theme-consistent.
+class _MapPin extends StatelessWidget {
+  const _MapPin({required this.color, required this.icon});
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))],
+          ),
+          child: Icon(icon, color: Colors.white, size: 18),
         ),
-      ),
+        CustomPaint(size: const Size(10, 6), painter: _PinTailPainter(color: color)),
+      ],
     );
   }
+}
+
+class _PinTailPainter extends CustomPainter {
+  const _PinTailPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final ui.Path path = ui.Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PinTailPainter oldDelegate) => oldDelegate.color != color;
 }
 
 class _CategoryChip extends StatelessWidget {

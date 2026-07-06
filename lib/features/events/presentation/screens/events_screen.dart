@@ -44,6 +44,7 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
             )
           : null,
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             GradientHeader(
