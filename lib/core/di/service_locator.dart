@@ -32,6 +32,13 @@ import '../../features/events/data/repositories/event_repository_impl.dart';
 import '../../features/events/domain/repositories/event_repository.dart';
 import '../../features/events/domain/usecases/event_usecases.dart';
 
+// Notifications (broadcast)
+import '../../features/notifications/data/datasources/notification_remote_datasource.dart';
+import '../../features/notifications/data/datasources/notification_mock_datasource.dart';
+import '../../features/notifications/data/repositories/notification_repository_impl.dart';
+import '../../features/notifications/domain/repositories/notification_repository.dart';
+import '../../features/notifications/domain/usecases/broadcast_notification_usecase.dart';
+
 // Dashboard / Analytics
 import '../../features/dashboard/data/datasources/analytics_remote_datasource.dart';
 import '../../features/dashboard/data/datasources/analytics_mock_datasource.dart';
@@ -132,6 +139,17 @@ Future<void> initServiceLocator() async {
   );
   sl.registerLazySingleton(() => GetEventsUseCase(sl()));
   sl.registerLazySingleton(() => CreateEventUseCase(sl()));
+
+  // ---------------- Notifications (broadcast) ----------------
+  sl.registerLazySingleton<NotificationRemoteDataSource>(
+    () => AppConstants.useMockData
+        ? NotificationMockDataSource()
+        : NotificationRemoteDataSourceImpl(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => BroadcastNotificationUseCase(sl()));
 
   // ---------------- Favorites ----------------
   sl.registerLazySingleton<FavoritesLocalDataSource>(

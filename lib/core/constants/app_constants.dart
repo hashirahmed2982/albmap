@@ -3,11 +3,13 @@ class AppConstants {
 
   /// When true, the DI container wires in-memory fake datasources instead
   /// of hitting the real backend — lets the app run fully offline with
-  /// canned data. Toggle via --dart-define=USE_MOCK_DATA=false once a
-  /// real API is available, or just flip the default below.
+  /// canned data. Now that a real backend exists (see the separate
+  /// albmap-backend project) and baseUrl below points at it, this
+  /// defaults to false. Flip back to true for offline UI work, or run
+  /// with --dart-define=USE_MOCK_DATA=true.
   static const bool useMockData = bool.fromEnvironment(
     'USE_MOCK_DATA',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   // Map tile source — using flutter_map (OpenStreetMap-compatible), which
@@ -22,11 +24,21 @@ class AppConstants {
   );
   static const String mapTileUserAgentPackageName = 'com.example.albmap';
 
-  // API
-  static const String baseUrl = String.fromEnvironment(
-    'BASE_URL',
-    defaultValue: 'https://api.albmap.com/v1',
-  );
+  // API — defaults to the Android emulator's alias for the host machine's
+  // localhost (10.0.2.2), matching the most common Flutter dev workflow
+  // (albmap-backend running via `npm run dev` on your machine, app running
+  // in an Android emulator). Override for other setups:
+  //   iOS simulator / running backend on the same machine:
+  //     --dart-define=BASE_URL=http://localhost:4000/v1
+  //   Physical device (phone on the same Wi-Fi as your dev machine):
+  //     --dart-define=BASE_URL=http://<your-machine-LAN-IP>:4000/v1
+  //   Production:
+  //     --dart-define=BASE_URL=https://your-deployed-api.com/v1
+  // static const String baseUrl = String.fromEnvironment(
+  //   'BASE_URL',
+  //   defaultValue: 'http://10.0.2.2:4000/v1',
+  // );
+  static const String baseUrl = 'https://0599-2407-aa80-15-9c4c-5045-223-f687-554.ngrok-free.app/v1';
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
 

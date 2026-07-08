@@ -1,23 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../notifications/domain/entities/notification_entity.dart';
+import '../../../notifications/domain/usecases/broadcast_notification_usecase.dart';
 import '../../../notifications/presentation/providers/notifications_providers.dart';
 
 /// Lets a business owner broadcast an offer/announcement notification tied
 /// to one of their businesses.
 ///
-/// IMPORTANT — mock/offline limitation: without a backend, there is no
-/// mechanism to actually deliver this to *other* users' devices; push
-/// fan-out requires a server that stores subscriptions and calls FCM. This
-/// provider inserts the notification into the *current* device's own
-/// notification list so the compose → send → appears-in-Alerts flow is
-/// fully demonstrable, and is written as the single integration point a
-/// real backend call would replace (see the TODO below).
+/// Calls the real backend endpoint (POST /businesses/:id/broadcast — see
+/// albmap-backend/src/modules/notifications) via BroadcastNotificationUseCase,
+/// which triggers real FCM delivery server-side once a Firebase service
+/// account is configured there. Regardless of mock/real mode, this also
+/// inserts the notification into the *current* device's own local list so
+/// the compose → send → appears-in-Alerts flow gives the sender immediate
+/// feedback — the app has no GET /notifications sync endpoint yet, so this
+/// is the sender's only way to see their own sent notification reflected
+/// in the Alerts tab.
 class SendBusinessNotificationController extends StateNotifier<AsyncValue<void>> {
-  SendBusinessNotificationController(this._ref) : super(const AsyncValue.data(null));
+  SendBusinessNotificationController(this._ref)
+      : _broadcastUseCase = sl<BroadcastNotificationUseCase>(),
+        super(const AsyncValue.data(null));
 
   final Ref _ref;
+  final BroadcastNotificationUseCase _broadcastUseCase;
 
   Future<bool> send({
     required String businessId,
@@ -26,30 +33,29 @@ class SendBusinessNotificationController extends StateNotifier<AsyncValue<void>>
     required String message,
   }) async {
     state = const AsyncValue.loading();
-    try {
-      // TODO(backend): replace this local insert with a real API call, e.g.
-      //   POST /businesses/{businessId}/broadcast { title, message }
-      // which should fan out a push notification (FCM) to every user who
-      // has favorited this business, or to all users for a general offer,
-      // per whatever targeting rules the backend implements.
-      await Future<void>.delayed(const Duration(milliseconds: 500));
 
-      final notification = NotificationEntity(
-        id: const Uuid().v4(),
-        title: title,
-        body: message,
-        createdAt: DateTime.now(),
-        type: 'business_offer',
-        relatedId: businessId,
-      );
-      await _ref.read(notificationsControllerProvider.notifier).addNotification(notification);
+    final result = await _broadcastUseCase(
+      BroadcastNotificationParams(businessId: businessId, title: title, body: message),
+    );
 
-      state = const AsyncValue.data(null);
-      return true;
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    if (result.isLeft()) {
+      final failureMessage = result.fold((failure) => failure.message, (_) => '');
+      state = AsyncValue.error(failureMessage, StackTrace.current);
       return false;
     }
+
+    final notification = NotificationEntity(
+      id: const Uuid().v4(),
+      title: title,
+      body: message,
+      createdAt: DateTime.now(),
+      type: 'business_offer',
+      relatedId: businessId,
+    );
+    await _ref.read(notificationsControllerProvider.notifier).addNotification(notification);
+
+    state = const AsyncValue.data(null);
+    return true;
   }
 }
 
