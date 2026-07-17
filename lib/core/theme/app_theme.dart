@@ -43,24 +43,75 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        fillColor: AppColors.inputFill,
+        isDense: false,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+
+        // No visible border in the default/enabled state — the fill alone
+        // gives the field its shape and separates it from its background.
+        // A border only appears once the field means something (focused
+        // or in error), which reads as more refined than a border on
+        // every field all the time and makes the focus/error states
+        // actually mean something when they do appear.
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.divider),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.divider),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.4),
         ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.8),
+        ),
+
+        // Label sits muted until the field is focused, then switches to
+        // the brand color — a small but very "premium app" detail that a
+        // static gray label on every state misses entirely.
+        labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+        floatingLabelStyle: WidgetStateTextStyle.resolveWith((states) {
+          if (states.contains(WidgetState.error)) {
+            return AppTextStyles.bodySmall.copyWith(color: AppColors.error, fontWeight: FontWeight.w600);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600);
+          }
+          return AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary);
+        }),
+        hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.7)),
+        helperStyle: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+        errorStyle: AppTextStyles.caption.copyWith(color: AppColors.error, fontWeight: FontWeight.w600),
+        errorMaxLines: 2,
+        counterStyle: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+
+        // Icons default to a muted tone and only pick up the brand color
+        // while their field is actually focused — consistent, deliberate
+        // color use instead of every icon being flatly primary-colored
+        // regardless of field state.
+        iconColor: AppColors.textSecondary,
+        prefixIconColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.focused)) return AppColors.primary;
+          if (states.contains(WidgetState.error)) return AppColors.error;
+          return AppColors.textSecondary;
+        }),
+        suffixIconColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.focused)) return AppColors.primary;
+          if (states.contains(WidgetState.error)) return AppColors.error;
+          return AppColors.textSecondary;
+        }),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,

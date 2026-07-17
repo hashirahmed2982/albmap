@@ -25,6 +25,13 @@ import '../../features/map/data/repositories/business_repository_impl.dart';
 import '../../features/map/domain/repositories/business_repository.dart';
 import '../../features/map/domain/usecases/business_usecases.dart';
 
+// Categories
+import '../../features/categories/data/datasources/category_remote_datasource.dart';
+import '../../features/categories/data/datasources/category_mock_datasource.dart';
+import '../../features/categories/data/repositories/category_repository_impl.dart';
+import '../../features/categories/domain/repositories/category_repository.dart';
+import '../../features/categories/domain/usecases/get_categories_usecase.dart';
+
 // Events
 import '../../features/events/data/datasources/event_remote_datasource.dart';
 import '../../features/events/data/datasources/event_mock_datasource.dart';
@@ -48,6 +55,7 @@ import '../../features/dashboard/domain/usecases/analytics_usecases.dart';
 
 // Favorites
 import '../../features/favorites/data/datasources/favorites_local_datasource.dart';
+import '../../features/favorites/data/datasources/favorites_remote_datasource.dart';
 import '../../features/favorites/data/repositories/favorites_repository_impl.dart';
 import '../../features/favorites/domain/repositories/favorites_repository.dart';
 import '../../features/favorites/domain/usecases/favorites_usecases.dart';
@@ -97,6 +105,9 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => ContinueAsGuestUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
+  sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
+  sl.registerLazySingleton(() => UploadAvatarUseCase(sl()));
 
   // ---------------- Map / Business ----------------
   sl.registerLazySingleton<BusinessRemoteDataSource>(
@@ -113,8 +124,21 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => GetBusinessesUseCase(sl()));
   sl.registerLazySingleton(() => GetBusinessDetailsUseCase(sl()));
   sl.registerLazySingleton(() => SubmitBusinessUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateBusinessUseCase(sl()));
   sl.registerLazySingleton(() => SearchBusinessesUseCase(sl()));
   sl.registerLazySingleton(() => GetMyBusinessesUseCase(sl()));
+  sl.registerLazySingleton(() => UploadLogoUseCase(sl()));
+
+  // ---------------- Categories ----------------
+  sl.registerLazySingleton<CategoryDataSource>(
+    () => AppConstants.useMockData
+        ? CategoryMockDataSource()
+        : CategoryRemoteDataSourceImpl(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<CategoryRepository>(
+    () => CategoryRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetCategoriesUseCase(sl()));
 
   // ---------------- Dashboard / Analytics ----------------
   sl.registerLazySingleton<AnalyticsDataSource>(
@@ -139,6 +163,7 @@ Future<void> initServiceLocator() async {
   );
   sl.registerLazySingleton(() => GetEventsUseCase(sl()));
   sl.registerLazySingleton(() => CreateEventUseCase(sl()));
+  sl.registerLazySingleton(() => UploadEventImageUseCase(sl()));
 
   // ---------------- Notifications (broadcast) ----------------
   sl.registerLazySingleton<NotificationRemoteDataSource>(
@@ -155,8 +180,11 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton<FavoritesLocalDataSource>(
     () => FavoritesLocalDataSourceImpl(sl(instanceName: AppConstants.favoritesBox)),
   );
+  sl.registerLazySingleton<FavoritesRemoteDataSource>(
+    () => FavoritesRemoteDataSourceImpl(sl<DioClient>().dio),
+  );
   sl.registerLazySingleton<FavoritesRepository>(
-    () => FavoritesRepositoryImpl(localDataSource: sl()),
+    () => FavoritesRepositoryImpl(localDataSource: sl(), remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton(() => ToggleFavoriteUseCase(sl()));
   sl.registerLazySingleton(() => GetFavoritesUseCase(sl()));

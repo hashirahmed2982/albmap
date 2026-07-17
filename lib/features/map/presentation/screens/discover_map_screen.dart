@@ -1,17 +1,20 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import 'dart:ui' as ui;
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/state_widgets.dart';
+import '../../../categories/domain/category_translations.dart';
 import '../../domain/entities/business_entity.dart';
 import '../providers/business_providers.dart';
 import '../widgets/business_list_view.dart';
 import '../widgets/business_marker_sheet.dart';
 import '../widgets/filter_bottom_sheet.dart';
+import 'dart:ui' as ui;
 
 enum _ViewMode { map, list }
 
@@ -146,7 +149,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
                       cursorColor: AppColors.primary,
                       textAlignVertical: TextAlignVertical.center,
                       decoration: InputDecoration(
-                        hintText: 'Search businesses...',
+                        hintText: 'discover.searchHint'.tr(),
                         hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
                         prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                         prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
@@ -184,9 +187,9 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
           ),
           const SizedBox(height: 12),
           SegmentedButton<_ViewMode>(
-            segments: const [
-              ButtonSegment(value: _ViewMode.map, icon: Icon(Icons.map_outlined, size: 18), label: Text('Map')),
-              ButtonSegment(value: _ViewMode.list, icon: Icon(Icons.view_list_outlined, size: 18), label: Text('List')),
+            segments: [
+              ButtonSegment(value: _ViewMode.map, icon: const Icon(Icons.map_outlined, size: 18), label: Text('discover.map'.tr())),
+              ButtonSegment(value: _ViewMode.list, icon: const Icon(Icons.view_list_outlined, size: 18), label: Text('discover.list'.tr())),
             ],
             selected: {_viewMode},
             onSelectionChanged: (s) => setState(() => _viewMode = s.first),
@@ -209,7 +212,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
               itemBuilder: (context, i) {
                 if (i == 0) {
                   return _CategoryChip(
-                    label: 'All',
+                    label: 'common.all'.tr(),
                     color: AppColors.primary,
                     icon: Icons.apps_rounded,
                     selected: _selectedCategory == null,
@@ -218,7 +221,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
                 }
                 final category = _quickCategories[i - 1];
                 return _CategoryChip(
-                  label: category,
+                  label: localizedCategoryName(context, category),
                   color: categoryColor(category),
                   icon: categoryIcon(category),
                   selected: _selectedCategory == category,
@@ -229,8 +232,10 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            '$resultCount business${resultCount == 1 ? '' : 'es'} found',
+            resultCount == 1 ? 'discover.resultFound'.tr() : 'discover.resultsFound'.tr(args: ['$resultCount']),
             style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -410,9 +415,14 @@ class _CategoryChip extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: selected ? Colors.white : color),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: AppTextStyles.bodySmall.copyWith(color: selected ? Colors.white : color, fontWeight: FontWeight.w600),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 140),
+              child: Text(
+                label,
+                style: AppTextStyles.bodySmall.copyWith(color: selected ? Colors.white : color, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

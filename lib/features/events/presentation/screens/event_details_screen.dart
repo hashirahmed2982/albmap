@@ -1,5 +1,6 @@
 import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:collection/collection.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../categories/domain/category_translations.dart';
 import '../../../favorites/presentation/providers/favorites_providers.dart';
 import '../../domain/entities/event_entity.dart';
 import '../../domain/usecases/event_usecases.dart';
@@ -35,15 +37,15 @@ class EventDetailsScreen extends ConsumerWidget {
     final eventAsync = ref.watch(_eventDetailsProvider(eventId));
     final authState = ref.watch(authControllerProvider);
     final bool canFavorite = authState.user?.isBusinessUser ?? false;
-    final dateFmt = DateFormat('EEEE, MMM d, yyyy · HH:mm');
+    final dateFmt = DateFormat('EEEE, MMM d, yyyy · HH:mm', context.locale.languageCode);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: eventAsync.when(
         loading: () => const LoadingIndicator(),
-        error: (_, __) => const ErrorStateWidget(message: 'Failed to load event'),
+        error: (_, __) => ErrorStateWidget(message: 'events.failedToLoad'.tr()),
         data: (event) {
-          if (event == null) return const ErrorStateWidget(message: 'Event not found');
+          if (event == null) return ErrorStateWidget(message: 'events.notFound'.tr());
 
           final Color accent = eventCategoryColor(event.category);
 
@@ -62,7 +64,7 @@ class EventDetailsScreen extends ConsumerWidget {
                     ),
                   IconButton(
                     icon: const Icon(Icons.share, color: Colors.white),
-                    onPressed: () => Share.share('Join ${event.name} — hosted by ${event.businessName}'),
+                    onPressed: () => Share.share('events.shareText'.tr(args: [event.name, event.businessName])),
                   ),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
@@ -91,12 +93,12 @@ class EventDetailsScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                        child: Text(event.category, style: AppTextStyles.bodySmall.copyWith(color: accent, fontWeight: FontWeight.w600)),
+                        child: Text(localizedCategoryName(context, event.category), style: AppTextStyles.bodySmall.copyWith(color: accent, fontWeight: FontWeight.w600)),
                       ),
                       const SizedBox(height: 10),
                       Text(event.name, style: AppTextStyles.h1),
                       const SizedBox(height: 6),
-                      Text('Hosted by ${event.businessName}', style: AppTextStyles.bodyMedium),
+                      Text('events.hostedBy'.tr(args: [event.businessName]), style: AppTextStyles.bodyMedium),
                       const SizedBox(height: 18),
 
                       Container(
@@ -132,7 +134,7 @@ class EventDetailsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 20),
 
-                      Text('About this event', style: AppTextStyles.h3),
+                      Text('events.aboutEvent'.tr(), style: AppTextStyles.h3),
                       const SizedBox(height: 8),
                       Text(event.description, style: AppTextStyles.bodyMedium),
                       const SizedBox(height: 24),
@@ -141,7 +143,7 @@ class EventDetailsScreen extends ConsumerWidget {
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: accent),
                           icon: const Icon(Icons.calendar_month_outlined),
-                          label: const Text('Add to calendar'),
+                          label: Text('events.addToCalendar'.tr()),
                           onPressed: () => Add2Calendar.addEvent2Cal(Event(
                             title: event.name,
                             description: event.description,

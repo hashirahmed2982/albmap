@@ -71,4 +71,10 @@ class EventMockDataSource implements EventRemoteDataSource {
     await _fakeDelay();
     _events.add(event);
   }
+
+  @override
+  Future<String> uploadEventImage(String filePath) async {
+    await _fakeDelay();
+    return filePath;
+  }
 }

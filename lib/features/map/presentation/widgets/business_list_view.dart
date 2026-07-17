@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -5,6 +6,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/state_widgets.dart';
+import '../../../categories/domain/category_translations.dart';
 import '../../domain/entities/business_entity.dart';
 
 IconData categoryIcon(String category) {
@@ -72,8 +74,8 @@ class BusinessListView extends StatelessWidget {
       return ErrorStateWidget(message: errorMessage!, onRetry: onRetry);
     }
     if (businesses.isEmpty) {
-      return const EmptyStateWidget(
-        message: 'No businesses found nearby',
+      return EmptyStateWidget(
+        message: 'discover.noBusinessesNearby'.tr(),
         icon: Icons.storefront_outlined,
       );
     }
@@ -150,8 +152,10 @@ class BusinessCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          business.category,
+                          localizedCategoryName(context, business.category),
                           style: AppTextStyles.caption.copyWith(color: accent, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -166,7 +170,7 @@ class BusinessCard extends StatelessWidget {
                           if (business.distanceKm != null) ...[
                             const Icon(Icons.near_me_outlined, size: 14, color: AppColors.textSecondary),
                             const SizedBox(width: 2),
-                            Text('${business.distanceKm!.toStringAsFixed(1)} km', style: AppTextStyles.bodySmall),
+                            Text('common.km_away'.tr(args: [business.distanceKm!.toStringAsFixed(1)]), style: AppTextStyles.bodySmall),
                           ],
                         ],
                       ),

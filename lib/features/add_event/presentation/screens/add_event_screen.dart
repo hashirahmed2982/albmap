@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
@@ -8,9 +12,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/selection_field.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../categories/domain/category_translations.dart';
 import '../../../events/domain/entities/event_entity.dart';
+import '../../../events/domain/usecases/event_usecases.dart';
 import '../../../events/presentation/providers/event_providers.dart';
 import '../../../map/domain/entities/business_entity.dart';
 import '../../../map/domain/usecases/business_usecases.dart';
@@ -36,6 +43,8 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
 
   List<BusinessEntity> _ownedBusinesses = [];
   bool _loadingBusinesses = true;
+  String? _imageUrl;
+  bool _isUploadingImage = false;
 
   static const List<String> _categories = ['General', 'Music', 'Food', 'Sports', 'Workshop', 'Community'];
 
@@ -82,11 +91,28 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
     }
   }
 
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1024);
+    if (picked == null || !mounted) return;
+
+    setState(() => _isUploadingImage = true);
+    final useCase = sl<UploadEventImageUseCase>();
+    final result = await useCase(picked.path);
+    if (!mounted) return;
+    setState(() => _isUploadingImage = false);
+
+    result.fold(
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (url) => setState(() => _imageUrl = url),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedBusiness == null || _startDate == null || _startTime == null || _endTime == null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Please complete all fields')));
+          .showSnackBar(SnackBar(content: Text('addEvent.completeAllFields'.tr())));
       return;
     }
 
@@ -106,6 +132,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
       category: _category,
       startTime: startDateTime,
       endTime: endDateTime,
+      imageUrl: _imageUrl,
     );
 
     final bool success = await ref.read(createEventControllerProvider.notifier).submit(event);
@@ -114,14 +141,14 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
       Navigator.of(context).pop();
     } else if (mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Failed to create event')));
+          .showSnackBar(SnackBar(content: Text('addEvent.failedToCreate'.tr())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final createState = ref.watch(createEventControllerProvider);
-    final dateFmt = DateFormat('MMM d, yyyy');
+    final dateFmt = DateFormat('MMM d, yyyy', context.locale.languageCode);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -138,8 +165,8 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Add Event', style: AppTextStyles.h1),
-                        const Text('Create an event for your business', style: AppTextStyles.bodyMedium),
+                        Text('addEvent.title'.tr(), style: AppTextStyles.h1),
+                        Text('addEvent.subtitle'.tr(), style: AppTextStyles.bodyMedium),
                       ],
                     ),
                   ),
@@ -150,8 +177,8 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
               child: _loadingBusinesses
                   ? const LoadingIndicator()
                   : _ownedBusinesses.isEmpty
-                      ? const EmptyStateWidget(
-                          message: 'You need an approved business before creating events',
+                      ? EmptyStateWidget(
+                          message: 'addEvent.noBusinessTitle'.tr(),
                           icon: Icons.storefront_outlined,
                         )
                       : SingleChildScrollView(
@@ -161,33 +188,36 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                DropdownButtonFormField<BusinessEntity>(
-                                  value: _selectedBusiness,
-                                  decoration: const InputDecoration(labelText: 'Associated business'),
-                                  items: [
+                                SelectionField<BusinessEntity>(
+                                  label: 'addEvent.associatedBusiness'.tr(),
+                                  selectedValue: _selectedBusiness,
+                                  options: [
                                     for (final b in _ownedBusinesses)
-                                      DropdownMenuItem(value: b, child: Text(b.name)),
+                                      SelectionOption(value: b, label: b.name, icon: Icons.storefront_outlined),
                                   ],
                                   onChanged: (v) => setState(() => _selectedBusiness = v),
                                 ),
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _nameController,
-                                  decoration: const InputDecoration(labelText: 'Event name'),
-                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                                  decoration: InputDecoration(labelText: 'addEvent.eventName'.tr()),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                                 ),
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _descController,
                                   maxLines: 4,
-                                  decoration: const InputDecoration(labelText: 'Description'),
-                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                                  decoration: InputDecoration(labelText: 'addEvent.description'.tr()),
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                                 ),
                                 const SizedBox(height: 14),
-                                DropdownButtonFormField<String>(
-                                  value: _category,
-                                  decoration: const InputDecoration(labelText: 'Category'),
-                                  items: [for (final c in _categories) DropdownMenuItem(value: c, child: Text(c))],
+                                SelectionField<String>(
+                                  label: 'addEvent.category'.tr(),
+                                  selectedValue: _category,
+                                  options: [
+                                    for (final c in _categories)
+                                      SelectionOption(value: c, label: localizedCategoryName(context, c)),
+                                  ],
                                   onChanged: (v) => setState(() => _category = v ?? 'General'),
                                 ),
                                 const SizedBox(height: 20),
@@ -200,7 +230,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                   child: Column(
                                     children: [
                                       ListTile(
-                                        title: Text(_startDate == null ? 'Select date' : dateFmt.format(_startDate!)),
+                                        title: Text(_startDate == null ? 'addEvent.selectDate'.tr() : dateFmt.format(_startDate!)),
                                         leading: const Icon(Icons.calendar_today_outlined, color: AppColors.primary),
                                         trailing: const Icon(Icons.chevron_right_rounded),
                                         onTap: _pickDate,
@@ -210,14 +240,20 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                         children: [
                                           Expanded(
                                             child: ListTile(
-                                              title: Text(_startTime?.format(context) ?? 'Start time'),
+                                              title: Text(
+                                                _startTime?.format(context) ?? 'addEvent.startTime'.tr(),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                               leading: const Icon(Icons.access_time, color: AppColors.primary),
                                               onTap: () => _pickTime(isStart: true),
                                             ),
                                           ),
                                           Expanded(
                                             child: ListTile(
-                                              title: Text(_endTime?.format(context) ?? 'End time'),
+                                              title: Text(
+                                                _endTime?.format(context) ?? 'addEvent.endTime'.tr(),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                               leading: const Icon(Icons.access_time_filled, color: AppColors.primary),
                                               onTap: () => _pickTime(isStart: false),
                                             ),
@@ -229,7 +265,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 ),
                                 const SizedBox(height: 20),
                                 GestureDetector(
-                                  onTap: () {}, // wire image_picker for event poster
+                                  onTap: _isUploadingImage ? null : _pickAndUploadImage,
                                   child: Container(
                                     height: 100,
                                     decoration: BoxDecoration(
@@ -237,12 +273,23 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(color: AppColors.divider),
                                     ),
-                                    child: const Center(child: Text('Add event image/poster')),
+                                    child: Center(
+                                      child: _isUploadingImage
+                                          ? const CircularProgressIndicator(color: AppColors.primary)
+                                          : _imageUrl != null
+                                              ? ClipRRect(
+                                                  borderRadius: BorderRadius.circular(16),
+                                                  child: _imageUrl!.startsWith('http')
+                                                      ? Image.network(_imageUrl!, height: 100, width: double.infinity, fit: BoxFit.cover)
+                                                      : Image.file(File(_imageUrl!), height: 100, width: double.infinity, fit: BoxFit.cover),
+                                                )
+                                              : Text('addEvent.addImage'.tr()),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 28),
                                 PrimaryButton(
-                                  label: 'Submit event',
+                                  label: 'addEvent.submit'.tr(),
                                   isLoading: createState.isLoading,
                                   onPressed: _submit,
                                 ),

@@ -34,6 +34,9 @@ class AuthController extends StateNotifier<AuthState> {
         _continueAsGuestUseCase = sl<ContinueAsGuestUseCase>(),
         _getCurrentUserUseCase = sl<GetCurrentUserUseCase>(),
         _logoutUseCase = sl<LogoutUseCase>(),
+        _changePasswordUseCase = sl<ChangePasswordUseCase>(),
+        _updateProfileUseCase = sl<UpdateProfileUseCase>(),
+        _uploadAvatarUseCase = sl<UploadAvatarUseCase>(),
         super(const AuthState(isLoading: true)) {
     _restoreSession();
   }
@@ -43,6 +46,9 @@ class AuthController extends StateNotifier<AuthState> {
   final ContinueAsGuestUseCase _continueAsGuestUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final LogoutUseCase _logoutUseCase;
+  final ChangePasswordUseCase _changePasswordUseCase;
+  final UpdateProfileUseCase _updateProfileUseCase;
+  final UploadAvatarUseCase _uploadAvatarUseCase;
 
   Future<void> _restoreSession() async {
     final result = await _getCurrentUserUseCase(const NoParams());
@@ -94,6 +100,44 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _logoutUseCase(const NoParams());
     state = const AuthState();
+  }
+
+  /// Returns null on success, or an error message on failure — callers show
+  /// the message directly rather than reading a separate error field, since
+  /// this isn't part of the app-wide auth state (a failed password change
+  /// shouldn't, say, log the user out or clear the current session).
+  Future<String?> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final result = await _changePasswordUseCase(
+      ChangePasswordParams(currentPassword: currentPassword, newPassword: newPassword),
+    );
+    return result.fold((failure) => failure.message, (_) => null);
+  }
+
+  Future<String?> updateProfile({String? name, String? phone, String? profileImageUrl}) async {
+    final result = await _updateProfileUseCase(
+      UpdateProfileParams(name: name, phone: phone, profileImageUrl: profileImageUrl),
+    );
+    return result.fold(
+      (failure) => failure.message,
+      (user) {
+        state = state.copyWith(user: user);
+        return null;
+      },
+    );
+  }
+
+  Future<String?> uploadAvatar(String filePath) async {
+    final result = await _uploadAvatarUseCase(filePath);
+    return result.fold(
+      (failure) => failure.message,
+      (user) {
+        state = state.copyWith(user: user);
+        return null;
+      },
+    );
   }
 }
 

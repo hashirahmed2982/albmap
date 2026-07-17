@@ -61,13 +61,70 @@ class SearchBusinessesUseCase implements UseCase<List<BusinessEntity>, String> {
   }
 }
 
-class SubmitBusinessUseCase implements UseCase<void, BusinessEntity> {
+class SubmitBusinessParams extends Equatable {
+  const SubmitBusinessParams({required this.business, this.confirmDuplicate = false});
+  final BusinessEntity business;
+  final bool confirmDuplicate;
+
+  @override
+  List<Object?> get props => [business, confirmDuplicate];
+}
+
+class SubmitBusinessUseCase implements UseCase<BusinessEntity, SubmitBusinessParams> {
   SubmitBusinessUseCase(this._repository);
   final BusinessRepository _repository;
 
   @override
-  Future<Either<Failure, void>> call(BusinessEntity business) {
-    return _repository.submitBusiness(business);
+  Future<Either<Failure, BusinessEntity>> call(SubmitBusinessParams params) {
+    return _repository.submitBusiness(params.business, confirmDuplicate: params.confirmDuplicate);
+  }
+}
+
+class UpdateBusinessParams extends Equatable {
+  const UpdateBusinessParams({
+    required this.businessId,
+    this.name,
+    this.description,
+    this.category,
+    this.address,
+    this.latitude,
+    this.longitude,
+    this.phone,
+    this.openingHours,
+  });
+
+  final String businessId;
+  final String? name;
+  final String? description;
+  final String? category;
+  final String? address;
+  final double? latitude;
+  final double? longitude;
+  final String? phone;
+  final Map<String, String>? openingHours;
+
+  @override
+  List<Object?> get props =>
+      [businessId, name, description, category, address, latitude, longitude, phone, openingHours];
+}
+
+class UpdateBusinessUseCase implements UseCase<BusinessEntity, UpdateBusinessParams> {
+  UpdateBusinessUseCase(this._repository);
+  final BusinessRepository _repository;
+
+  @override
+  Future<Either<Failure, BusinessEntity>> call(UpdateBusinessParams params) {
+    return _repository.updateBusiness(
+      params.businessId,
+      name: params.name,
+      description: params.description,
+      category: params.category,
+      address: params.address,
+      latitude: params.latitude,
+      longitude: params.longitude,
+      phone: params.phone,
+      openingHours: params.openingHours,
+    );
   }
 }
 
@@ -78,5 +135,15 @@ class GetMyBusinessesUseCase implements UseCase<List<BusinessEntity>, String> {
   @override
   Future<Either<Failure, List<BusinessEntity>>> call(String ownerId) {
     return _repository.getMyBusinesses(ownerId);
+  }
+}
+
+class UploadLogoUseCase implements UseCase<String, String> {
+  UploadLogoUseCase(this._repository);
+  final BusinessRepository _repository;
+
+  @override
+  Future<Either<Failure, String>> call(String filePath) {
+    return _repository.uploadLogo(filePath);
   }
 }

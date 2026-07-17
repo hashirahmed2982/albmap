@@ -39,3 +39,13 @@ class CreateEventUseCase implements UseCase<void, EventEntity> {
     return _repository.createEvent(event);
   }
 }
+
+class UploadEventImageUseCase implements UseCase<String, String> {
+  UploadEventImageUseCase(this._repository);
+  final EventRepository _repository;
+
+  @override
+  Future<Either<Failure, String>> call(String filePath) {
+    return _repository.uploadEventImage(filePath);
+  }
+}

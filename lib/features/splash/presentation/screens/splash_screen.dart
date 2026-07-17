@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,9 +58,13 @@ class SplashScreen extends ConsumerWidget {
                 style: AppTextStyles.h1.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Discover places & events around you',
-                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  'splash.tagline'.tr(),
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
+                ),
               ),
               const SizedBox(height: 40),
               const SizedBox(

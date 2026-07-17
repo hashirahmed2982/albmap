@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,9 +49,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Favorites', style: AppTextStyles.h1),
+                  Text('favorites.title'.tr(), style: AppTextStyles.h1),
                   const SizedBox(height: 4),
-                  const Text('Businesses and events you\'ve saved', style: AppTextStyles.bodyMedium),
+                  Text('favorites.subtitle'.tr(), style: AppTextStyles.bodyMedium),
                   const SizedBox(height: 12),
                   TabBar(
                     controller: _tabController,
@@ -58,7 +59,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                     unselectedLabelColor: AppColors.textSecondary,
                     indicatorColor: AppColors.primary,
                     labelStyle: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                    tabs: const [Tab(text: 'Businesses'), Tab(text: 'Events')],
+                    tabs: [Tab(text: 'favorites.businesses'.tr()), Tab(text: 'favorites.events'.tr())],
                   ),
                 ],
               ),
@@ -67,7 +68,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
               child: favoritesAsync.when(
                 loading: () => const LoadingIndicator(),
                 error: (_, __) => ErrorStateWidget(
-                  message: 'Failed to load favorites',
+                  message: 'favorites.failedToLoad'.tr(),
                   onRetry: () => ref.invalidate(favoritesProvider),
                 ),
                 data: (favorites) {
@@ -75,8 +76,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                     controller: _tabController,
                     children: [
                       favorites.businesses.isEmpty
-                          ? const EmptyStateWidget(
-                              message: 'No favorite businesses yet', icon: Icons.storefront_outlined)
+                          ? EmptyStateWidget(
+                              message: 'favorites.noBusinesses'.tr(), icon: Icons.storefront_outlined)
                           : ListView.builder(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                               itemCount: favorites.businesses.length,
@@ -91,7 +92,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                               ),
                             ),
                       favorites.events.isEmpty
-                          ? const EmptyStateWidget(message: 'No favorite events yet', icon: Icons.event_busy_outlined)
+                          ? EmptyStateWidget(message: 'favorites.noEvents'.tr(), icon: Icons.event_busy_outlined)
                           : ListView.builder(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                               itemCount: favorites.events.length,

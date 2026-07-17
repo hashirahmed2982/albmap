@@ -66,4 +66,16 @@ class EventRepositoryImpl implements EventRepository {
       return const Left(UnknownFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, String>> uploadEventImage(String filePath) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      return Right(await _remote.uploadEventImage(filePath));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
 }

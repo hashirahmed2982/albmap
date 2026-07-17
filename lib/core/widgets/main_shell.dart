@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,20 +28,20 @@ class MainShell extends ConsumerWidget {
     final int unread = ref.watch(unreadNotificationsCountProvider);
 
     final List<_TabDef> tabs = [
-      const _TabDef(icon: Icons.map_outlined, activeIcon: Icons.map_rounded, label: 'Discover'),
-      const _TabDef(icon: Icons.event_outlined, activeIcon: Icons.event_rounded, label: 'Events'),
+      _TabDef(icon: Icons.map_outlined, activeIcon: Icons.map_rounded, label: 'nav.discover'.tr()),
+      _TabDef(icon: Icons.event_outlined, activeIcon: Icons.event_rounded, label: 'nav.events'.tr()),
       if (!isGuest)
-        const _TabDef(icon: Icons.favorite_outline, activeIcon: Icons.favorite_rounded, label: 'Favorites'),
+        _TabDef(icon: Icons.favorite_outline, activeIcon: Icons.favorite_rounded, label: 'nav.favorites'.tr()),
       _TabDef(
         icon: Icons.notifications_outlined,
         activeIcon: Icons.notifications_rounded,
-        label: 'Alerts',
+        label: 'nav.alerts'.tr(),
         badgeCount: unread,
       ),
       _TabDef(
         icon: isGuest ? Icons.person_add_alt_outlined : Icons.person_outline,
         activeIcon: isGuest ? Icons.person_add_alt_1_rounded : Icons.person_rounded,
-        label: isGuest ? 'Account' : 'Profile',
+        label: isGuest ? 'nav.account'.tr() : 'nav.profile'.tr(),
       ),
     ];
 

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -39,7 +40,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_isSignUpMode && !_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please accept the Terms & Privacy Policy')),
+        SnackBar(content: Text('auth.pleaseAcceptTerms'.tr())),
       );
       return;
     }
@@ -59,7 +60,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
     if (!success && mounted) {
       final error = ref.read(authControllerProvider).errorMessage;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error ?? 'Something went wrong')));
+          .showSnackBar(SnackBar(content: Text(error ?? 'common.somethingWrong'.tr())));
     }
   }
 
@@ -102,14 +103,12 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _isSignUpMode ? 'Create your business account' : 'Welcome back',
+                    _isSignUpMode ? 'auth.createAccount'.tr() : 'auth.welcomeBack'.tr(),
                     style: AppTextStyles.h1.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _isSignUpMode
-                        ? 'Register your business and start managing listings'
-                        : 'Log in to continue discovering places',
+                    _isSignUpMode ? 'auth.signupSubtitle'.tr() : 'auth.loginSubtitle'.tr(),
                     style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withValues(alpha: 0.85)),
                   ),
                   const SizedBox(height: 24),
@@ -129,18 +128,18 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                           if (_isSignUpMode) ...[
                             TextFormField(
                               controller: _nameController,
-                              decoration: const InputDecoration(labelText: 'Full name'),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                              decoration: InputDecoration(labelText: 'auth.fullName'.tr()),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'auth.nameRequired'.tr() : null,
                             ),
                             const SizedBox(height: 14),
                           ],
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(labelText: 'Email'),
+                            decoration: InputDecoration(labelText: 'auth.email'.tr()),
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'Email is required';
-                              if (!v.contains('@')) return 'Enter a valid email';
+                              if (v == null || v.trim().isEmpty) return 'auth.emailRequired'.tr();
+                              if (!v.contains('@')) return 'auth.emailInvalid'.tr();
                               return null;
                             },
                           ),
@@ -149,15 +148,15 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
-                              labelText: 'Password',
+                              labelText: 'auth.password'.tr(),
                               suffixIcon: IconButton(
                                 icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                               ),
                             ),
                             validator: (v) {
-                              if (v == null || v.isEmpty) return 'Password is required';
-                              if (v.length < 6) return 'At least 6 characters';
+                              if (v == null || v.isEmpty) return 'auth.passwordRequired'.tr();
+                              if (v.length < 6) return 'auth.passwordTooShort'.tr();
                               return null;
                             },
                           ),
@@ -170,28 +169,31 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                                   isScrollControlled: true,
                                   builder: (_) => const ForgotPasswordSheet(),
                                 ),
-                                child: const Text('Forgot password?'),
+                                child: Text('auth.forgotPassword'.tr()),
                               ),
                             ),
                           ] else ...[
                             const SizedBox(height: 12),
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Checkbox(
                                   value: _acceptedTerms,
                                   activeColor: AppColors.primary,
                                   onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
                                 ),
-                                const Expanded(
-                                  child: Text('I accept the Terms & Conditions and Privacy Policy',
-                                      style: AppTextStyles.bodySmall),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 12),
+                                    child: Text('auth.acceptTerms'.tr(), style: AppTextStyles.bodySmall),
+                                  ),
                                 ),
                               ],
                             ),
                           ],
                           const SizedBox(height: 12),
                           PrimaryButton(
-                            label: _isSignUpMode ? 'Sign Up' : 'Log In',
+                            label: _isSignUpMode ? 'auth.signUp'.tr() : 'auth.logIn'.tr(),
                             isLoading: authState.isLoading,
                             onPressed: _submit,
                           ),
@@ -201,32 +203,32 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  Row(children: const [
-                    Expanded(child: Divider()),
+                  Row(children: [
+                    const Expanded(child: Divider()),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('or', style: AppTextStyles.bodySmall),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('auth.or'.tr(), style: AppTextStyles.bodySmall),
                     ),
-                    Expanded(child: Divider()),
+                    const Expanded(child: Divider()),
                   ]),
                   const SizedBox(height: 16),
 
                   PrimaryButton(
-                    label: 'Continue with Google',
+                    label: 'auth.continueWithGoogle'.tr(),
                     outlined: true,
                     icon: Icons.g_mobiledata,
                     onPressed: () {}, // wire google_sign_in package
                   ),
                   const SizedBox(height: 10),
                   PrimaryButton(
-                    label: 'Continue with Facebook',
+                    label: 'auth.continueWithFacebook'.tr(),
                     outlined: true,
                     icon: Icons.facebook,
                     onPressed: () {}, // wire facebook auth
                   ),
                   const SizedBox(height: 10),
                   PrimaryButton(
-                    label: 'Continue as Guest',
+                    label: 'auth.continueAsGuest'.tr(),
                     outlined: true,
                     icon: Icons.person_outline,
                     onPressed: () => ref.read(authControllerProvider.notifier).continueAsGuest(),
@@ -237,9 +239,8 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                     child: TextButton(
                       onPressed: () => setState(() => _isSignUpMode = !_isSignUpMode),
                       child: Text(
-                        _isSignUpMode
-                            ? 'Already have an account? Log in'
-                            : "Don't have an account? Sign up as Business",
+                        _isSignUpMode ? 'auth.alreadyHaveAccount'.tr() : 'auth.noAccount'.tr(),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),

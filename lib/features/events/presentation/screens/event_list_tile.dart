@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -47,7 +48,7 @@ class EventListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('EEE, MMM d · HH:mm');
+    final dateFmt = DateFormat('EEE, MMM d · HH:mm', context.locale.languageCode);
     final Color accent = eventCategoryColor(event.category);
 
     return Container(

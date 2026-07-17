@@ -16,6 +16,9 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> loginWithGoogle();
   Future<UserModel> loginWithFacebook();
   Future<UserModel> getCurrentUser();
+  Future<void> changePassword({required String currentPassword, required String newPassword});
+  Future<UserModel> updateProfile({String? name, String? phone, String? profileImageUrl});
+  Future<UserModel> uploadAvatar(String filePath);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -115,6 +118,63 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on DioException catch (e) {
       throw ServerException(
         e.response?.data?['message'] as String? ?? 'Failed to fetch user',
+        e.response?.statusCode,
+      );
+    }
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _dio.post<dynamic>(
+        '/auth/change-password',
+        data: <String, String>{'currentPassword': currentPassword, 'newPassword': newPassword},
+      );
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to change password',
+        e.response?.statusCode,
+      );
+    }
+  }
+
+  @override
+  Future<UserModel> updateProfile({String? name, String? phone, String? profileImageUrl}) async {
+    try {
+      final Response<dynamic> response = await _dio.patch<dynamic>(
+        '/auth/me',
+        data: <String, dynamic>{
+          if (name != null) 'name': name,
+          if (phone != null) 'phone': phone,
+          if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
+        },
+      );
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to update profile',
+        e.response?.statusCode,
+      );
+    }
+  }
+
+  @override
+  Future<UserModel> uploadAvatar(String filePath) async {
+    try {
+      final formData = FormData.fromMap(<String, dynamic>{
+        'avatar': await MultipartFile.fromFile(filePath),
+      });
+      final Response<dynamic> response = await _dio.post<dynamic>(
+        '/users/me/avatar',
+        data: formData,
+      );
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to upload avatar',
         e.response?.statusCode,
       );
     }

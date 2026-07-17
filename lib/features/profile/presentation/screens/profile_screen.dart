@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -92,11 +93,13 @@ class ProfileScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(isGuest ? 'Browsing as Guest' : (user?.name ?? 'Business User'), style: AppTextStyles.h2),
+          Text(isGuest ? 'profile.browsingAsGuest'.tr() : (user?.name ?? 'auth.signUp'.tr()), style: AppTextStyles.h2, maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
           Text(
-            isGuest ? 'Create an account to unlock more' : (user?.email ?? ''),
+            isGuest ? 'profile.createAccountToUnlock'.tr() : (user?.email ?? ''),
             style: AppTextStyles.bodyMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 10),
           Container(
@@ -106,7 +109,7 @@ class ProfileScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              isGuest ? 'GUEST' : (user?.role.name ?? '').toUpperCase(),
+              isGuest ? 'profile.guest'.tr() : (user?.role.name ?? '').toUpperCase(),
               style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
             ),
           ),
@@ -137,24 +140,23 @@ class ProfileScreen extends ConsumerWidget {
                     child: const Icon(Icons.storefront_outlined, color: AppColors.secondary),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: Text('Own a business?', style: AppTextStyles.h3)),
+                  Expanded(child: Text('profile.ownBusiness'.tr(), style: AppTextStyles.h3)),
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Guests can browse businesses and events, but saving favorites, '
-                'listing a business, and getting notified all require a free account.',
+              Text(
+                'profile.guestExplainer'.tr(),
                 style: AppTextStyles.bodyMedium,
               ),
               const SizedBox(height: 16),
               PrimaryButton(
-                label: 'Create an account',
+                label: 'profile.createAccountBtn'.tr(),
                 icon: Icons.person_add_alt_1_rounded,
                 onPressed: () => ref.read(authControllerProvider.notifier).logout(),
               ),
               const SizedBox(height: 8),
               PrimaryButton(
-                label: 'Log in to an existing account',
+                label: 'profile.loginExisting'.tr(),
                 outlined: true,
                 onPressed: () => ref.read(authControllerProvider.notifier).logout(),
               ),
@@ -163,9 +165,9 @@ class ProfileScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         _SectionCard(children: [
-          _ProfileTile(icon: Icons.settings_outlined, label: 'Settings', onTap: () => context.push(AppRoutes.settings)),
-          _ProfileTile(icon: Icons.info_outline, label: 'About Us', onTap: () => context.push(AppRoutes.aboutUs)),
-          _ProfileTile(icon: Icons.mail_outline, label: 'Contact Us', onTap: () => context.push(AppRoutes.contactUs)),
+          _ProfileTile(icon: Icons.settings_outlined, label: 'profile.settings'.tr(), onTap: () => context.push(AppRoutes.settings)),
+          _ProfileTile(icon: Icons.info_outline, label: 'profile.aboutUs'.tr(), onTap: () => context.push(AppRoutes.aboutUs)),
+          _ProfileTile(icon: Icons.mail_outline, label: 'profile.contactUs'.tr(), onTap: () => context.push(AppRoutes.contactUs)),
         ]),
       ],
     );
@@ -174,32 +176,40 @@ class ProfileScreen extends ConsumerWidget {
   List<Widget> _buildAccountMenu(BuildContext context, WidgetRef ref) {
     return [
       _SectionCard(children: [
-        _ProfileTile(icon: Icons.edit_outlined, label: 'Edit profile', onTap: () {}),
-        _ProfileTile(icon: Icons.lock_outline, label: 'Change password', onTap: () {}),
+        _ProfileTile(
+          icon: Icons.edit_outlined,
+          label: 'profile.editProfile'.tr(),
+          onTap: () => context.push(AppRoutes.editProfile),
+        ),
+        _ProfileTile(
+          icon: Icons.lock_outline,
+          label: 'profile.changePassword'.tr(),
+          onTap: () => context.push(AppRoutes.changePassword),
+        ),
       ]),
       const SizedBox(height: 12),
       _SectionCard(children: [
         _ProfileTile(
           icon: Icons.dashboard_outlined,
-          label: 'My Businesses',
+          label: 'profile.myBusinesses'.tr(),
           accent: AppColors.primary,
           onTap: () => context.push(AppRoutes.myBusinesses),
         ),
         _ProfileTile(
           icon: Icons.storefront_outlined,
-          label: 'Add a business',
+          label: 'profile.addBusiness'.tr(),
           accent: AppColors.secondary,
           onTap: () => context.push(AppRoutes.addBusiness),
         ),
-        _ProfileTile(icon: Icons.settings_outlined, label: 'Settings', onTap: () => context.push(AppRoutes.settings)),
-        _ProfileTile(icon: Icons.info_outline, label: 'About Us', onTap: () => context.push(AppRoutes.aboutUs)),
-        _ProfileTile(icon: Icons.mail_outline, label: 'Contact Us', onTap: () => context.push(AppRoutes.contactUs)),
+        _ProfileTile(icon: Icons.settings_outlined, label: 'profile.settings'.tr(), onTap: () => context.push(AppRoutes.settings)),
+        _ProfileTile(icon: Icons.info_outline, label: 'profile.aboutUs'.tr(), onTap: () => context.push(AppRoutes.aboutUs)),
+        _ProfileTile(icon: Icons.mail_outline, label: 'profile.contactUs'.tr(), onTap: () => context.push(AppRoutes.contactUs)),
       ]),
       const SizedBox(height: 12),
       _SectionCard(children: [
         _ProfileTile(
           icon: Icons.logout,
-          label: 'Log out',
+          label: 'profile.logOut'.tr(),
           accent: AppColors.error,
           onTap: () => _confirmLogout(context, ref),
         ),
@@ -212,16 +222,16 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Log out?'),
-        content: const Text('You will need to log in again to access your account.'),
+        title: Text('profile.logOutConfirmTitle'.tr()),
+        content: Text('profile.logOutConfirmBody'.tr()),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('common.cancel'.tr())),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(authControllerProvider.notifier).logout();
             },
-            child: const Text('Log out', style: TextStyle(color: AppColors.error)),
+            child: Text('profile.logOut'.tr(), style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -266,7 +276,7 @@ class _ProfileTile extends StatelessWidget {
         decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, size: 20, color: color),
       ),
-      title: Text(label, style: AppTextStyles.bodyLarge.copyWith(color: accent)),
+      title: Text(label, style: AppTextStyles.bodyLarge.copyWith(color: accent), maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textSecondary),
       onTap: onTap,
     );

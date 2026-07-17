@@ -1,0 +1,321 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
+
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/di/service_locator.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/opening_hours_editor.dart';
+import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/selection_field.dart';
+import '../../../../core/widgets/state_widgets.dart';
+import '../../../categories/domain/category_translations.dart';
+import '../../../categories/presentation/providers/category_providers.dart';
+import '../../../map/domain/entities/business_entity.dart';
+import '../../../map/domain/usecases/business_usecases.dart';
+import '../../../map/presentation/providers/business_providers.dart';
+import '../../../map/presentation/widgets/business_list_view.dart';
+import 'location_picker_screen.dart';
+
+/// Fixes a real gap: PATCH /businesses/:id existed on the backend with no
+/// mobile screen ever calling it — owners could submit a new listing but
+/// never fix a typo in an approved one. Editing name/category/address/
+/// coordinates on an approved listing sends it back to pending for
+/// re-review (enforced server-side — see business.service.js's
+/// SENSITIVE_FIELDS check) — this screen surfaces that plainly so it's
+/// not a surprise to the owner. Also lets the owner update opening hours
+/// after the fact (non-sensitive — never triggers re-review).
+class EditBusinessScreen extends ConsumerStatefulWidget {
+  const EditBusinessScreen({required this.businessId, super.key});
+  final String businessId;
+
+  @override
+  ConsumerState<EditBusinessScreen> createState() => _EditBusinessScreenState();
+}
+
+class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _descController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  String? _category;
+  LatLng? _pickedLocation;
+  Map<String, String> _openingHours = {};
+  BusinessEntity? _original;
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final result = await ref.read(businessDetailsProvider(widget.businessId).future);
+    if (!mounted || result == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+    setState(() {
+      _original = result;
+      _nameController.text = result.name;
+      _descController.text = result.description;
+      _addressController.text = result.address;
+      _phoneController.text = result.phone ?? '';
+      _category = result.category;
+      _pickedLocation = LatLng(result.latitude, result.longitude);
+      _openingHours = Map<String, String>.from(result.openingHours);
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  /// True if this edit touches a field that requires re-review once
+  /// approved — mirrors the backend's SENSITIVE_FIELDS list exactly, so
+  /// the UI can warn *before* submitting, not just after.
+  bool get _touchesSensitiveField {
+    if (_original == null) return false;
+    return _nameController.text.trim() != _original!.name ||
+        _category != _original!.category ||
+        _addressController.text.trim() != _original!.address ||
+        _pickedLocation?.latitude != _original!.latitude ||
+        _pickedLocation?.longitude != _original!.longitude;
+  }
+
+  Future<void> _openLocationPicker() async {
+    final result = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(builder: (_) => LocationPickerScreen(initialLocation: _pickedLocation)),
+    );
+    if (result != null) setState(() => _pickedLocation = result);
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate() || _original == null) return;
+    if (_category == null || _pickedLocation == null) return;
+
+    final willResetToPending = _original!.status == BusinessStatus.approved && _touchesSensitiveField;
+    if (willResetToPending) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Text('editBusiness.reviewWarningTitle'.tr()),
+          content: Text('editBusiness.reviewWarningBody'.tr()),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('common.cancel'.tr())),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('editBusiness.continueAnyway'.tr()),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final useCase = sl<UpdateBusinessUseCase>();
+    final result = await useCase(UpdateBusinessParams(
+      businessId: widget.businessId,
+      name: _nameController.text.trim(),
+      description: _descController.text.trim(),
+      category: _category!,
+      address: _addressController.text.trim(),
+      latitude: _pickedLocation!.latitude,
+      longitude: _pickedLocation!.longitude,
+      phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      openingHours: _openingHours,
+    ));
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    result.fold(
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (updated) {
+        ref.invalidate(businessDetailsProvider(widget.businessId));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              updated.status == BusinessStatus.pending
+                  ? 'editBusiness.savedPending'.tr()
+                  : 'editBusiness.saved'.tr(),
+            ),
+          ),
+        );
+        Navigator.of(context).pop();
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: LoadingIndicator());
+    }
+    if (_original == null) {
+      return Scaffold(body: ErrorStateWidget(message: 'editBusiness.notFound'.tr()));
+    }
+
+    final categoryNames = ref.watch(categoryNamesProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              GradientHeader(
+                child: Row(
+                  children: [
+                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('editBusiness.title'.tr(), style: AppTextStyles.h1),
+                          Text(_original!.name, style: AppTextStyles.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_original!.status == BusinessStatus.approved)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.info.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline, size: 18, color: AppColors.info),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'editBusiness.infoBanner'.tr(),
+                                  style: AppTextStyles.bodySmall,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: InputDecoration(labelText: 'addBusiness.businessName'.tr()),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _descController,
+                        maxLines: 4,
+                        decoration: InputDecoration(labelText: 'addBusiness.description'.tr()),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                      ),
+                      const SizedBox(height: 14),
+                      SelectionField<String>(
+                        label: 'addBusiness.category'.tr(),
+                        selectedValue: _category,
+                        options: [
+                          for (final c in categoryNames)
+                            SelectionOption(value: c, label: localizedCategoryName(context, c), icon: categoryIcon(c)),
+                        ],
+                        onChanged: (v) => setState(() => _category = v),
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _addressController,
+                        decoration: InputDecoration(labelText: 'addBusiness.address'.tr()),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                      ),
+                      const SizedBox(height: 14),
+                      InkWell(
+                        onTap: _openLocationPicker,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.pin_drop_outlined, color: AppColors.primary),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _pickedLocation == null
+                                      ? 'addBusiness.setLocation'.tr()
+                                      : '${_pickedLocation!.latitude.toStringAsFixed(5)}, '
+                                        '${_pickedLocation!.longitude.toStringAsFixed(5)}',
+                                  style: AppTextStyles.bodyMedium,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
+                      ),
+                      const SizedBox(height: 20),
+
+                      Text('addBusiness.openingHours'.tr(), style: AppTextStyles.h3),
+                      const SizedBox(height: 12),
+                      OpeningHoursEditor(
+                        initialHours: _openingHours,
+                        onChanged: (hours) => _openingHours = hours,
+                      ),
+
+                      const SizedBox(height: 28),
+                      PrimaryButton(
+                        label: 'common.saveChanges'.tr(),
+                        isLoading: _isSubmitting,
+                        onPressed: _submit,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

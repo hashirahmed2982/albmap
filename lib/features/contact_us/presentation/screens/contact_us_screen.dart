@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/selection_field.dart';
 
 /// 12. Contact Us Screen — support form + FAQ.
 class ContactUsScreen extends ConsumerStatefulWidget {
@@ -19,10 +21,15 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _messageController = TextEditingController();
-  String _inquiryType = 'General';
+  String _inquiryType = 'general';
   bool _isSubmitting = false;
 
-  static const List<String> _inquiryTypes = ['General', 'Business support', 'Bug report', 'Feedback'];
+  // Keys map to contactUs.inquiryTypes.* translation entries — kept as
+  // stable internal identifiers separate from the displayed (translated)
+  // label, so switching language never changes what's actually submitted.
+  static const List<String> _inquiryTypeKeys = ['general', 'businessSupport', 'bugReport', 'feedback'];
+
+  String _inquiryTypeLabel(String key) => 'contactUs.inquiryTypes.$key'.tr();
 
   @override
   void dispose() {
@@ -36,13 +43,12 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
     await Future<void>.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
     setState(() => _isSubmitting = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Message sent — we will get back to you soon!')));
-      _formKey.currentState!.reset();
-      _messageController.clear();
-    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('contactUs.sent'.tr())));
+    _formKey.currentState!.reset();
+    _messageController.clear();
   }
 
   @override
@@ -60,7 +66,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                   children: [
                     IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
                     const SizedBox(width: 4),
-                    Text('Contact Us', style: AppTextStyles.h1),
+                    Text('contactUs.title'.tr(), style: AppTextStyles.h1),
                   ],
                 ),
               ),
@@ -83,50 +89,44 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                           children: [
                             TextFormField(
                               controller: _nameController,
-                              decoration: const InputDecoration(labelText: 'Name'),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                              decoration: InputDecoration(labelText: 'contactUs.name'.tr()),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                             ),
                             const SizedBox(height: 14),
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(labelText: 'Email'),
-                              validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
+                              decoration: InputDecoration(labelText: 'contactUs.email'.tr()),
+                              validator: (v) => (v == null || !v.contains('@')) ? 'contactUs.validEmail'.tr() : null,
                             ),
                             const SizedBox(height: 14),
-                            DropdownButtonFormField<String>(
-                              value: _inquiryType,
-                              decoration: const InputDecoration(labelText: 'Inquiry type'),
-                              items: [for (final t in _inquiryTypes) DropdownMenuItem(value: t, child: Text(t))],
-                              onChanged: (v) => setState(() => _inquiryType = v ?? 'General'),
+                            SelectionField<String>(
+                              label: 'contactUs.inquiryType'.tr(),
+                              selectedValue: _inquiryType,
+                              options: [
+                                for (final key in _inquiryTypeKeys)
+                                  SelectionOption(value: key, label: _inquiryTypeLabel(key)),
+                              ],
+                              onChanged: (v) => setState(() => _inquiryType = v ?? 'general'),
                             ),
                             const SizedBox(height: 14),
                             TextFormField(
                               controller: _messageController,
                               maxLines: 5,
-                              decoration: const InputDecoration(labelText: 'Message'),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                              decoration: InputDecoration(labelText: 'contactUs.message'.tr()),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      PrimaryButton(label: 'Send message', isLoading: _isSubmitting, onPressed: _submit),
+                      PrimaryButton(label: 'contactUs.send'.tr(), isLoading: _isSubmitting, onPressed: _submit),
                       const SizedBox(height: 32),
-                      Text('Frequently asked questions', style: AppTextStyles.h3),
+                      Text('contactUs.faqTitle'.tr(), style: AppTextStyles.h3),
                       const SizedBox(height: 10),
-                      const _FaqTile(
-                        question: 'How long does business approval take?',
-                        answer: 'Typically 1-2 business days after submission.',
-                      ),
-                      const _FaqTile(
-                        question: 'Can I edit my business after approval?',
-                        answer: 'Yes, from your Profile screen you can update your listing anytime.',
-                      ),
-                      const _FaqTile(
-                        question: 'Is AlbMap free to use?',
-                        answer: 'Yes, both guest browsing and business registration are free.',
-                      ),
+                      _FaqTile(question: 'contactUs.faq1Q'.tr(), answer: 'contactUs.faq1A'.tr()),
+                      _FaqTile(question: 'contactUs.faq2Q'.tr(), answer: 'contactUs.faq2A'.tr()),
+                      _FaqTile(question: 'contactUs.faq3Q'.tr(), answer: 'contactUs.faq3A'.tr()),
                     ],
                   ),
                 ),

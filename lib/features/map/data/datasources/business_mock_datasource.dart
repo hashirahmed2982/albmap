@@ -1,4 +1,5 @@
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/error/exceptions.dart';
 import '../models/business_model.dart';
 import 'business_remote_datasource.dart';
 
@@ -103,14 +104,77 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
   }
 
   @override
-  Future<void> submitBusiness(BusinessModel business) async {
+  Future<BusinessModel> submitBusiness(BusinessModel business, {bool confirmDuplicate = false}) async {
     await _fakeDelay();
+    if (!confirmDuplicate) {
+      final existingMatch = _businesses.where(
+        (b) => b.name.toLowerCase() == business.name.toLowerCase() && b.status != BusinessStatus.rejected,
+      );
+      if (existingMatch.isNotEmpty) {
+        throw ServerException(
+          'A business named "${existingMatch.first.name}" already exists nearby. '
+          'Submit again to confirm this is a different business.',
+          409,
+          <String, dynamic>{
+            'id': existingMatch.first.id,
+            'name': existingMatch.first.name,
+            'address': existingMatch.first.address,
+            'distanceMeters': 50,
+          },
+        );
+      }
+    }
     _businesses.add(business);
+    return business;
+  }
+
+  @override
+  Future<BusinessModel> updateBusiness(String businessId, Map<String, dynamic> changes) async {
+    await _fakeDelay();
+    final index = _businesses.indexWhere((b) => b.id == businessId);
+    if (index == -1) {
+      throw ServerException('Business not found', 404);
+    }
+    final existing = _businesses[index];
+    final sensitiveFieldsChanged = (changes['name'] != null && changes['name'] != existing.name) ||
+        (changes['category'] != null && changes['category'] != existing.category) ||
+        (changes['address'] != null && changes['address'] != existing.address) ||
+        (changes['latitude'] != null && changes['latitude'] != existing.latitude) ||
+        (changes['longitude'] != null && changes['longitude'] != existing.longitude);
+
+    final updated = BusinessModel(
+      id: existing.id,
+      ownerId: existing.ownerId,
+      name: changes['name'] as String? ?? existing.name,
+      description: changes['description'] as String? ?? existing.description,
+      category: changes['category'] as String? ?? existing.category,
+      address: changes['address'] as String? ?? existing.address,
+      latitude: (changes['latitude'] as num?)?.toDouble() ?? existing.latitude,
+      longitude: (changes['longitude'] as num?)?.toDouble() ?? existing.longitude,
+      status: (existing.status == BusinessStatus.approved && sensitiveFieldsChanged)
+          ? BusinessStatus.pending
+          : existing.status,
+      phone: changes['phone'] as String? ?? existing.phone,
+      logoUrl: existing.logoUrl,
+      openingHours: (changes['openingHours'] as Map?)?.cast<String, String>() ?? existing.openingHours,
+      tags: existing.tags,
+      rating: existing.rating,
+    );
+    _businesses[index] = updated;
+    return updated;
   }
 
   @override
   Future<List<BusinessModel>> getMyBusinesses(String ownerId) async {
     await _fakeDelay();
     return _businesses.where((b) => b.ownerId == ownerId).toList();
+  }
+
+  @override
+  Future<String> uploadLogo(String filePath) async {
+    await _fakeDelay();
+    // No real server to host it in mock mode — echo back the local file
+    // path so the UI can still display the picked image immediately.
+    return filePath;
   }
 }

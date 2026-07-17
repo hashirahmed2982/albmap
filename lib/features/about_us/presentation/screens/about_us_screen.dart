@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -23,7 +24,7 @@ class AboutUsScreen extends StatelessWidget {
                 children: [
                   IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
                   const SizedBox(width: 4),
-                  Text('About Us', style: AppTextStyles.h1),
+                  Text('aboutUs.title'.tr(), style: AppTextStyles.h1),
                 ],
               ),
             ),
@@ -43,22 +44,20 @@ class AboutUsScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text('AlbMap', style: AppTextStyles.h1),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Discover local businesses & events around you',
+                  Text(
+                    'aboutUs.tagline'.tr(),
                     textAlign: TextAlign.center,
                     style: AppTextStyles.bodyMedium,
                   ),
                   const SizedBox(height: 28),
                   _InfoCard(
-                    title: 'Our mission',
-                    body: 'AlbMap connects communities with the local businesses and events that make '
-                        'their neighborhoods vibrant — making discovery effortless for guests and giving '
-                        'business owners the tools to reach the people around them.',
+                    title: 'aboutUs.missionTitle'.tr(),
+                    body: 'aboutUs.missionBody'.tr(),
                   ),
                   const SizedBox(height: 14),
                   _InfoCard(
-                    title: 'Our vision',
-                    body: 'To become the go-to platform for local discovery — one map, every community.',
+                    title: 'aboutUs.visionTitle'.tr(),
+                    body: 'aboutUs.visionBody'.tr(),
                   ),
                   const SizedBox(height: 24),
                   Container(
@@ -71,13 +70,13 @@ class AboutUsScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         ListTile(
-                          title: const Text('Privacy Policy'),
+                          title: Text('aboutUs.privacyPolicy'.tr()),
                           trailing: const Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
                           onTap: () => launchUrl(Uri.parse('https://albmap.app/privacy')),
                         ),
                         const Divider(height: 1),
                         ListTile(
-                          title: const Text('Terms & Conditions'),
+                          title: Text('aboutUs.terms'.tr()),
                           trailing: const Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
                           onTap: () => launchUrl(Uri.parse('https://albmap.app/terms')),
                         ),
@@ -85,7 +84,7 @@ class AboutUsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 28),
-                  Text('Follow us', style: AppTextStyles.h3),
+                  Text('aboutUs.followUs'.tr(), style: AppTextStyles.h3),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

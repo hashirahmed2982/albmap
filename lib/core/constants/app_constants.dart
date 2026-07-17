@@ -9,7 +9,7 @@ class AppConstants {
   /// with --dart-define=USE_MOCK_DATA=true.
   static const bool useMockData = bool.fromEnvironment(
     'USE_MOCK_DATA',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   // Map tile source — using flutter_map (OpenStreetMap-compatible), which
@@ -34,11 +34,10 @@ class AppConstants {
   //     --dart-define=BASE_URL=http://<your-machine-LAN-IP>:4000/v1
   //   Production:
   //     --dart-define=BASE_URL=https://your-deployed-api.com/v1
-  // static const String baseUrl = String.fromEnvironment(
-  //   'BASE_URL',
-  //   defaultValue: 'http://10.0.2.2:4000/v1',
-  // );
-  static const String baseUrl = 'https://0599-2407-aa80-15-9c4c-5045-223-f687-554.ngrok-free.app/v1';
+  static const String baseUrl = String.fromEnvironment(
+    'BASE_URL',
+    defaultValue: 'http://10.0.2.2:4000/v1',
+  );
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
 
@@ -61,7 +60,7 @@ class AppConstants {
 
   // Misc
   static const String appName = 'AlbMap';
-  static const List<String> supportedLocales = ['en', 'sq', 'it'];
+  static const List<String> supportedLocales = ['en', 'sq', 'de'];
 }
 
 enum UserRole { guest, business, admin }

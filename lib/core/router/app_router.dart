@@ -12,7 +12,10 @@ import '../../features/events/presentation/screens/event_details_screen.dart';
 import '../../features/favorites/presentation/screens/favorites_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/profile/presentation/screens/edit_profile_screen.dart';
+import '../../features/profile/presentation/screens/change_password_screen.dart';
 import '../../features/add_business/presentation/screens/add_business_screen.dart';
+import '../../features/add_business/presentation/screens/edit_business_screen.dart';
 import '../../features/add_event/presentation/screens/add_event_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/contact_us/presentation/screens/contact_us_screen.dart';
@@ -42,10 +45,14 @@ class AppRoutes {
   static const String aboutUs = '/about-us';
   static const String myBusinesses = '/my-businesses';
   static const String businessDashboard = '/dashboard/:id';
+  static const String editProfile = '/edit-profile';
+  static const String changePassword = '/change-password';
+  static const String editBusiness = '/edit-business/:id';
 
   static String businessDetailsPath(String id) => '/business/$id';
   static String eventDetailsPath(String id) => '/events/$id';
   static String businessDashboardPath(String id) => '/dashboard/$id';
+  static String editBusinessPath(String id) => '/edit-business/$id';
 }
 
 /// A [Listenable] bridge so GoRouter's `refreshListenable` can react to
@@ -85,6 +92,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         AppRoutes.addBusiness,
         AppRoutes.addEvent,
         AppRoutes.myBusinesses,
+        AppRoutes.editProfile,
+        AppRoutes.changePassword,
+        '/edit-business', // prefix match for /edit-business/:id
         '/dashboard', // prefix match for /dashboard/:id — see businessDashboard route
       ];
       if (authenticated &&
@@ -137,6 +147,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.myBusinesses,
         builder: (context, state) => const MyBusinessesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.editProfile,
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.changePassword,
+        builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.editBusiness,
+        builder: (context, state) =>
+            EditBusinessScreen(businessId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.businessDashboard,

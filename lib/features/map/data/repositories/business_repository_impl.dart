@@ -93,7 +93,10 @@ class BusinessRepositoryImpl implements BusinessRepository {
   }
 
   @override
-  Future<Either<Failure, void>> submitBusiness(BusinessEntity business) async {
+  Future<Either<Failure, BusinessEntity>> submitBusiness(
+    BusinessEntity business, {
+    bool confirmDuplicate = false,
+  }) async {
     if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
     try {
       final BusinessModel model = BusinessModel(
@@ -103,8 +106,48 @@ class BusinessRepositoryImpl implements BusinessRepository {
         status: business.status, phone: business.phone, logoUrl: business.logoUrl,
         openingHours: business.openingHours, tags: business.tags,
       );
-      await _remote.submitBusiness(model);
-      return const Right(null);
+      final created = await _remote.submitBusiness(model, confirmDuplicate: confirmDuplicate);
+      return Right(created);
+    } on ServerException catch (e) {
+      if (e.statusCode == 409 && e.duplicate != null) {
+        return Left(DuplicateBusinessFailure(
+          message: e.message,
+          duplicateName: e.duplicate!['name'] as String? ?? 'Unknown',
+          duplicateAddress: e.duplicate!['address'] as String? ?? '',
+          distanceMeters: (e.duplicate!['distanceMeters'] as num?)?.toInt() ?? 0,
+        ));
+      }
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, BusinessEntity>> updateBusiness(
+    String businessId, {
+    String? name,
+    String? description,
+    String? category,
+    String? address,
+    double? latitude,
+    double? longitude,
+    String? phone,
+    Map<String, String>? openingHours,
+  }) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      final updated = await _remote.updateBusiness(businessId, <String, dynamic>{
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (category != null) 'category': category,
+        if (address != null) 'address': address,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (phone != null) 'phone': phone,
+        if (openingHours != null) 'openingHours': openingHours,
+      });
+      return Right(updated);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (_) {
@@ -117,6 +160,18 @@ class BusinessRepositoryImpl implements BusinessRepository {
     if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
     try {
       return Right(await _remote.getMyBusinesses(ownerId));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadLogo(String filePath) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      return Right(await _remote.uploadLogo(filePath));
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (_) {

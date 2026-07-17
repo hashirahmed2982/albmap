@@ -14,4 +14,6 @@ abstract class EventRepository {
   Future<Either<Failure, EventEntity>> getEventDetails(String id);
 
   Future<Either<Failure, void>> createEvent(EventEntity event);
+
+  Future<Either<Failure, String>> uploadEventImage(String filePath);
 }

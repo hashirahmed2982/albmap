@@ -14,8 +14,10 @@ abstract class BusinessRemoteDataSource {
 
   Future<BusinessModel> getBusinessDetails(String id);
   Future<List<BusinessModel>> searchBusinesses(String query);
-  Future<void> submitBusiness(BusinessModel business);
+  Future<BusinessModel> submitBusiness(BusinessModel business, {bool confirmDuplicate});
+  Future<BusinessModel> updateBusiness(String businessId, Map<String, dynamic> changes);
   Future<List<BusinessModel>> getMyBusinesses(String ownerId);
+  Future<String> uploadLogo(String filePath);
 }
 
 class BusinessRemoteDataSourceImpl implements BusinessRemoteDataSource {
@@ -39,7 +41,6 @@ class BusinessRemoteDataSourceImpl implements BusinessRemoteDataSource {
           if (userLat != null) 'lat': userLat,
           if (userLng != null) 'lng': userLng,
           'sortBy': sortBy,
-          'status': 'approved',
         },
       );
       return (response.data['data'] as List<dynamic>)
@@ -82,12 +83,40 @@ class BusinessRemoteDataSourceImpl implements BusinessRemoteDataSource {
   }
 
   @override
-  Future<void> submitBusiness(BusinessModel business) async {
+  Future<BusinessModel> submitBusiness(BusinessModel business, {bool confirmDuplicate = false}) async {
     try {
-      await _dio.post<dynamic>('/businesses', data: business.toCreateJson());
+      final Response<dynamic> response = await _dio.post<dynamic>(
+        '/businesses',
+        data: <String, dynamic>{
+          ...business.toCreateJson(),
+          if (confirmDuplicate) 'confirmDuplicate': true,
+        },
+      );
+      return BusinessModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
+      // A 409 with a `duplicate` field is a structured warning, not a
+      // generic failure — surface it so the UI can offer "submit anyway"
+      // with the specific conflicting business's details, rather than
+      // just showing a plain error string.
       throw ServerException(
         e.response?.data?['message'] as String? ?? 'Failed to submit business',
+        e.response?.statusCode,
+        e.response?.data?['duplicate'] as Map<String, dynamic>?,
+      );
+    }
+  }
+
+  @override
+  Future<BusinessModel> updateBusiness(String businessId, Map<String, dynamic> changes) async {
+    try {
+      final Response<dynamic> response = await _dio.patch<dynamic>(
+        '/businesses/$businessId',
+        data: changes,
+      );
+      return BusinessModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to update business',
         e.response?.statusCode,
       );
     }
@@ -108,6 +137,22 @@ class BusinessRemoteDataSourceImpl implements BusinessRemoteDataSource {
     } on DioException catch (e) {
       throw ServerException(
         e.response?.data?['message'] as String? ?? 'Failed to load your businesses',
+        e.response?.statusCode,
+      );
+    }
+  }
+
+  @override
+  Future<String> uploadLogo(String filePath) async {
+    try {
+      final formData = FormData.fromMap(<String, dynamic>{
+        'logo': await MultipartFile.fromFile(filePath),
+      });
+      final Response<dynamic> response = await _dio.post<dynamic>('/businesses/logo', data: formData);
+      return response.data['url'] as String;
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to upload logo',
         e.response?.statusCode,
       );
     }

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -46,7 +47,7 @@ class NotificationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifications = ref.watch(notificationsControllerProvider);
-    final dateFmt = DateFormat('MMM d, HH:mm');
+    final dateFmt = DateFormat('MMM d, HH:mm', context.locale.languageCode);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -61,23 +62,23 @@ class NotificationsScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Notifications', style: AppTextStyles.h1),
+                        Text('notifications.title'.tr(), style: AppTextStyles.h1),
                         const SizedBox(height: 4),
-                        const Text('Stay up to date', style: AppTextStyles.bodyMedium),
+                        Text('notifications.subtitle'.tr(), style: AppTextStyles.bodyMedium),
                       ],
                     ),
                   ),
                   if (notifications.any((n) => !n.isRead))
                     TextButton(
                       onPressed: () => ref.read(notificationsControllerProvider.notifier).markAllAsRead(),
-                      child: const Text('Mark all read'),
+                      child: Text('notifications.markAllRead'.tr()),
                     ),
                 ],
               ),
             ),
             Expanded(
               child: notifications.isEmpty
-                  ? const EmptyStateWidget(message: 'No notifications yet', icon: Icons.notifications_off_outlined)
+                  ? EmptyStateWidget(message: 'notifications.empty'.tr(), icon: Icons.notifications_off_outlined)
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                       itemCount: notifications.length,

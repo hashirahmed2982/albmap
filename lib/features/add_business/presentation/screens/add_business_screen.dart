@@ -1,20 +1,44 @@
+import 'dart:io';
+
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/opening_hours_editor.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/selection_field.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../categories/domain/category_translations.dart';
+import '../../../categories/presentation/providers/category_providers.dart';
 import '../../../map/domain/entities/business_entity.dart';
 import '../../../map/domain/usecases/business_usecases.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
-import '../../../map/presentation/widgets/filter_bottom_sheet.dart';
+import 'location_picker_screen.dart';
 
 /// 9. Add Business Screen — business registration form (pending approval).
+///
+/// The address field is free-text (an address string can't be geocoded
+/// reliably enough to place a marker without user confirmation — house
+/// numbers, informal addresses, and typos are all common in real listings).
+/// So the actual map coordinates come from a separate, explicit
+/// "pick location on map" step (LocationPickerScreen) — the address text
+/// and the coordinates are two independent pieces of information the owner
+/// provides, not one derived from the other. Submission is blocked until a
+/// location has actually been picked, rather than silently defaulting to
+/// some placeholder point.
+///
+/// Also captures per-day opening hours (see OpeningHoursEditor) — this was
+/// previously a backend/model field nothing in the UI ever populated, so
+/// every business showed no hours at all on its details page.
 class AddBusinessScreen extends ConsumerStatefulWidget {
   const AddBusinessScreen({super.key});
 
@@ -30,7 +54,11 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
   final _phoneController = TextEditingController();
 
   String? _category;
+  LatLng? _pickedLocation;
+  String? _logoUrl;
+  Map<String, String> _openingHours = {};
   bool _isSubmitting = false;
+  bool _isUploadingLogo = false;
   bool _submitted = false;
 
   @override
@@ -42,11 +70,45 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _pickAndUploadLogo() async {
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1024);
+    if (picked == null || !mounted) return;
+
+    setState(() => _isUploadingLogo = true);
+    final useCase = sl<UploadLogoUseCase>();
+    final result = await useCase(picked.path);
+    if (!mounted) return;
+    setState(() => _isUploadingLogo = false);
+
+    result.fold(
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (url) => setState(() => _logoUrl = url),
+    );
+  }
+
+  Future<void> _openLocationPicker() async {
+    final result = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(initialLocation: _pickedLocation),
+      ),
+    );
+    if (result != null) {
+      setState(() => _pickedLocation = result);
+    }
+  }
+
+  Future<void> _submit({bool confirmDuplicate = false}) async {
     if (!_formKey.currentState!.validate()) return;
     if (_category == null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Please select a category')));
+          .showSnackBar(SnackBar(content: Text('addBusiness.selectCategoryError'.tr())));
+      return;
+    }
+    if (_pickedLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('addBusiness.selectLocationError'.tr())),
+      );
       return;
     }
 
@@ -60,22 +122,56 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
       description: _descController.text.trim(),
       category: _category!,
       address: _addressController.text.trim(),
-      // NOTE: replace with a location picker (map tap) for lat/lng in production.
-      latitude: 41.3275,
-      longitude: 19.8187,
+      latitude: _pickedLocation!.latitude,
+      longitude: _pickedLocation!.longitude,
       status: BusinessStatus.pending,
       phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      logoUrl: _logoUrl,
+      openingHours: _openingHours,
     );
 
     final useCase = sl<SubmitBusinessUseCase>();
-    final result = await useCase(business);
+    final result = await useCase(
+      SubmitBusinessParams(business: business, confirmDuplicate: confirmDuplicate),
+    );
 
     setState(() => _isSubmitting = false);
+    if (!mounted) return;
 
     result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(failure.message)),
-      ),
+      (failure) async {
+        // A duplicate warning is a specific, actionable case — offer
+        // "submit anyway" with the conflicting business's details, rather
+        // than just showing the generic message as a dead-end error.
+        if (failure is DuplicateBusinessFailure) {
+          final proceed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: Text('addBusiness.duplicateTitle'.tr()),
+              content: Text(
+                'addBusiness.duplicateBody'.tr(args: [
+                  failure.duplicateName,
+                  failure.duplicateAddress,
+                  '${failure.distanceMeters}',
+                ]),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('common.cancel'.tr())),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text('addBusiness.submitAnyway'.tr()),
+                ),
+              ],
+            ),
+          );
+          if (proceed == true && mounted) {
+            await _submit(confirmDuplicate: true);
+          }
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message)));
+      },
       (_) => setState(() => _submitted = true),
     );
   }
@@ -85,7 +181,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     if (_submitted) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(title: const Text('Add Business')),
+        appBar: AppBar(title: Text('addBusiness.title'.tr())),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -98,21 +194,23 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                   child: const Icon(Icons.hourglass_top_rounded, size: 48, color: AppColors.pending),
                 ),
                 const SizedBox(height: 20),
-                Text('Submitted for approval', style: AppTextStyles.h2, textAlign: TextAlign.center),
+                Text('addBusiness.submittedTitle'.tr(), style: AppTextStyles.h2, textAlign: TextAlign.center),
                 const SizedBox(height: 8),
-                const Text(
-                  'Your business is pending admin review. You will be notified once it is approved.',
+                Text(
+                  'addBusiness.submittedBody'.tr(),
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium,
                 ),
                 const SizedBox(height: 24),
-                PrimaryButton(label: 'Done', onPressed: () => Navigator.of(context).pop()),
+                PrimaryButton(label: 'common.done'.tr(), onPressed: () => Navigator.of(context).pop()),
               ],
             ),
           ),
         ),
       );
     }
+
+    final categoryNames = ref.watch(categoryNamesProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -131,8 +229,8 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Add Business', style: AppTextStyles.h1),
-                          const Text('List your business on AlbMap', style: AppTextStyles.bodyMedium),
+                          Text('addBusiness.title'.tr(), style: AppTextStyles.h1),
+                          Text('addBusiness.subtitle'.tr(), style: AppTextStyles.bodyMedium),
                         ],
                       ),
                     ),
@@ -147,7 +245,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       GestureDetector(
-                        onTap: () {}, // wire image_picker for logo upload
+                        onTap: _isUploadingLogo ? null : _pickAndUploadLogo,
                         child: Container(
                           height: 120,
                           decoration: BoxDecoration(
@@ -156,56 +254,142 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                             border: Border.all(color: AppColors.divider),
                             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
                           ),
-                          child: const Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
-                                SizedBox(height: 6),
-                                Text('Add business logo', style: AppTextStyles.bodySmall),
-                              ],
-                            ),
+                          child: Center(
+                            child: _isUploadingLogo
+                                ? const CircularProgressIndicator(color: AppColors.primary)
+                                : _logoUrl != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: _logoUrl!.startsWith('http')
+                                            ? Image.network(_logoUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                                            : Image.file(File(_logoUrl!), height: 120, width: double.infinity, fit: BoxFit.cover),
+                                      )
+                                    : Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
+                                          const SizedBox(height: 6),
+                                          Text('addBusiness.addLogo'.tr(), style: AppTextStyles.bodySmall),
+                                        ],
+                                      ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(labelText: 'Business name'),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        decoration: InputDecoration(labelText: 'addBusiness.businessName'.tr()),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _descController,
                         maxLines: 4,
-                        decoration: const InputDecoration(labelText: 'Description'),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        decoration: InputDecoration(labelText: 'addBusiness.description'.tr()),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
                       const SizedBox(height: 14),
-                      DropdownButtonFormField<String>(
-                        value: _category,
-                        decoration: const InputDecoration(labelText: 'Category'),
-                        items: [for (final c in kBusinessCategories) DropdownMenuItem(value: c, child: Text(c))],
+                      SelectionField<String>(
+                        label: 'addBusiness.category'.tr(),
+                        selectedValue: _category,
+                        options: [
+                          for (final c in categoryNames)
+                            SelectionOption(value: c, label: localizedCategoryName(context, c), icon: categoryIcon(c)),
+                        ],
                         onChanged: (v) => setState(() => _category = v),
+                        validator: (v) => v == null ? 'addBusiness.selectCategoryError'.tr() : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _addressController,
-                        decoration: const InputDecoration(
-                          labelText: 'Address',
-                          suffixIcon: Icon(Icons.map_outlined),
+                        decoration: InputDecoration(
+                          labelText: 'addBusiness.address'.tr(),
+                          helperText: 'addBusiness.addressHelper'.tr(),
+                          helperMaxLines: 2,
                         ),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
+                      const SizedBox(height: 14),
+
+                      // Separate, explicit map-pin step — this is what
+                      // actually determines the marker position, not the
+                      // address text above.
+                      InkWell(
+                        onTap: _openLocationPicker,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: _pickedLocation == null
+                                ? AppColors.surface
+                                : AppColors.success.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _pickedLocation == null ? AppColors.divider : AppColors.success.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _pickedLocation == null ? Icons.pin_drop_outlined : Icons.check_circle,
+                                color: _pickedLocation == null ? AppColors.primary : AppColors.success,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _pickedLocation == null
+                                          ? 'addBusiness.setLocation'.tr()
+                                          : 'addBusiness.locationSet'.tr(),
+                                      style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (_pickedLocation != null)
+                                      Text(
+                                        '${_pickedLocation!.latitude.toStringAsFixed(5)}, '
+                                        '${_pickedLocation!.longitude.toStringAsFixed(5)}',
+                                        style: AppTextStyles.bodySmall,
+                                      )
+                                    else
+                                      Text(
+                                        'addBusiness.locationRequired'.tr(),
+                                        style: AppTextStyles.bodySmall,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                            ],
+                          ),
+                        ),
+                      ),
+
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(labelText: 'Phone number'),
+                        decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
                       ),
+                      const SizedBox(height: 20),
+
+                      Text('addBusiness.openingHours'.tr(), style: AppTextStyles.h3),
+                      const SizedBox(height: 4),
+                      Text(
+                        'addBusiness.openingHoursHelper'.tr(),
+                        style: AppTextStyles.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      OpeningHoursEditor(
+                        initialHours: _openingHours,
+                        onChanged: (hours) => _openingHours = hours,
+                      ),
+
                       const SizedBox(height: 28),
                       PrimaryButton(
-                        label: 'Submit for approval',
+                        label: 'addBusiness.submit'.tr(),
                         isLoading: _isSubmitting,
                         onPressed: _submit,
                       ),

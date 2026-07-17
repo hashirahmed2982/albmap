@@ -2,9 +2,15 @@
 /// Repositories catch these and convert them into [Failure]s so
 /// the domain layer never sees implementation-specific errors.
 class ServerException implements Exception {
-  ServerException([this.message = 'Server error', this.statusCode]);
+  ServerException([this.message = 'Server error', this.statusCode, this.duplicate]);
   final String message;
   final int? statusCode;
+
+  /// Populated only for the business-submission duplicate-warning case
+  /// (backend returns { message, duplicate: { name, address, distanceMeters } }
+  /// on a 409) — carried through so the repository can map it to a
+  /// DuplicateBusinessFailure instead of a generic ServerFailure.
+  final Map<String, dynamic>? duplicate;
 }
 
 class CacheException implements Exception {

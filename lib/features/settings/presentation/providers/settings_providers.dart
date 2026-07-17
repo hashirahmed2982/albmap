@@ -4,30 +4,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/app_constants.dart';
 
+/// Language is deliberately NOT stored here — easy_localization (see
+/// main.dart) already persists the chosen Locale itself via its own
+/// SharedPreferences key. Keeping a second, separate "locale" value in
+/// this controller would risk the two falling out of sync (e.g. one gets
+/// updated and the other doesn't); the Settings screen reads/writes the
+/// language choice directly via `context.locale` / `context.setLocale()`
+/// instead.
 class SettingsState {
   const SettingsState({
-    this.locale = 'en',
     this.notificationsEnabled = true,
     this.notificationFrequency = NotificationFrequency.always,
     this.locationEnabled = true,
     this.themeMode = ThemeMode.system,
   });
 
-  final String locale;
   final bool notificationsEnabled;
   final NotificationFrequency notificationFrequency;
   final bool locationEnabled;
   final ThemeMode themeMode;
 
   SettingsState copyWith({
-    String? locale,
     bool? notificationsEnabled,
     NotificationFrequency? notificationFrequency,
     bool? locationEnabled,
     ThemeMode? themeMode,
   }) {
     return SettingsState(
-      locale: locale ?? this.locale,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       notificationFrequency: notificationFrequency ?? this.notificationFrequency,
       locationEnabled: locationEnabled ?? this.locationEnabled,
@@ -42,7 +45,6 @@ class SettingsController extends StateNotifier<SettingsState> {
     _load();
   }
 
-  static const _kLocale = 'locale';
   static const _kNotifEnabled = 'notif_enabled';
   static const _kNotifFreq = 'notif_freq';
   static const _kLocationEnabled = 'location_enabled';
@@ -50,7 +52,6 @@ class SettingsController extends StateNotifier<SettingsState> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     state = SettingsState(
-      locale: prefs.getString(_kLocale) ?? 'en',
       notificationsEnabled: prefs.getBool(_kNotifEnabled) ?? true,
       notificationFrequency: NotificationFrequency.values.firstWhere(
         (f) => f.name == (prefs.getString(_kNotifFreq) ?? 'always'),
@@ -58,11 +59,6 @@ class SettingsController extends StateNotifier<SettingsState> {
       ),
       locationEnabled: prefs.getBool(_kLocationEnabled) ?? true,
     );
-  }
-
-  Future<void> setLocale(String locale) async {
-    state = state.copyWith(locale: locale);
-    (await SharedPreferences.getInstance()).setString(_kLocale, locale);
   }
 
   Future<void> setNotificationsEnabled(bool enabled) async {

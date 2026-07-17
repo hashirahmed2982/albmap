@@ -18,6 +18,14 @@ class AppColors {
   static const Color surfaceDark = Color(0xFF1B1F1E);
   static const Color backgroundDark = Color(0xFF121514);
 
+  // Dedicated input fill — deliberately distinct from both `surface`
+  // (white cards) and `background` (page background), so a text field
+  // never visually disappears into whatever it's sitting on. Previously
+  // fields used `surface` as their fill, which is literally invisible
+  // against a white card (the most common place a form appears) — you'd
+  // only see the field's outline, nothing else.
+  static const Color inputFill = Color(0xFFF1F3F5);
+
   static const Color textPrimary = Color(0xFF1A1D1C);
   static const Color textSecondary = Color(0xFF6B7370);
   static const Color textOnPrimary = Color(0xFFFFFFFF);

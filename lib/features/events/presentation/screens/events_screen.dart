@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,7 +41,7 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
           ? FloatingActionButton.extended(
               onPressed: () => context.push(AppRoutes.addEvent),
               icon: const Icon(Icons.add),
-              label: const Text('Add Event'),
+              label: Text('events.addEvent'.tr()),
             )
           : null,
       body: SafeArea(
@@ -51,9 +52,9 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Events', style: AppTextStyles.h1),
+                  Text('events.title'.tr(), style: AppTextStyles.h1),
                   const SizedBox(height: 4),
-                  const Text('Discover what\'s happening near you', style: AppTextStyles.bodyMedium),
+                  Text('events.subtitle'.tr(), style: AppTextStyles.bodyMedium),
                   const SizedBox(height: 14),
                   SizedBox(
                     height: 52,
@@ -66,8 +67,8 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
                         onChanged: (v) => ref.read(eventFilterProvider.notifier).update(
                               (state) => state.copyWith(query: v),
                             ),
-                        decoration: const InputDecoration(
-                          hintText: 'Search events...',
+                        decoration: InputDecoration(
+                          hintText: 'events.searchHint'.tr(),
                           prefixIcon: Icon(Icons.search, color: AppColors.primary),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
@@ -82,13 +83,13 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
               child: eventsAsync.when(
                 loading: () => const LoadingIndicator(),
                 error: (_, __) => ErrorStateWidget(
-                  message: 'Failed to load events',
+                  message: 'events.failedToLoad'.tr(),
                   onRetry: () => ref.invalidate(eventsProvider),
                 ),
                 data: (events) {
                   if (events.isEmpty) {
-                    return const EmptyStateWidget(
-                      message: 'No upcoming events found', icon: Icons.event_busy_outlined,
+                    return EmptyStateWidget(
+                      message: 'events.noEventsFound'.tr(), icon: Icons.event_busy_outlined,
                     );
                   }
                   return RefreshIndicator(

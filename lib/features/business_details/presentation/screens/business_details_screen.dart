@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -5,8 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/opening_hours_editor.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../categories/domain/category_translations.dart';
 import '../../../dashboard/domain/entities/business_analytics_entity.dart';
 import '../../../dashboard/presentation/providers/analytics_providers.dart';
 import '../../../events/presentation/providers/event_providers.dart';
@@ -42,10 +45,10 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
       backgroundColor: AppColors.background,
       body: businessAsync.when(
         loading: () => const LoadingIndicator(),
-        error: (_, __) => const ErrorStateWidget(message: 'Failed to load business'),
+        error: (_, __) => ErrorStateWidget(message: 'business.failedToLoad'.tr()),
         data: (business) {
           if (business == null) {
-            return const ErrorStateWidget(message: 'Business not found');
+            return ErrorStateWidget(message: 'business.notFound'.tr());
           }
 
           if (!_viewRecorded) {
@@ -74,7 +77,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                     ),
                   IconButton(
                     icon: const Icon(Icons.share, color: Colors.white),
-                    onPressed: () => Share.share('Check out ${business.name} on AlbMap!'),
+                    onPressed: () => Share.share('business.shareText'.tr(args: [business.name])),
                   ),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
@@ -102,24 +105,33 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                     children: [
                       Text(business.name, style: AppTextStyles.h1),
                       const SizedBox(height: 8),
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 10,
+                        runSpacing: 6,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                            child: Text(business.category, style: AppTextStyles.bodySmall.copyWith(color: accent, fontWeight: FontWeight.w600)),
+                            child: Text(
+                              localizedCategoryName(context, business.category),
+                              style: AppTextStyles.bodySmall.copyWith(color: accent, fontWeight: FontWeight.w600),
+                            ),
                           ),
-                          const SizedBox(width: 10),
-                          if (business.rating != null) ...[
-                            const Icon(Icons.star_rounded, size: 18, color: AppColors.warning),
-                            const SizedBox(width: 4),
-                            Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-                          ],
+                          if (business.rating != null)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.star_rounded, size: 18, color: AppColors.warning),
+                                const SizedBox(width: 4),
+                                Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                              ],
+                            ),
                         ],
                       ),
                       const SizedBox(height: 20),
 
-                      Text('About', style: AppTextStyles.h3),
+                      Text('business.about'.tr(), style: AppTextStyles.h3),
                       const SizedBox(height: 8),
                       Text(business.description, style: AppTextStyles.bodyMedium),
                       const SizedBox(height: 20),
@@ -131,39 +143,34 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                           if (business.phone != null)
                             _InfoRow(icon: Icons.phone_outlined, text: business.phone!, accent: accent),
                           if (business.distanceKm != null)
-                            _InfoRow(icon: Icons.directions_walk, text: '${business.distanceKm!.toStringAsFixed(1)} km away', accent: accent),
+                            _InfoRow(
+                              icon: Icons.directions_walk,
+                              text: 'business.kmAway'.tr(args: [business.distanceKm!.toStringAsFixed(1)]),
+                              accent: accent,
+                            ),
                         ],
                       ),
                       const SizedBox(height: 20),
 
-                      if (business.openingHours.isNotEmpty) ...[
-                        Text('Opening hours', style: AppTextStyles.h3),
-                        const SizedBox(height: 8),
-                        _InfoCard(
-                          accent: accent,
-                          children: [
-                            for (final entry in business.openingHours.entries)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(entry.key, style: AppTextStyles.bodyMedium),
-                                    Text(entry.value, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                      ],
+                      // Always shown (not just when non-empty) — a business
+                      // with no hours entered still gets an honest "Hours
+                      // not provided" row rather than the section silently
+                      // vanishing, which previously made it look like the
+                      // screen simply had no hours feature at all.
+                      Text('business.openingHours'.tr(), style: AppTextStyles.h3),
+                      const SizedBox(height: 8),
+                      _InfoCard(
+                        accent: accent,
+                        children: [OpeningHoursDisplay(hours: business.openingHours)],
+                      ),
+                      const SizedBox(height: 20),
 
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
                               icon: const Icon(Icons.call_outlined),
-                              label: const Text('Call'),
+                              label: Text('business.call'.tr(), overflow: TextOverflow.ellipsis),
                               onPressed: business.phone == null
                                   ? null
                                   : () {
@@ -177,7 +184,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                             child: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(backgroundColor: accent),
                               icon: const Icon(Icons.directions),
-                              label: const Text('Directions'),
+                              label: Text('business.directions'.tr(), overflow: TextOverflow.ellipsis),
                               onPressed: () {
                                 recordAnalyticsEvent(business.id, AnalyticsEventType.websiteClick);
                                 launchUrl(Uri.parse(
@@ -190,13 +197,13 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      Text('Upcoming events', style: AppTextStyles.h3),
+                      Text('business.upcomingEvents'.tr(), style: AppTextStyles.h3),
                       const SizedBox(height: 8),
                       eventsAsync.when(
                         data: (events) {
                           final related = events.where((e) => e.businessId == business.id).toList();
                           if (related.isEmpty) {
-                            return const Text('No upcoming events', style: AppTextStyles.bodySmall);
+                            return Text('business.noUpcomingEvents'.tr(), style: AppTextStyles.bodySmall);
                           }
                           return Column(children: [for (final e in related) EventListTile(event: e)]);
                         },
@@ -246,6 +253,7 @@ class _InfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: accent),
           const SizedBox(width: 10),

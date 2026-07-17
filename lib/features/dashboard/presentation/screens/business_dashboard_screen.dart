@@ -1,3 +1,6 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,9 +30,9 @@ class BusinessDashboardScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: businessAsync.when(
         loading: () => const LoadingIndicator(),
-        error: (_, __) => const ErrorStateWidget(message: 'Failed to load business'),
+        error: (_, __) => ErrorStateWidget(message: 'business.failedToLoad'.tr()),
         data: (business) {
-          if (business == null) return const ErrorStateWidget(message: 'Business not found');
+          if (business == null) return ErrorStateWidget(message: 'business.notFound'.tr());
           final Color accent = categoryColor(business.category);
 
           return SafeArea(
@@ -45,7 +48,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Dashboard', style: AppTextStyles.h1),
+                            Text('dashboard.title'.tr(), style: AppTextStyles.h1),
                             Text(business.name, style: AppTextStyles.bodyMedium),
                           ],
                         ),
@@ -57,7 +60,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
                   child: analyticsAsync.when(
                     loading: () => const LoadingIndicator(),
                     error: (_, __) => ErrorStateWidget(
-                      message: 'Failed to load analytics',
+                      message: 'dashboard.failedToLoad'.tr(),
                       onRetry: () => ref.invalidate(businessAnalyticsProvider(businessId)),
                     ),
                     data: (analytics) {
@@ -75,25 +78,25 @@ class BusinessDashboardScreen extends ConsumerWidget {
                             children: [
                               _StatCard(
                                 icon: Icons.visibility_outlined,
-                                label: 'Profile clicks',
+                                label: 'dashboard.profileClicks'.tr(),
                                 value: analytics.profileClicks,
                                 color: AppColors.primary,
                               ),
                               _StatCard(
                                 icon: Icons.language_outlined,
-                                label: 'Website clicks',
+                                label: 'dashboard.websiteClicks'.tr(),
                                 value: analytics.websiteClicks,
                                 color: accent,
                               ),
                               _StatCard(
                                 icon: Icons.call_outlined,
-                                label: 'Call clicks',
+                                label: 'dashboard.callClicks'.tr(),
                                 value: analytics.callClicks,
                                 color: AppColors.info,
                               ),
                               _StatCard(
                                 icon: Icons.favorite_outline,
-                                label: 'Favorites',
+                                label: 'dashboard.favorites'.tr(),
                                 value: analytics.favoriteCount,
                                 color: AppColors.error,
                               ),
@@ -112,7 +115,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Profile clicks — last 7 days', style: AppTextStyles.h3),
+                                  Text('dashboard.last7Days'.tr(), style: AppTextStyles.h3),
                                   const SizedBox(height: 16),
                                   SizedBox(
                                     height: 90,
@@ -138,17 +141,17 @@ class BusinessDashboardScreen extends ConsumerWidget {
                                   children: [
                                     const Icon(Icons.campaign_outlined, color: AppColors.secondary),
                                     const SizedBox(width: 10),
-                                    Expanded(child: Text('Send an offer or announcement', style: AppTextStyles.h3)),
+                                    Expanded(child: Text('dashboard.sendOfferTitle'.tr(), style: AppTextStyles.h3, maxLines: 2, overflow: TextOverflow.ellipsis)),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
-                                  'Notify people about a promotion, new hours, or anything else worth sharing.',
+                                Text(
+                                  'dashboard.sendOfferDesc'.tr(),
                                   style: AppTextStyles.bodyMedium,
                                 ),
                                 const SizedBox(height: 14),
                                 PrimaryButton(
-                                  label: 'Send Notification',
+                                  label: 'dashboard.sendNotification'.tr(),
                                   icon: Icons.send_outlined,
                                   onPressed: () => showModalBottomSheet(
                                     context: context,
@@ -199,7 +202,7 @@ class _StatCard extends StatelessWidget {
           ),
           const Spacer(),
           Text('$value', style: AppTextStyles.h1.copyWith(fontSize: 24)),
-          Text(label, style: AppTextStyles.bodySmall),
+          Text(label, style: AppTextStyles.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -214,7 +217,7 @@ class _MiniBarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int maxVal = values.isEmpty ? 1 : values.reduce((a, b) => a > b ? a : b).clamp(1, 1 << 30);
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final days = ['days.mon'.tr(), 'days.tue'.tr(), 'days.wed'.tr(), 'days.thu'.tr(), 'days.fri'.tr(), 'days.sat'.tr(), 'days.sun'.tr()];
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,

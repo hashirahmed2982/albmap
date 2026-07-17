@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -41,7 +42,7 @@ class ErrorStateWidget extends StatelessWidget {
               const SizedBox(height: 20),
               SizedBox(
                 width: 160,
-                child: PrimaryButton(label: 'Retry', onPressed: onRetry),
+                child: PrimaryButton(label: 'common.retry'.tr(), onPressed: onRetry),
               ),
             ],
           ],

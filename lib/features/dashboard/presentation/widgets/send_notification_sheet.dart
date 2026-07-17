@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -43,7 +44,7 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
       setState(() => _sent = true);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send notification')),
+        SnackBar(content: Text('common.somethingWrong'.tr())),
       );
     }
   }
@@ -80,8 +81,8 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Send a notification', style: AppTextStyles.h3),
-                    Text('For ${widget.business.name}', style: AppTextStyles.bodySmall),
+                    Text('sendNotification.title'.tr(), style: AppTextStyles.h3),
+                    Text('sendNotification.forBusiness'.tr(args: [widget.business.name]), style: AppTextStyles.bodySmall),
                   ],
                 ),
               ),
@@ -91,28 +92,27 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
           TextFormField(
             controller: _titleController,
             maxLength: 60,
-            decoration: const InputDecoration(labelText: 'Title', hintText: 'e.g. 20% off this weekend'),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+            decoration: InputDecoration(labelText: 'sendNotification.titleLabel'.tr(), hintText: 'sendNotification.titleHint'.tr()),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
           ),
           TextFormField(
             controller: _messageController,
             maxLines: 3,
             maxLength: 200,
-            decoration: const InputDecoration(labelText: 'Message'),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+            decoration: InputDecoration(labelText: 'sendNotification.message'.tr()),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
           ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, size: 18, color: AppColors.info),
-                SizedBox(width: 8),
+                const Icon(Icons.info_outline, size: 18, color: AppColors.info),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'This demo build delivers notifications to your own device only. '
-                    'A production backend would send this to everyone following the business.',
+                    'sendNotification.disclaimer'.tr(),
                     style: AppTextStyles.bodySmall,
                   ),
                 ),
@@ -121,7 +121,7 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
           ),
           const SizedBox(height: 16),
           PrimaryButton(
-            label: 'Send notification',
+            label: 'sendNotification.send'.tr(),
             isLoading: sendState.isLoading,
             onPressed: _send,
           ),
@@ -140,11 +140,11 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
           child: const Icon(Icons.check_rounded, color: AppColors.success, size: 36),
         ),
         const SizedBox(height: 16),
-        Text('Notification sent', style: AppTextStyles.h3),
+        Text('sendNotification.sentTitle'.tr(), style: AppTextStyles.h3),
         const SizedBox(height: 6),
-        const Text('Check your Alerts tab to see it.', style: AppTextStyles.bodyMedium, textAlign: TextAlign.center),
+        Text('sendNotification.sentBody'.tr(), style: AppTextStyles.bodyMedium, textAlign: TextAlign.center),
         const SizedBox(height: 20),
-        PrimaryButton(label: 'Done', onPressed: () => Navigator.of(context).pop()),
+        PrimaryButton(label: 'common.done'.tr(), onPressed: () => Navigator.of(context).pop()),
       ],
     );
   }

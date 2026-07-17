@@ -130,4 +130,58 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Left(UnknownFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      await _remote.changePassword(currentPassword: currentPassword, newPassword: newPassword);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on AuthException catch (e) {
+      return Left(AuthFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> updateProfile({
+    String? name,
+    String? phone,
+    String? profileImageUrl,
+  }) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      final UserModel updated = await _remote.updateProfile(
+        name: name,
+        phone: phone,
+        profileImageUrl: profileImageUrl,
+      );
+      await _local.cacheUser(updated);
+      return Right(updated);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> uploadAvatar(String filePath) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      final UserModel updated = await _remote.uploadAvatar(filePath);
+      await _local.cacheUser(updated);
+      return Right(updated);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
 }

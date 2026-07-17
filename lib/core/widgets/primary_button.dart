@@ -30,7 +30,16 @@ class PrimaryButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               if (icon != null) ...<Widget>[Icon(icon, size: 20), const SizedBox(width: 8)],
-              Text(label),
+              // Flexible + ellipsis: every button in the app uses this
+              // shared widget, and a translated label (German in
+              // particular tends to run noticeably longer than English)
+              // could otherwise overflow a width-constrained button
+              // (e.g. the "Add your first business" button, which is
+              // wrapped in a fixed-width SizedBox) instead of just
+              // truncating gracefully.
+              Flexible(
+                child: Text(label, overflow: TextOverflow.ellipsis, maxLines: 1),
+              ),
             ],
           );
 

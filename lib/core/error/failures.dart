@@ -40,3 +40,23 @@ class PermissionFailure extends Failure {
 class UnknownFailure extends Failure {
   const UnknownFailure([super.message = 'An unexpected error occurred.']);
 }
+
+/// Carries the backend's structured duplicate-business warning (see
+/// business.service.js's findPotentialDuplicate) so the UI can show the
+/// specific conflicting business's name/distance rather than just a
+/// generic error string, and offer a "submit anyway" path.
+class DuplicateBusinessFailure extends Failure {
+  const DuplicateBusinessFailure({
+    required String message,
+    required this.duplicateName,
+    required this.duplicateAddress,
+    required this.distanceMeters,
+  }) : super(message);
+
+  final String duplicateName;
+  final String duplicateAddress;
+  final int distanceMeters;
+
+  @override
+  List<Object?> get props => [message, duplicateName, duplicateAddress, distanceMeters];
+}

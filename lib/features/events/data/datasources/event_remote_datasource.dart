@@ -12,6 +12,7 @@ abstract class EventRemoteDataSource {
   });
   Future<EventModel> getEventDetails(String id);
   Future<void> createEvent(EventModel event);
+  Future<String> uploadEventImage(String filePath);
 }
 
 class EventRemoteDataSourceImpl implements EventRemoteDataSource {
@@ -59,6 +60,19 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       await _dio.post<dynamic>('/events', data: event.toCreateJson());
     } on DioException catch (e) {
       throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to create event');
+    }
+  }
+
+  @override
+  Future<String> uploadEventImage(String filePath) async {
+    try {
+      final formData = FormData.fromMap(<String, dynamic>{
+        'image': await MultipartFile.fromFile(filePath),
+      });
+      final Response<dynamic> response = await _dio.post<dynamic>('/events/image', data: formData);
+      return response.data['url'] as String;
+    } on DioException catch (e) {
+      throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to upload event image');
     }
   }
 }

@@ -80,4 +80,44 @@ class AuthMockDataSource implements AuthRemoteDataSource {
     await _fakeDelay();
     return _fakeUser;
   }
+
+  @override
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    await _fakeDelay();
+    if (currentPassword.isEmpty) {
+      throw AuthException('Current password is incorrect');
+    }
+    // Mock mode has nothing real to change — succeeds unconditionally
+    // otherwise, matching the mock philosophy elsewhere in this file (any
+    // non-empty credential "works").
+  }
+
+  @override
+  Future<UserModel> updateProfile({String? name, String? phone, String? profileImageUrl}) async {
+    await _fakeDelay();
+    return UserModel(
+      id: _fakeUser.id,
+      email: _fakeUser.email,
+      role: _fakeUser.role,
+      name: name ?? _fakeUser.name,
+      phone: phone ?? _fakeUser.phone,
+      profileImageUrl: profileImageUrl ?? _fakeUser.profileImageUrl,
+    );
+  }
+
+  @override
+  Future<UserModel> uploadAvatar(String filePath) async {
+    await _fakeDelay();
+    // No real server to upload to in mock mode — just pretend it worked and
+    // echo back the local file path as if it were a hosted URL, so the UI
+    // still shows the picked image immediately.
+    return UserModel(
+      id: _fakeUser.id,
+      email: _fakeUser.email,
+      role: _fakeUser.role,
+      name: _fakeUser.name,
+      phone: _fakeUser.phone,
+      profileImageUrl: filePath,
+    );
+  }
 }

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../map/domain/entities/business_entity.dart';
+import '../../../categories/domain/category_translations.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
 import '../providers/analytics_providers.dart';
 
@@ -39,11 +41,11 @@ IconData statusIcon(BusinessStatus status) {
 String statusLabel(BusinessStatus status) {
   switch (status) {
     case BusinessStatus.approved:
-      return 'Approved';
+      return 'myBusinesses.approvedLabel'.tr();
     case BusinessStatus.pending:
-      return 'Pending review';
+      return 'myBusinesses.pendingLabel'.tr();
     case BusinessStatus.rejected:
-      return 'Rejected';
+      return 'myBusinesses.rejectedLabel'.tr();
   }
 }
 
@@ -65,7 +67,7 @@ class MyBusinessesScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.addBusiness),
         icon: const Icon(Icons.add),
-        label: const Text('Add Business'),
+        label: Text('addBusiness.title'.tr()),
       ),
       body: SafeArea(
         top: false,
@@ -80,8 +82,8 @@ class MyBusinessesScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('My Businesses', style: AppTextStyles.h1),
-                        const Text('Manage your listings and view their status', style: AppTextStyles.bodyMedium),
+                        Text('myBusinesses.title'.tr(), style: AppTextStyles.h1),
+                        Text('myBusinesses.subtitle'.tr(), style: AppTextStyles.bodyMedium),
                       ],
                     ),
                   ),
@@ -92,7 +94,7 @@ class MyBusinessesScreen extends ConsumerWidget {
               child: businessesAsync.when(
                 loading: () => const LoadingIndicator(),
                 error: (_, __) => ErrorStateWidget(
-                  message: 'Failed to load your businesses',
+                  message: 'myBusinesses.failedToLoad'.tr(),
                   onRetry: () => ref.invalidate(myBusinessesProvider(userId)),
                 ),
                 data: (businesses) {
@@ -105,12 +107,12 @@ class MyBusinessesScreen extends ConsumerWidget {
                           children: [
                             const Icon(Icons.storefront_outlined, size: 56, color: AppColors.textSecondary),
                             const SizedBox(height: 16),
-                            const Text("You haven't listed any businesses yet", style: AppTextStyles.bodyMedium, textAlign: TextAlign.center),
+                            Text('myBusinesses.emptyTitle'.tr(), style: AppTextStyles.bodyMedium, textAlign: TextAlign.center),
                             const SizedBox(height: 20),
                             SizedBox(
                               width: 200,
                               child: PrimaryButton(
-                                label: 'Add your first business',
+                                label: 'myBusinesses.addFirst'.tr(),
                                 onPressed: () => context.push(AppRoutes.addBusiness),
                               ),
                             ),
@@ -182,9 +184,18 @@ class _MyBusinessCard extends StatelessWidget {
                         children: [
                           Text(business.name, style: AppTextStyles.h3, maxLines: 1, overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 2),
-                          Text(business.category, style: AppTextStyles.bodySmall),
+                          Text(localizedCategoryName(context, business.category), style: AppTextStyles.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
                         ],
                       ),
+                    ),
+                    // Edit is always reachable regardless of status — a
+                    // rejected submission needs to be fixable, not a dead
+                    // end, and this is deliberately a separate tap target
+                    // from the card's own onTap (which opens the Dashboard
+                    // only when approved).
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
+                      onPressed: () => context.push(AppRoutes.editBusinessPath(business.id)),
                     ),
                     if (canOpenDashboard) const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
                   ],
@@ -204,15 +215,15 @@ class _MyBusinessCard extends StatelessWidget {
                 ),
                 if (business.status == BusinessStatus.pending) ...[
                   const SizedBox(height: 8),
-                  const Text(
-                    'An admin will review this listing shortly. You\'ll be notified once it\'s approved.',
+                  Text(
+                    'myBusinesses.pendingExplainer'.tr(),
                     style: AppTextStyles.bodySmall,
                   ),
                 ],
                 if (business.status == BusinessStatus.rejected) ...[
                   const SizedBox(height: 8),
-                  const Text(
-                    'This submission was rejected. Edit and resubmit, or contact support for details.',
+                  Text(
+                    'myBusinesses.rejectedExplainer'.tr(),
                     style: AppTextStyles.bodySmall,
                   ),
                 ],
