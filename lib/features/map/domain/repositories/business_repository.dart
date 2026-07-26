@@ -34,10 +34,14 @@ abstract class BusinessRepository {
     String? name,
     String? description,
     String? category,
-    String? address,
+    String? streetAddress,
+    String? city,
+    String? postalCode,
+    String? country,
     double? latitude,
     double? longitude,
     String? phone,
+    String? whatsappNumber,
     Map<String, String>? openingHours,
   });
 

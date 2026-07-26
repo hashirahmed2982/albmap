@@ -34,18 +34,16 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
 
   Future<void> _send() async {
     if (!_formKey.currentState!.validate()) return;
-    final success = await ref.read(sendBusinessNotificationControllerProvider.notifier).send(
+    final errorMessage = await ref.read(sendBusinessNotificationControllerProvider.notifier).send(
           businessId: widget.business.id,
           businessName: widget.business.name,
           title: _titleController.text.trim(),
           message: _messageController.text.trim(),
         );
-    if (success) {
+    if (errorMessage == null) {
       setState(() => _sent = true);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('common.somethingWrong'.tr())),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     }
   }
 

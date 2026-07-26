@@ -86,10 +86,14 @@ class UpdateBusinessParams extends Equatable {
     this.name,
     this.description,
     this.category,
-    this.address,
+    this.streetAddress,
+    this.city,
+    this.postalCode,
+    this.country,
     this.latitude,
     this.longitude,
     this.phone,
+    this.whatsappNumber,
     this.openingHours,
   });
 
@@ -97,15 +101,21 @@ class UpdateBusinessParams extends Equatable {
   final String? name;
   final String? description;
   final String? category;
-  final String? address;
+  final String? streetAddress;
+  final String? city;
+  final String? postalCode;
+  final String? country;
   final double? latitude;
   final double? longitude;
   final String? phone;
+  final String? whatsappNumber;
   final Map<String, String>? openingHours;
 
   @override
-  List<Object?> get props =>
-      [businessId, name, description, category, address, latitude, longitude, phone, openingHours];
+  List<Object?> get props => [
+        businessId, name, description, category, streetAddress, city, postalCode, country,
+        latitude, longitude, phone, whatsappNumber, openingHours,
+      ];
 }
 
 class UpdateBusinessUseCase implements UseCase<BusinessEntity, UpdateBusinessParams> {
@@ -119,10 +129,14 @@ class UpdateBusinessUseCase implements UseCase<BusinessEntity, UpdateBusinessPar
       name: params.name,
       description: params.description,
       category: params.category,
-      address: params.address,
+      streetAddress: params.streetAddress,
+      city: params.city,
+      postalCode: params.postalCode,
+      country: params.country,
       latitude: params.latitude,
       longitude: params.longitude,
       phone: params.phone,
+      whatsappNumber: params.whatsappNumber,
       openingHours: params.openingHours,
     );
   }

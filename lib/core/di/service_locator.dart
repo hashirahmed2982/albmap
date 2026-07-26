@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../constants/app_constants.dart';
 import '../network/dio_client.dart';
+import '../services/fcm_token_repository.dart';
 import '../network/network_info.dart';
 
 // Auth
@@ -45,6 +46,7 @@ import '../../features/notifications/data/datasources/notification_mock_datasour
 import '../../features/notifications/data/repositories/notification_repository_impl.dart';
 import '../../features/notifications/domain/repositories/notification_repository.dart';
 import '../../features/notifications/domain/usecases/broadcast_notification_usecase.dart';
+import '../../features/notifications/domain/usecases/notification_feed_usecases.dart';
 
 // Dashboard / Analytics
 import '../../features/dashboard/data/datasources/analytics_remote_datasource.dart';
@@ -72,6 +74,11 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton<Connectivity>(() => Connectivity());
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
   sl.registerLazySingleton<DioClient>(() => DioClient(sl()));
+  sl.registerLazySingleton<FcmTokenRepository>(
+    () => AppConstants.useMockData
+        ? FcmTokenRepositoryMock()
+        : FcmTokenRepositoryImpl(sl<DioClient>().dio),
+  );
 
   await Hive.initFlutter();
   final Box<String> userBox = await Hive.openBox<String>(AppConstants.userBox);
@@ -175,6 +182,9 @@ Future<void> initServiceLocator() async {
     () => NotificationRepositoryImpl(remoteDataSource: sl()),
   );
   sl.registerLazySingleton(() => BroadcastNotificationUseCase(sl()));
+  sl.registerLazySingleton(() => GetNotificationFeedUseCase(sl()));
+  sl.registerLazySingleton(() => MarkNotificationReadUseCase(sl()));
+  sl.registerLazySingleton(() => MarkAllNotificationsReadUseCase(sl()));
 
   // ---------------- Favorites ----------------
   sl.registerLazySingleton<FavoritesLocalDataSource>(

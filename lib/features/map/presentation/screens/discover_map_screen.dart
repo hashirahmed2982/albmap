@@ -35,7 +35,7 @@ class DiscoverMapScreen extends ConsumerStatefulWidget {
   ConsumerState<DiscoverMapScreen> createState() => _DiscoverMapScreenState();
 }
 
-class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
+class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with WidgetsBindingObserver {
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   String _localQuery = '';
@@ -55,6 +55,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(locationControllerProvider.notifier).refresh();
       _recenterOnUser();
@@ -63,7 +64,22 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Business approval happens externally (an admin acting in the web
+    // portal, not inside this app), so there's no in-app event to react
+    // to — the app genuinely can't know a business got approved while it
+    // wasn't running. Refreshing on resume covers the realistic version
+    // of that: someone backgrounds the app while waiting, then reopens it
+    // a bit later, without needing to fully quit and relaunch (which was
+    // the previous "reinitialize app" workaround).
+    if (state == AppLifecycleState.resumed) {
+      ref.read(businessListControllerProvider.notifier).load();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     _mapController.dispose();
     super.dispose();
@@ -318,8 +334,20 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> {
           ),
 
         Positioned(
+          bottom: 78, right: 16,
+          child: FloatingActionButton(
+            heroTag: 'refresh-businesses',
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.primary,
+            elevation: 3,
+            onPressed: () => ref.read(businessListControllerProvider.notifier).load(),
+            child: const Icon(Icons.refresh_rounded),
+          ),
+        ),
+        Positioned(
           bottom: 16, right: 16,
           child: FloatingActionButton(
+            heroTag: 'recenter-map',
             backgroundColor: AppColors.surface,
             foregroundColor: AppColors.primary,
             elevation: 3,

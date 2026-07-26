@@ -14,6 +14,7 @@ import '../../../../core/widgets/selection_field.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../categories/domain/category_translations.dart';
 import '../../../categories/presentation/providers/category_providers.dart';
+import '../../../dashboard/presentation/providers/analytics_providers.dart';
 import '../../../map/domain/entities/business_entity.dart';
 import '../../../map/domain/usecases/business_usecases.dart';
 import '../../../map/presentation/providers/business_providers.dart';
@@ -40,8 +41,13 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _streetAddressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _postalCodeController = TextEditingController();
+  final _countryController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _whatsappController = TextEditingController();
+  bool _whatsappSameAsPhone = true;
 
   String? _category;
   LatLng? _pickedLocation;
@@ -66,8 +72,13 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
       _original = result;
       _nameController.text = result.name;
       _descController.text = result.description;
-      _addressController.text = result.address;
+      _streetAddressController.text = result.streetAddress;
+      _cityController.text = result.city;
+      _postalCodeController.text = result.postalCode;
+      _countryController.text = result.country;
       _phoneController.text = result.phone ?? '';
+      _whatsappSameAsPhone = result.whatsappNumber == result.phone || result.whatsappNumber == null;
+      _whatsappController.text = _whatsappSameAsPhone ? '' : (result.whatsappNumber ?? '');
       _category = result.category;
       _pickedLocation = LatLng(result.latitude, result.longitude);
       _openingHours = Map<String, String>.from(result.openingHours);
@@ -79,8 +90,12 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _addressController.dispose();
+    _streetAddressController.dispose();
+    _cityController.dispose();
+    _postalCodeController.dispose();
+    _countryController.dispose();
     _phoneController.dispose();
+    _whatsappController.dispose();
     super.dispose();
   }
 
@@ -91,7 +106,10 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
     if (_original == null) return false;
     return _nameController.text.trim() != _original!.name ||
         _category != _original!.category ||
-        _addressController.text.trim() != _original!.address ||
+        _streetAddressController.text.trim() != _original!.streetAddress ||
+        _cityController.text.trim() != _original!.city ||
+        _postalCodeController.text.trim() != _original!.postalCode ||
+        _countryController.text.trim() != _original!.country ||
         _pickedLocation?.latitude != _original!.latitude ||
         _pickedLocation?.longitude != _original!.longitude;
   }
@@ -135,10 +153,16 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
       name: _nameController.text.trim(),
       description: _descController.text.trim(),
       category: _category!,
-      address: _addressController.text.trim(),
+      streetAddress: _streetAddressController.text.trim(),
+      city: _cityController.text.trim(),
+      postalCode: _postalCodeController.text.trim(),
+      country: _countryController.text.trim().isEmpty ? 'Albania' : _countryController.text.trim(),
       latitude: _pickedLocation!.latitude,
       longitude: _pickedLocation!.longitude,
       phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      whatsappNumber: _whatsappSameAsPhone
+          ? (_phoneController.text.trim().isEmpty ? null : _phoneController.text.trim())
+          : (_whatsappController.text.trim().isEmpty ? null : _whatsappController.text.trim()),
       openingHours: _openingHours,
     ));
 
@@ -149,6 +173,10 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
       (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
       (updated) {
         ref.invalidate(businessDetailsProvider(widget.businessId));
+        // Same staleness class as the Add Business fix: without this, "My
+        // Businesses" keeps showing the pre-edit status (e.g. still
+        // "Approved" even though this edit just sent it back to pending).
+        ref.invalidate(myBusinessesProvider(updated.ownerId));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -252,8 +280,36 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
-                        controller: _addressController,
-                        decoration: InputDecoration(labelText: 'addBusiness.address'.tr()),
+                        controller: _streetAddressController,
+                        decoration: InputDecoration(labelText: 'addBusiness.streetAddress'.tr()),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: TextFormField(
+                              controller: _cityController,
+                              decoration: InputDecoration(labelText: 'addBusiness.city'.tr()),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _postalCodeController,
+                              decoration: InputDecoration(labelText: 'addBusiness.postalCode'.tr()),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _countryController,
+                        decoration: InputDecoration(labelText: 'addBusiness.country'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
                       const SizedBox(height: 14),
@@ -292,7 +348,25 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
+                        onChanged: (_) => setState(() {}),
                       ),
+                      const SizedBox(height: 8),
+                      CheckboxListTile(
+                        value: _whatsappSameAsPhone,
+                        onChanged: (v) => setState(() => _whatsappSameAsPhone = v ?? true),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text('addBusiness.whatsappSameAsPhone'.tr(), style: AppTextStyles.bodyMedium),
+                      ),
+                      if (!_whatsappSameAsPhone) ...[
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _whatsappController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
+                        ),
+                      ],
                       const SizedBox(height: 20),
 
                       Text('addBusiness.openingHours'.tr(), style: AppTextStyles.h3),

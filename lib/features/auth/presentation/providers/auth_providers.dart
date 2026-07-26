@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/fcm_service.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/usecases/login_usecase.dart';
@@ -54,7 +57,15 @@ class AuthController extends StateNotifier<AuthState> {
     final result = await _getCurrentUserUseCase(const NoParams());
     result.fold(
       (failure) => state = const AuthState(isLoading: false),
-      (user) => state = AuthState(user: user, isLoading: false),
+      (user) {
+        state = AuthState(user: user, isLoading: false);
+        // Fire-and-forget: FcmService degrades gracefully on its own if
+        // Firebase isn't configured, permission is denied, etc — this
+        // just needs to run once per app launch for whoever's actually
+        // signed in, which for most opens is this restored-session path,
+        // not a fresh login.
+        unawaited(FcmService.instance.initialize());
+      },
     );
   }
 
@@ -68,6 +79,7 @@ class AuthController extends StateNotifier<AuthState> {
       },
       (user) {
         state = AuthState(user: user, isLoading: false);
+        unawaited(FcmService.instance.initialize());
         return true;
       },
     );
@@ -83,6 +95,7 @@ class AuthController extends StateNotifier<AuthState> {
       },
       (user) {
         state = AuthState(user: user, isLoading: false);
+        unawaited(FcmService.instance.initialize());
         return true;
       },
     );
@@ -93,7 +106,14 @@ class AuthController extends StateNotifier<AuthState> {
     final result = await _continueAsGuestUseCase(const NoParams());
     result.fold(
       (failure) => state = state.copyWith(isLoading: false, errorMessage: failure.message),
-      (user) => state = AuthState(user: user, isLoading: false),
+      (user) {
+        state = AuthState(user: user, isLoading: false);
+        // Guests still get subscribed to the broadcast topic (they should
+        // see general offers too) — token registration itself will just
+        // silently no-op for a guest with no real backend session, which
+        // FcmTokenRepositoryImpl already handles gracefully.
+        unawaited(FcmService.instance.initialize());
+      },
     );
   }
 

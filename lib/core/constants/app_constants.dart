@@ -9,7 +9,7 @@ class AppConstants {
   /// with --dart-define=USE_MOCK_DATA=true.
   static const bool useMockData = bool.fromEnvironment(
     'USE_MOCK_DATA',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   // Map tile source — using flutter_map (OpenStreetMap-compatible), which
@@ -36,10 +36,51 @@ class AppConstants {
   //     --dart-define=BASE_URL=https://your-deployed-api.com/v1
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.0.2.2:4000/v1',
+    defaultValue: 'https://344c-2407-aa80-15-c846-68b8-ca60-24cf-77a0.ngrok-free.app/v1',
   );
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
+
+  /// The backend returns uploaded-image paths as relative paths (e.g.
+  /// "/uploads/xxx.png"), not absolute URLs — deliberately, so a stored
+  /// image reference never goes stale if the backend's externally-
+  /// reachable address changes later (a new ngrok tunnel each session, a
+  /// server migration, etc). This resolves such a path against whatever
+  /// [baseUrl] is *currently* configured, at display time, rather than
+  /// baking in whatever address happened to be current at upload time.
+  ///
+  /// Handles three cases:
+  /// - Already-absolute URL (starts with http/https) — used as-is. Covers
+  ///   data saved before this change, which may still have a full URL
+  ///   baked in from an old session.
+  /// - Relative server path (starts with "/uploads/") — prefixed with
+  ///   this build's current server origin.
+  /// - Anything else (e.g. a raw local device file path from image_picker
+  ///   in mock mode, before it's been uploaded) — returned unchanged;
+  ///   callers displaying a possibly-local-file path should check
+  ///   [isRemoteUrl] first and use Image.file for the non-remote case.
+  static String? resolveMediaUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('/uploads/')) {
+      // baseUrl includes the API's "/v1" suffix (e.g.
+      // "http://10.0.2.2:4000/v1"), but uploaded files are served from
+      // the server root, not under /v1 — so strip that suffix to get the
+      // bare origin before appending the relative path.
+      final origin = baseUrl.endsWith('/v1') ? baseUrl.substring(0, baseUrl.length - 3) : baseUrl;
+      return '$origin$path';
+    }
+    return path;
+  }
+
+  /// True if [path] is something Image.network can load directly (either
+  /// already absolute, or one of our own server-relative paths that
+  /// [resolveMediaUrl] will turn into a full URL) — false for a raw local
+  /// device file path, which needs Image.file instead.
+  static bool isRemoteMediaPath(String? path) {
+    if (path == null || path.isEmpty) return false;
+    return path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/uploads/');
+  }
 
   // Hive boxes
   static const String userBox = 'user_box';

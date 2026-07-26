@@ -11,16 +11,16 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
     const BusinessModel(
       id: 'biz-1', ownerId: 'business-user-001',
       name: 'Espresso Corner', description: 'Cozy specialty coffee shop with fresh pastries daily.',
-      category: 'Cafes', address: 'Rruga Myslym Shyri, Tirana',
+      category: 'Cafes', streetAddress: 'Rruga Myslym Shyri 45', city: 'Tirana', postalCode: '1001',
       latitude: 41.3260, longitude: 19.8172, status: BusinessStatus.approved,
-      phone: '+355 69 111 2222', rating: 4.6,
+      phone: '+355 69 111 2222', whatsappNumber: '+355 69 111 2222', rating: 4.6,
       openingHours: {'Mon-Fri': '07:00-19:00', 'Sat-Sun': '08:00-18:00'},
       tags: ['coffee', 'wifi', 'breakfast'],
     ),
     const BusinessModel(
       id: 'biz-2', ownerId: 'business-user-002',
       name: 'Bella Napoli', description: 'Authentic wood-fired Neapolitan pizza.',
-      category: 'Restaurants', address: 'Blloku, Tirana',
+      category: 'Restaurants', streetAddress: 'Rruga Ismail Qemali 12', city: 'Tirana', postalCode: '1019',
       latitude: 41.3230, longitude: 19.8190, status: BusinessStatus.approved,
       phone: '+355 69 222 3333', rating: 4.8,
       openingHours: {'Daily': '12:00-23:00'},
@@ -29,16 +29,16 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
     const BusinessModel(
       id: 'biz-3', ownerId: 'business-user-003',
       name: 'Urban Fitness Studio', description: 'Boutique gym offering HIIT, yoga, and personal training.',
-      category: 'Health', address: 'Rruga e Kavajës, Tirana',
+      category: 'Health', streetAddress: 'Rruga e Kavajës 78', city: 'Tirana', postalCode: '1001',
       latitude: 41.3298, longitude: 19.8100, status: BusinessStatus.approved,
-      phone: '+355 69 333 4444', rating: 4.3,
+      phone: '+355 69 333 4444', whatsappNumber: '+355 69 999 0000', rating: 4.3,
       openingHours: {'Mon-Sat': '06:00-22:00'},
       tags: ['gym', 'yoga', 'personal-training'],
     ),
     const BusinessModel(
       id: 'biz-4', ownerId: 'business-user-004',
       name: 'Green Leaf Market', description: 'Organic grocery store with local produce.',
-      category: 'Shops', address: 'Rruga Barrikadave, Tirana',
+      category: 'Shops', streetAddress: 'Rruga Barrikadave 23', city: 'Tirana', postalCode: '1010',
       latitude: 41.3315, longitude: 19.8220, status: BusinessStatus.approved,
       phone: '+355 69 444 5555', rating: 4.5,
       openingHours: {'Daily': '08:00-21:00'},
@@ -47,7 +47,7 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
     const BusinessModel(
       id: 'biz-5', ownerId: 'business-user-005',
       name: 'CineStar Multiplex', description: 'Modern cinema with 6 screens and IMAX.',
-      category: 'Entertainment', address: 'TEG, Tirana',
+      category: 'Entertainment', streetAddress: 'Autostrada Tiranë-Durrës, TEG', city: 'Tirana', postalCode: '1051',
       latitude: 41.3025, longitude: 19.8300, status: BusinessStatus.approved,
       phone: '+355 69 555 6666', rating: 4.2,
       openingHours: {'Daily': '10:00-00:00'},
@@ -56,16 +56,16 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
     const BusinessModel(
       id: 'biz-6', ownerId: 'business-user-001',
       name: 'AutoCare Plus', description: 'Full-service auto repair and maintenance.',
-      category: 'Services', address: 'Rruga Dritan Hoxha, Tirana',
+      category: 'Services', streetAddress: 'Rruga Dritan Hoxha 5', city: 'Tirana', postalCode: '1023',
       latitude: 41.3180, longitude: 19.8050, status: BusinessStatus.approved,
-      phone: '+355 69 666 7777', rating: 4.0,
+      phone: '+355 69 666 7777', whatsappNumber: '+355 69 666 7777', rating: 4.0,
       openingHours: {'Mon-Sat': '08:00-18:00'},
       tags: ['auto-repair', 'maintenance'],
     ),
     const BusinessModel(
       id: 'biz-7', ownerId: 'business-user-001',
       name: 'Sunset Rooftop Bar', description: 'New rooftop bar with a view over Tirana, awaiting review.',
-      category: 'Restaurants', address: 'Skanderbeg Square, Tirana',
+      category: 'Restaurants', streetAddress: 'Sheshi Skënderbej 1', city: 'Tirana', postalCode: '1001',
       latitude: 41.3287, longitude: 19.8172, status: BusinessStatus.pending,
       phone: '+355 69 777 8888',
       tags: ['bar', 'rooftop', 'new'],
@@ -118,7 +118,7 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
           <String, dynamic>{
             'id': existingMatch.first.id,
             'name': existingMatch.first.name,
-            'address': existingMatch.first.address,
+            'address': existingMatch.first.formattedAddress,
             'distanceMeters': 50,
           },
         );
@@ -138,7 +138,10 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
     final existing = _businesses[index];
     final sensitiveFieldsChanged = (changes['name'] != null && changes['name'] != existing.name) ||
         (changes['category'] != null && changes['category'] != existing.category) ||
-        (changes['address'] != null && changes['address'] != existing.address) ||
+        (changes['streetAddress'] != null && changes['streetAddress'] != existing.streetAddress) ||
+        (changes['city'] != null && changes['city'] != existing.city) ||
+        (changes['postalCode'] != null && changes['postalCode'] != existing.postalCode) ||
+        (changes['country'] != null && changes['country'] != existing.country) ||
         (changes['latitude'] != null && changes['latitude'] != existing.latitude) ||
         (changes['longitude'] != null && changes['longitude'] != existing.longitude);
 
@@ -148,13 +151,17 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
       name: changes['name'] as String? ?? existing.name,
       description: changes['description'] as String? ?? existing.description,
       category: changes['category'] as String? ?? existing.category,
-      address: changes['address'] as String? ?? existing.address,
+      streetAddress: changes['streetAddress'] as String? ?? existing.streetAddress,
+      city: changes['city'] as String? ?? existing.city,
+      postalCode: changes['postalCode'] as String? ?? existing.postalCode,
+      country: changes['country'] as String? ?? existing.country,
       latitude: (changes['latitude'] as num?)?.toDouble() ?? existing.latitude,
       longitude: (changes['longitude'] as num?)?.toDouble() ?? existing.longitude,
       status: (existing.status == BusinessStatus.approved && sensitiveFieldsChanged)
           ? BusinessStatus.pending
           : existing.status,
       phone: changes['phone'] as String? ?? existing.phone,
+      whatsappNumber: changes['whatsappNumber'] as String? ?? existing.whatsappNumber,
       logoUrl: existing.logoUrl,
       openingHours: (changes['openingHours'] as Map?)?.cast<String, String>() ?? existing.openingHours,
       tags: existing.tags,

@@ -20,13 +20,15 @@ class BroadcastNotificationParams extends Equatable {
   List<Object?> get props => [businessId, title, body];
 }
 
-class BroadcastNotificationUseCase implements UseCase<void, BroadcastNotificationParams> {
+/// Returns the resulting status ('pending') rather than void — the caller
+/// needs to know this wasn't delivered yet, just submitted for review.
+class BroadcastNotificationUseCase implements UseCase<String, BroadcastNotificationParams> {
   BroadcastNotificationUseCase(this._repository);
   final NotificationRepository _repository;
 
   @override
-  Future<Either<Failure, void>> call(BroadcastNotificationParams params) {
-    return _repository.broadcastFromBusiness(
+  Future<Either<Failure, String>> call(BroadcastNotificationParams params) {
+    return _repository.submitBroadcast(
       businessId: params.businessId,
       title: params.title,
       body: params.body,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../categories/domain/category_translations.dart';
@@ -36,7 +37,7 @@ class BusinessMarkerSheet extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: business.logoUrl != null
-                      ? Image.network(business.logoUrl!, width: 64, height: 64, fit: BoxFit.cover)
+                      ? Image.network(AppConstants.resolveMediaUrl(business.logoUrl)!, width: 64, height: 64, fit: BoxFit.cover)
                       : Container(
                           width: 64, height: 64, color: AppColors.primary.withValues(alpha: 0.1),
                           child: const Icon(Icons.storefront, color: AppColors.primary),

@@ -1,93 +1,99 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive/hive.dart';
 
+import '../../../../core/di/service_locator.dart';
+import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/notification_entity.dart';
+import '../../domain/repositories/notification_repository.dart';
+import '../../domain/usecases/notification_feed_usecases.dart';
 
-/// Notifications are cached locally (received via FCM background handler,
-/// appended to this box). This provider exposes them reactively to the UI.
-class NotificationsController extends StateNotifier<List<NotificationEntity>> {
-  NotificationsController() : super(const []) {
-    _load();
+class NotificationsState {
+  const NotificationsState({
+    this.notifications = const [],
+    this.unreadCount = 0,
+    this.isLoading = false,
+    this.errorMessage,
+  });
+
+  final List<NotificationEntity> notifications;
+  final int unreadCount;
+  final bool isLoading;
+  final String? errorMessage;
+
+  NotificationsState copyWith({
+    List<NotificationEntity>? notifications,
+    int? unreadCount,
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return NotificationsState(
+      notifications: notifications ?? this.notifications,
+      unreadCount: unreadCount ?? this.unreadCount,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    );
+  }
+}
+
+/// Server-backed notification feed — replaces the old purely-local
+/// (device-only, never synced) Hive-based list. Every approved broadcast
+/// and personal notice visible to the current user lives here now,
+/// fetched from GET /notifications (see notification.service.js's
+/// getFeedForUser on the backend).
+class NotificationsController extends StateNotifier<NotificationsState> {
+  NotificationsController()
+      : _getFeedUseCase = sl<GetNotificationFeedUseCase>(),
+        _markReadUseCase = sl<MarkNotificationReadUseCase>(),
+        _markAllReadUseCase = sl<MarkAllNotificationsReadUseCase>(),
+        super(const NotificationsState()) {
+    load();
   }
 
-  Box<String>? _box;
+  final GetNotificationFeedUseCase _getFeedUseCase;
+  final MarkNotificationReadUseCase _markReadUseCase;
+  final MarkAllNotificationsReadUseCase _markAllReadUseCase;
 
-  Future<Box<String>> _getBox() async {
-    _box ??= await Hive.openBox<String>('notifications_box');
-    return _box!;
-  }
-
-  Future<void> _load() async {
-    final box = await _getBox();
-    final raw = box.get('items');
-    if (raw == null) {
-      state = const [];
-      return;
-    }
-    final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
-    state = decoded.map((e) {
-      final m = e as Map<String, dynamic>;
-      return NotificationEntity(
-        id: m['id'] as String,
-        title: m['title'] as String,
-        body: m['body'] as String,
-        createdAt: DateTime.parse(m['createdAt'] as String),
-        isRead: m['isRead'] as bool? ?? false,
-        type: m['type'] as String? ?? 'general',
-        relatedId: m['relatedId'] as String?,
-      );
-    }).toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  }
-
-  Future<void> _persist() async {
-    final box = await _getBox();
-    final json = state.map((n) => {
-          'id': n.id, 'title': n.title, 'body': n.body,
-          'createdAt': n.createdAt.toIso8601String(),
-          'isRead': n.isRead, 'type': n.type, 'relatedId': n.relatedId,
-        }).toList();
-    await box.put('items', jsonEncode(json));
+  Future<void> load() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    final result = await _getFeedUseCase(const NoParams());
+    result.fold(
+      (failure) => state = state.copyWith(isLoading: false, errorMessage: failure.message),
+      (feed) => state = NotificationsState(
+        notifications: feed.notifications,
+        unreadCount: feed.unreadCount,
+        isLoading: false,
+      ),
+    );
   }
 
   Future<void> markAsRead(String id) async {
-    state = [
-      for (final n in state) if (n.id == id) n.copyWith(isRead: true) else n,
-    ];
-    await _persist();
-  }
-
-  /// Inserts a new notification at the top of the list. Used by:
-  /// - FCM foreground/background message handlers (real push delivery)
-  /// - The business owner's "Send Notification" broadcast (see
-  ///   send_business_notification_usecase.dart) — in mock/offline mode
-  ///   there's no real backend fan-out to every user's device, so this
-  ///   just adds it to the *current* device's own list so the flow is
-  ///   demonstrable end-to-end. A real implementation would have the
-  ///   backend push this to all subscribed users via FCM topics instead.
-  Future<void> addNotification(NotificationEntity notification) async {
-    state = [notification, ...state];
-    await _persist();
+    // Optimistic update — the UI reflects "read" immediately rather than
+    // waiting on the round-trip; load() will correct it on the next
+    // refresh if the call actually failed.
+    final wasUnread = state.notifications.any((n) => n.id == id && !n.isRead);
+    state = state.copyWith(
+      notifications: [
+        for (final n in state.notifications) if (n.id == id) n.copyWith(isRead: true) else n,
+      ],
+      unreadCount: wasUnread ? (state.unreadCount - 1).clamp(0, 1 << 31) : state.unreadCount,
+    );
+    await _markReadUseCase(id);
   }
 
   Future<void> markAllAsRead() async {
-    state = [for (final n in state) n.copyWith(isRead: true)];
-    await _persist();
-  }
-
-  Future<void> delete(String id) async {
-    state = state.where((n) => n.id != id).toList();
-    await _persist();
+    state = state.copyWith(
+      notifications: [for (final n in state.notifications) n.copyWith(isRead: true)],
+      unreadCount: 0,
+    );
+    await _markAllReadUseCase(const NoParams());
   }
 }
 
 final notificationsControllerProvider =
-    StateNotifierProvider<NotificationsController, List<NotificationEntity>>(
+    StateNotifierProvider<NotificationsController, NotificationsState>(
   (ref) => NotificationsController(),
 );
 
 final unreadNotificationsCountProvider = Provider<int>((ref) {
-  return ref.watch(notificationsControllerProvider).where((n) => !n.isRead).length;
+  return ref.watch(notificationsControllerProvider).unreadCount;
 });

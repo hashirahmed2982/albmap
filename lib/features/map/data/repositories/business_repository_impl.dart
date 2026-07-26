@@ -102,9 +102,11 @@ class BusinessRepositoryImpl implements BusinessRepository {
       final BusinessModel model = BusinessModel(
         id: business.id, ownerId: business.ownerId, name: business.name,
         description: business.description, category: business.category,
-        address: business.address, latitude: business.latitude, longitude: business.longitude,
-        status: business.status, phone: business.phone, logoUrl: business.logoUrl,
-        openingHours: business.openingHours, tags: business.tags,
+        streetAddress: business.streetAddress, city: business.city,
+        postalCode: business.postalCode, country: business.country,
+        latitude: business.latitude, longitude: business.longitude,
+        status: business.status, phone: business.phone, whatsappNumber: business.whatsappNumber,
+        logoUrl: business.logoUrl, openingHours: business.openingHours, tags: business.tags,
       );
       final created = await _remote.submitBusiness(model, confirmDuplicate: confirmDuplicate);
       return Right(created);
@@ -129,10 +131,14 @@ class BusinessRepositoryImpl implements BusinessRepository {
     String? name,
     String? description,
     String? category,
-    String? address,
+    String? streetAddress,
+    String? city,
+    String? postalCode,
+    String? country,
     double? latitude,
     double? longitude,
     String? phone,
+    String? whatsappNumber,
     Map<String, String>? openingHours,
   }) async {
     if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
@@ -141,10 +147,14 @@ class BusinessRepositoryImpl implements BusinessRepository {
         if (name != null) 'name': name,
         if (description != null) 'description': description,
         if (category != null) 'category': category,
-        if (address != null) 'address': address,
+        if (streetAddress != null) 'streetAddress': streetAddress,
+        if (city != null) 'city': city,
+        if (postalCode != null) 'postalCode': postalCode,
+        if (country != null) 'country': country,
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (phone != null) 'phone': phone,
+        if (whatsappNumber != null) 'whatsappNumber': whatsappNumber,
         if (openingHours != null) 'openingHours': openingHours,
       });
       return Right(updated);

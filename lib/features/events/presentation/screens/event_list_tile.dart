@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/router/app_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/event_entity.dart';
@@ -80,7 +81,7 @@ class EventListTile extends StatelessWidget {
                   child: event.imageUrl != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: Image.network(event.imageUrl!, fit: BoxFit.cover),
+                          child: Image.network(AppConstants.resolveMediaUrl(event.imageUrl)!, fit: BoxFit.cover),
                         )
                       : Icon(eventCategoryIcon(event.category), color: accent, size: 26),
                 ),

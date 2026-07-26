@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/constants/app_constants.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
@@ -82,7 +84,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: business.logoUrl != null
-                      ? Image.network(business.logoUrl!, fit: BoxFit.cover)
+                      ? Image.network(AppConstants.resolveMediaUrl(business.logoUrl)!, fit: BoxFit.cover)
                       : Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -139,7 +141,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                       _InfoCard(
                         accent: accent,
                         children: [
-                          _InfoRow(icon: Icons.location_on_outlined, text: business.address, accent: accent),
+                          _InfoRow(icon: Icons.location_on_outlined, text: business.formattedAddress, accent: accent),
                           if (business.phone != null)
                             _InfoRow(icon: Icons.phone_outlined, text: business.phone!, accent: accent),
                           if (business.distanceKm != null)
@@ -179,6 +181,30 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                     },
                             ),
                           ),
+                          if (business.whatsappNumber != null) ...[
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  side: const BorderSide(color: Color(0xFF25D366)), // WhatsApp brand green
+                                ),
+                                onPressed: () {
+                                  recordAnalyticsEvent(business.id, AnalyticsEventType.callClick);
+                                  // wa.me requires digits only (no '+', spaces, or
+                                  // dashes) in full international format.
+                                  final sanitized = business.whatsappNumber!.replaceAll(RegExp(r'[^0-9]'), '');
+                                  launchUrl(
+                                    Uri.parse('https://wa.me/$sanitized'),
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                },
+                                child: const Icon(Icons.chat_outlined, color: Color(0xFF25D366)),
+                              ),
+                            ),
+                          ],
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(

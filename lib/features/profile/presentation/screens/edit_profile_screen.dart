@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
@@ -86,8 +87,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final avatarUrl = user?.profileImageUrl;
     // Mock mode's uploadAvatar echoes back a local file path (no real
     // server to host it), so a local path needs Image.file, while a real
-    // upload returns an http(s) URL needing Image.network.
-    final bool isLocalPath = avatarUrl != null && !avatarUrl.startsWith('http');
+    // upload returns a server-relative path ("/uploads/xxx.png") that
+    // AppConstants.resolveMediaUrl turns into a full URL for Image.network.
+    final bool isRemote = AppConstants.isRemoteMediaPath(avatarUrl);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -124,7 +126,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                               backgroundImage: avatarUrl == null
                                   ? null
-                                  : (isLocalPath ? FileImage(File(avatarUrl)) : NetworkImage(avatarUrl)) as ImageProvider,
+                                  : (isRemote
+                                      ? NetworkImage(AppConstants.resolveMediaUrl(avatarUrl)!)
+                                      : FileImage(File(avatarUrl))) as ImageProvider,
                               child: avatarUrl == null
                                   ? const Icon(Icons.person, size: 48, color: AppColors.primary)
                                   : null,

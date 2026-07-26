@@ -12,13 +12,49 @@ class NotificationRepositoryImpl implements NotificationRepository {
   final NotificationRemoteDataSource _remote;
 
   @override
-  Future<Either<Failure, void>> broadcastFromBusiness({
+  Future<Either<Failure, String>> submitBroadcast({
     required String businessId,
     required String title,
     required String body,
   }) async {
     try {
-      await _remote.broadcastFromBusiness(businessId: businessId, title: title, body: body);
+      final result = await _remote.submitBroadcast(businessId: businessId, title: title, body: body);
+      return Right(result.status);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, NotificationFeed>> getFeed() async {
+    try {
+      final result = await _remote.getFeed();
+      return Right(NotificationFeed(notifications: result.notifications, unreadCount: result.unreadCount));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> markAsRead(String notificationId) async {
+    try {
+      await _remote.markAsRead(notificationId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> markAllAsRead() async {
+    try {
+      await _remote.markAllAsRead();
       return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));

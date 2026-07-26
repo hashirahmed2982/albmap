@@ -1,4 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,8 +34,18 @@ Future<void> main() async {
     await initializeDateFormatting(locale.languageCode);
   }
 
-  // Initialize Firebase here before runApp if using FCM:
-  // await Firebase.initializeApp();
+  // Wrapped in try-catch deliberately: Firebase.initializeApp() throws if
+  // there's no google-services.json (Android) / GoogleService-Info.plist
+  // (iOS) configured yet — see the FCM setup steps in the project docs.
+  // Rather than crash the whole app for anyone who hasn't done that
+  // Firebase-console setup, push notifications just silently don't work
+  // until it's configured — same "never crash for a missing optional
+  // config" principle used for the map tile provider and Google Sign-In.
+  try {
+    await Firebase.initializeApp();
+  } catch (err) {
+    debugPrint('Firebase.initializeApp() failed (push notifications disabled): $err');
+  }
 
   await initServiceLocator();
 

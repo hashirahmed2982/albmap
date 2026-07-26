@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/state_widgets.dart';
@@ -134,7 +135,7 @@ class BusinessCard extends StatelessWidget {
                   child: business.logoUrl != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: Image.network(business.logoUrl!, fit: BoxFit.cover),
+                          child: Image.network(AppConstants.resolveMediaUrl(business.logoUrl)!, fit: BoxFit.cover),
                         )
                       : Icon(categoryIcon(business.category), color: accent, size: 26),
                 ),

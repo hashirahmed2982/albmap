@@ -19,6 +19,7 @@ import '../../../../core/widgets/selection_field.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../categories/domain/category_translations.dart';
 import '../../../categories/presentation/providers/category_providers.dart';
+import '../../../dashboard/presentation/providers/analytics_providers.dart';
 import '../../../map/domain/entities/business_entity.dart';
 import '../../../map/domain/usecases/business_usecases.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
@@ -50,8 +51,13 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _streetAddressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _postalCodeController = TextEditingController();
+  final _countryController = TextEditingController(text: 'Albania');
   final _phoneController = TextEditingController();
+  final _whatsappController = TextEditingController();
+  bool _whatsappSameAsPhone = true;
 
   String? _category;
   LatLng? _pickedLocation;
@@ -65,8 +71,12 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _addressController.dispose();
+    _streetAddressController.dispose();
+    _cityController.dispose();
+    _postalCodeController.dispose();
+    _countryController.dispose();
     _phoneController.dispose();
+    _whatsappController.dispose();
     super.dispose();
   }
 
@@ -121,11 +131,17 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
       name: _nameController.text.trim(),
       description: _descController.text.trim(),
       category: _category!,
-      address: _addressController.text.trim(),
+      streetAddress: _streetAddressController.text.trim(),
+      city: _cityController.text.trim(),
+      postalCode: _postalCodeController.text.trim(),
+      country: _countryController.text.trim().isEmpty ? 'Albania' : _countryController.text.trim(),
       latitude: _pickedLocation!.latitude,
       longitude: _pickedLocation!.longitude,
       status: BusinessStatus.pending,
       phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      whatsappNumber: _whatsappSameAsPhone
+          ? (_phoneController.text.trim().isEmpty ? null : _phoneController.text.trim())
+          : (_whatsappController.text.trim().isEmpty ? null : _whatsappController.text.trim()),
       logoUrl: _logoUrl,
       openingHours: _openingHours,
     );
@@ -172,7 +188,16 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
         }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message)));
       },
-      (_) => setState(() => _submitted = true),
+      (_) {
+        // Without this, "My Businesses" would keep showing whatever it
+        // last fetched — a FutureProvider.autoDispose only refetches when
+        // actually disposed and rewatched, and simply navigating here via
+        // push (then popping back) doesn't dispose the screen underneath,
+        // it just covers it. This was the reported "have to refresh
+        // manually to see the new business" bug.
+        ref.invalidate(myBusinessesProvider(user.id));
+        setState(() => _submitted = true);
+      },
     );
   }
 
@@ -260,8 +285,8 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                                 : _logoUrl != null
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
-                                        child: _logoUrl!.startsWith('http')
-                                            ? Image.network(_logoUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                                        child: AppConstants.isRemoteMediaPath(_logoUrl)
+                                            ? Image.network(AppConstants.resolveMediaUrl(_logoUrl)!, height: 120, width: double.infinity, fit: BoxFit.cover)
                                             : Image.file(File(_logoUrl!), height: 120, width: double.infinity, fit: BoxFit.cover),
                                       )
                                     : Column(
@@ -301,12 +326,39 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
-                        controller: _addressController,
+                        controller: _streetAddressController,
                         decoration: InputDecoration(
-                          labelText: 'addBusiness.address'.tr(),
-                          helperText: 'addBusiness.addressHelper'.tr(),
-                          helperMaxLines: 2,
+                          labelText: 'addBusiness.streetAddress'.tr(),
+                          helperText: 'addBusiness.streetAddressHelper'.tr(),
                         ),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: TextFormField(
+                              controller: _cityController,
+                              decoration: InputDecoration(labelText: 'addBusiness.city'.tr()),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _postalCodeController,
+                              decoration: InputDecoration(labelText: 'addBusiness.postalCode'.tr()),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _countryController,
+                        decoration: InputDecoration(labelText: 'addBusiness.country'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
                       const SizedBox(height: 14),
@@ -372,7 +424,25 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
+                        onChanged: (_) => setState(() {}), // refresh WhatsApp preview text below
                       ),
+                      const SizedBox(height: 8),
+                      CheckboxListTile(
+                        value: _whatsappSameAsPhone,
+                        onChanged: (v) => setState(() => _whatsappSameAsPhone = v ?? true),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text('addBusiness.whatsappSameAsPhone'.tr(), style: AppTextStyles.bodyMedium),
+                      ),
+                      if (!_whatsappSameAsPhone) ...[
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _whatsappController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
+                        ),
+                      ],
                       const SizedBox(height: 20),
 
                       Text('addBusiness.openingHours'.tr(), style: AppTextStyles.h3),

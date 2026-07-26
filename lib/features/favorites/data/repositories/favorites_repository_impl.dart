@@ -40,9 +40,12 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
       final BusinessModel model = BusinessModel(
         id: business.id, ownerId: business.ownerId, name: business.name,
         description: business.description, category: business.category,
-        address: business.address, latitude: business.latitude, longitude: business.longitude,
-        status: business.status, phone: business.phone, logoUrl: business.logoUrl,
-        openingHours: business.openingHours, tags: business.tags, rating: business.rating,
+        streetAddress: business.streetAddress, city: business.city,
+        postalCode: business.postalCode, country: business.country,
+        latitude: business.latitude, longitude: business.longitude,
+        status: business.status, phone: business.phone, whatsappNumber: business.whatsappNumber,
+        logoUrl: business.logoUrl, openingHours: business.openingHours, tags: business.tags,
+        rating: business.rating,
       );
       await _local.toggleBusiness(model);
 

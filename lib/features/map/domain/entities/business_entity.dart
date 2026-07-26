@@ -9,11 +9,15 @@ class BusinessEntity extends Equatable {
     required this.name,
     required this.description,
     required this.category,
-    required this.address,
+    required this.streetAddress,
+    required this.city,
+    required this.postalCode,
     required this.latitude,
     required this.longitude,
     required this.status,
+    this.country = 'Albania',
     this.phone,
+    this.whatsappNumber,
     this.logoUrl,
     this.openingHours = const <String, String>{},
     this.tags = const <String>[],
@@ -26,16 +30,33 @@ class BusinessEntity extends Equatable {
   final String name;
   final String description;
   final String category;
-  final String address;
+  final String streetAddress;
+  final String city;
+  final String postalCode;
+  final String country;
   final double latitude;
   final double longitude;
   final BusinessStatus status;
   final String? phone;
+  final String? whatsappNumber;
   final String? logoUrl;
   final Map<String, String> openingHours;
   final List<String> tags;
   final double? rating;
   final double? distanceKm;
+
+  /// Single display-friendly line — "Street, Postal Code City, Country" —
+  /// for anywhere the UI wants one line rather than four separate fields
+  /// (map marker sheets, list cards, share text). The backend computes
+  /// the same thing server-side as `formattedAddress`; this client-side
+  /// version exists for mock-mode data, which never round-trips through
+  /// the backend's formatter.
+  String get formattedAddress {
+    final parts = [streetAddress, '$postalCode $city'.trim(), country]
+        .where((p) => p.trim().isNotEmpty)
+        .toList();
+    return parts.join(', ');
+  }
 
   BusinessEntity copyWith({double? distanceKm}) {
     return BusinessEntity(
@@ -44,11 +65,15 @@ class BusinessEntity extends Equatable {
       name: name,
       description: description,
       category: category,
-      address: address,
+      streetAddress: streetAddress,
+      city: city,
+      postalCode: postalCode,
+      country: country,
       latitude: latitude,
       longitude: longitude,
       status: status,
       phone: phone,
+      whatsappNumber: whatsappNumber,
       logoUrl: logoUrl,
       openingHours: openingHours,
       tags: tags,
@@ -59,7 +84,7 @@ class BusinessEntity extends Equatable {
 
   @override
   List<Object?> get props => <Object?>[
-        id, ownerId, name, description, category, address, latitude, longitude,
-        status, phone, logoUrl, openingHours, tags, rating, distanceKm,
+        id, ownerId, name, description, category, streetAddress, city, postalCode, country,
+        latitude, longitude, status, phone, whatsappNumber, logoUrl, openingHours, tags, rating, distanceKm,
       ];
 }
