@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/error/exceptions.dart';
@@ -90,8 +92,28 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> loginWithGoogle() async {
+    // Triggers the native Google account picker — this is what was
+    // actually missing before: the backend call existed, but nothing
+    // ever obtained a real ID token to send it, so it always failed
+    // validation with an empty body.
+    final GoogleSignIn googleSignIn = GoogleSignIn(scopes: const ['email', 'profile']);
+    final GoogleSignInAccount? account = await googleSignIn.signIn();
+    if (account == null) {
+      // User cancelled the picker — not an error, just no result.
+      throw ServerException('Sign-in cancelled');
+    }
+
+    final GoogleSignInAuthentication auth = await account.authentication;
+    final String? idToken = auth.idToken;
+    if (idToken == null) {
+      throw ServerException('Google did not return an ID token');
+    }
+
     try {
-      final Response<dynamic> response = await _dio.post<dynamic>('/auth/google');
+      final Response<dynamic> response = await _dio.post<dynamic>(
+        '/auth/google',
+        data: <String, String>{'idToken': idToken},
+      );
       await _persistTokens(response.data as Map<String, dynamic>);
       return UserModel.fromJson(response.data['user'] as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -101,8 +123,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> loginWithFacebook() async {
+    final LoginResult result = await FacebookAuth.instance.login(permissions: const ['email', 'public_profile']);
+    if (result.status == LoginStatus.cancelled) {
+      throw ServerException('Sign-in cancelled');
+    }
+    if (result.status != LoginStatus.success || result.accessToken == null) {
+      throw ServerException(result.message ?? 'Facebook login failed');
+    }
+
     try {
-      final Response<dynamic> response = await _dio.post<dynamic>('/auth/facebook');
+      final Response<dynamic> response = await _dio.post<dynamic>(
+        '/auth/facebook',
+        data: <String, String>{'accessToken': result.accessToken!.tokenString},
+      );
       await _persistTokens(response.data as Map<String, dynamic>);
       return UserModel.fromJson(response.data['user'] as Map<String, dynamic>);
     } on DioException catch (e) {

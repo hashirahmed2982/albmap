@@ -21,7 +21,12 @@ class AuthState {
 
   bool get isAuthenticated => user != null;
 
-  AuthState copyWith({UserEntity? user, bool? isLoading, String? errorMessage, bool clearError = false}) {
+  AuthState copyWith({
+    UserEntity? user,
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
     return AuthState(
       user: user ?? this.user,
       isLoading: isLoading ?? this.isLoading,
@@ -32,21 +37,25 @@ class AuthState {
 
 class AuthController extends StateNotifier<AuthState> {
   AuthController()
-      : _loginUseCase = sl<LoginUseCase>(),
-        _signUpUseCase = sl<SignUpUseCase>(),
-        _continueAsGuestUseCase = sl<ContinueAsGuestUseCase>(),
-        _getCurrentUserUseCase = sl<GetCurrentUserUseCase>(),
-        _logoutUseCase = sl<LogoutUseCase>(),
-        _changePasswordUseCase = sl<ChangePasswordUseCase>(),
-        _updateProfileUseCase = sl<UpdateProfileUseCase>(),
-        _uploadAvatarUseCase = sl<UploadAvatarUseCase>(),
-        super(const AuthState(isLoading: true)) {
+    : _loginUseCase = sl<LoginUseCase>(),
+      _signUpUseCase = sl<SignUpUseCase>(),
+      _continueAsGuestUseCase = sl<ContinueAsGuestUseCase>(),
+      _loginWithGoogleUseCase = sl<LoginWithGoogleUseCase>(),
+      _loginWithFacebookUseCase = sl<LoginWithFacebookUseCase>(),
+      _getCurrentUserUseCase = sl<GetCurrentUserUseCase>(),
+      _logoutUseCase = sl<LogoutUseCase>(),
+      _changePasswordUseCase = sl<ChangePasswordUseCase>(),
+      _updateProfileUseCase = sl<UpdateProfileUseCase>(),
+      _uploadAvatarUseCase = sl<UploadAvatarUseCase>(),
+      super(const AuthState(isLoading: true)) {
     _restoreSession();
   }
 
   final LoginUseCase _loginUseCase;
   final SignUpUseCase _signUpUseCase;
   final ContinueAsGuestUseCase _continueAsGuestUseCase;
+  final LoginWithGoogleUseCase _loginWithGoogleUseCase;
+  final LoginWithFacebookUseCase _loginWithFacebookUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final LogoutUseCase _logoutUseCase;
   final ChangePasswordUseCase _changePasswordUseCase;
@@ -55,23 +64,22 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> _restoreSession() async {
     final result = await _getCurrentUserUseCase(const NoParams());
-    result.fold(
-      (failure) => state = const AuthState(isLoading: false),
-      (user) {
-        state = AuthState(user: user, isLoading: false);
-        // Fire-and-forget: FcmService degrades gracefully on its own if
-        // Firebase isn't configured, permission is denied, etc — this
-        // just needs to run once per app launch for whoever's actually
-        // signed in, which for most opens is this restored-session path,
-        // not a fresh login.
-        unawaited(FcmService.instance.initialize());
-      },
-    );
+    result.fold((failure) => state = const AuthState(isLoading: false), (user) {
+      state = AuthState(user: user, isLoading: false);
+      // Fire-and-forget: FcmService degrades gracefully on its own if
+      // Firebase isn't configured, permission is denied, etc — this
+      // just needs to run once per app launch for whoever's actually
+      // signed in, which for most opens is this restored-session path,
+      // not a fresh login.
+      unawaited(FcmService.instance.initialize());
+    });
   }
 
   Future<bool> login({required String email, required String password}) async {
     state = state.copyWith(isLoading: true, clearError: true);
-    final result = await _loginUseCase(LoginParams(email: email, password: password));
+    final result = await _loginUseCase(
+      LoginParams(email: email, password: password),
+    );
     return result.fold(
       (failure) {
         state = state.copyWith(isLoading: false, errorMessage: failure.message);
@@ -85,9 +93,15 @@ class AuthController extends StateNotifier<AuthState> {
     );
   }
 
-  Future<bool> signUp({required String email, required String password, required String name}) async {
+  Future<bool> signUp({
+    required String email,
+    required String password,
+    required String name,
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
-    final result = await _signUpUseCase(SignUpParams(email: email, password: password, name: name));
+    final result = await _signUpUseCase(
+      SignUpParams(email: email, password: password, name: name),
+    );
     return result.fold(
       (failure) {
         state = state.copyWith(isLoading: false, errorMessage: failure.message);
@@ -105,14 +119,46 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     final result = await _continueAsGuestUseCase(const NoParams());
     result.fold(
-      (failure) => state = state.copyWith(isLoading: false, errorMessage: failure.message),
-      (user) {
+          (failure) => state = state.copyWith(isLoading: false, errorMessage: failure.message),
+          (user) {
         state = AuthState(user: user, isLoading: false);
         // Guests still get subscribed to the broadcast topic (they should
         // see general offers too) — token registration itself will just
         // silently no-op for a guest with no real backend session, which
         // FcmTokenRepositoryImpl already handles gracefully.
         unawaited(FcmService.instance.initialize());
+      },
+    );
+  }
+
+  Future<bool> loginWithGoogle() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    final result = await _loginWithGoogleUseCase(const NoParams());
+    return result.fold(
+          (failure) {
+        state = state.copyWith(isLoading: false, errorMessage: failure.message);
+        return false;
+      },
+          (user) {
+        state = AuthState(user: user, isLoading: false);
+        unawaited(FcmService.instance.initialize());
+        return true;
+      },
+    );
+  }
+
+  Future<bool> loginWithFacebook() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    final result = await _loginWithFacebookUseCase(const NoParams());
+    return result.fold(
+          (failure) {
+        state = state.copyWith(isLoading: false, errorMessage: failure.message);
+        return false;
+      },
+          (user) {
+        state = AuthState(user: user, isLoading: false);
+        unawaited(FcmService.instance.initialize());
+        return true;
       },
     );
   }
@@ -131,36 +177,43 @@ class AuthController extends StateNotifier<AuthState> {
     required String newPassword,
   }) async {
     final result = await _changePasswordUseCase(
-      ChangePasswordParams(currentPassword: currentPassword, newPassword: newPassword),
+      ChangePasswordParams(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      ),
     );
     return result.fold((failure) => failure.message, (_) => null);
   }
 
-  Future<String?> updateProfile({String? name, String? phone, String? profileImageUrl}) async {
+  Future<String?> updateProfile({
+    String? name,
+    String? phone,
+    String? profileImageUrl,
+  }) async {
     final result = await _updateProfileUseCase(
-      UpdateProfileParams(name: name, phone: phone, profileImageUrl: profileImageUrl),
+      UpdateProfileParams(
+        name: name,
+        phone: phone,
+        profileImageUrl: profileImageUrl,
+      ),
     );
-    return result.fold(
-      (failure) => failure.message,
-      (user) {
-        state = state.copyWith(user: user);
-        return null;
-      },
-    );
+    return result.fold((failure) => failure.message, (user) {
+      state = state.copyWith(user: user);
+      return null;
+    });
   }
 
   Future<String?> uploadAvatar(String filePath) async {
     final result = await _uploadAvatarUseCase(filePath);
-    return result.fold(
-      (failure) => failure.message,
-      (user) {
-        state = state.copyWith(user: user);
-        return null;
-      },
-    );
+    return result.fold((failure) => failure.message, (user) {
+      state = state.copyWith(user: user);
+      return null;
+    });
   }
 }
 
-final authControllerProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
-  return AuthController();
-});
+final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
+  (ref) {
+    return AuthController();
+  },
+);

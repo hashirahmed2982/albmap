@@ -16,6 +16,26 @@ class ContinueAsGuestUseCase implements UseCase<UserEntity, NoParams> {
   }
 }
 
+class LoginWithGoogleUseCase implements UseCase<UserEntity, NoParams> {
+  LoginWithGoogleUseCase(this._repository);
+  final AuthRepository _repository;
+
+  @override
+  Future<Either<Failure, UserEntity>> call(NoParams params) {
+    return _repository.loginWithGoogle();
+  }
+}
+
+class LoginWithFacebookUseCase implements UseCase<UserEntity, NoParams> {
+  LoginWithFacebookUseCase(this._repository);
+  final AuthRepository _repository;
+
+  @override
+  Future<Either<Failure, UserEntity>> call(NoParams params) {
+    return _repository.loginWithFacebook();
+  }
+}
+
 class GetCurrentUserUseCase implements UseCase<UserEntity?, NoParams> {
   GetCurrentUserUseCase(this._repository);
   final AuthRepository _repository;
