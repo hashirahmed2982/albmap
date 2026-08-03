@@ -96,7 +96,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     // actually missing before: the backend call existed, but nothing
     // ever obtained a real ID token to send it, so it always failed
     // validation with an empty body.
-    final GoogleSignIn googleSignIn = GoogleSignIn(scopes: const ['email', 'profile']);
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      scopes: const ['email', 'profile'],
+      // Without this, Android's native Google Sign-In can complete the
+      // account picker successfully but return a null idToken — the SDK
+      // needs to be told which OAuth client (audience) to mint the ID
+      // token FOR. This must be the Web application client ID (the same
+      // value as the backend's GOOGLE_CLIENT_ID), not the Android client ID
+      // — the Android client ID is used implicitly via the package
+      // name+SHA-1 already registered in google-services.json.
+      serverClientId: '1011810478555-1g8ndpulh2hml56sh9f83soh2gufgl34.apps.googleusercontent.com',
+    );
     final GoogleSignInAccount? account = await googleSignIn.signIn();
     if (account == null) {
       // User cancelled the picker — not an error, just no result.

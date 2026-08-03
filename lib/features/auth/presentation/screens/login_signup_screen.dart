@@ -48,17 +48,30 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
     final auth = ref.read(authControllerProvider.notifier);
     final bool success = _isSignUpMode
         ? await auth.signUp(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-            name: _nameController.text.trim(),
-          )
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      name: _nameController.text.trim(),
+    )
         : await auth.login(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
 
     if (!success && mounted) {
       final error = ref.read(authControllerProvider).errorMessage;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error ?? 'common.somethingWrong'.tr())));
+    }
+  }
+
+  Future<void> _handleSocialLogin(Future<bool> Function() signInMethod) async {
+    final bool success = await signInMethod();
+    if (!success && mounted) {
+      final error = ref.read(authControllerProvider).errorMessage;
+      // "Sign-in cancelled" (user backed out of the picker) surfaces the
+      // same way as a real failure here — deliberately not special-cased
+      // into silence, since a brief, accurate snackbar is simple and
+      // honest, and cancelling isn't something that needs hiding.
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(error ?? 'common.somethingWrong'.tr())));
     }
@@ -217,14 +230,18 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                     label: 'auth.continueWithGoogle'.tr(),
                     outlined: true,
                     icon: Icons.g_mobiledata,
-                    onPressed: () {}, // wire google_sign_in package
+                    onPressed: () => _handleSocialLogin(
+                          () => ref.read(authControllerProvider.notifier).loginWithGoogle(),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   PrimaryButton(
                     label: 'auth.continueWithFacebook'.tr(),
                     outlined: true,
                     icon: Icons.facebook,
-                    onPressed: () {}, // wire facebook auth
+                    onPressed: () => _handleSocialLogin(
+                          () => ref.read(authControllerProvider.notifier).loginWithFacebook(),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   PrimaryButton(

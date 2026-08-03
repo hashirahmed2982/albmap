@@ -25,8 +25,8 @@ class AuthRepositoryImpl implements AuthRepository {
   final NetworkInfo _networkInfo;
 
   Future<Either<Failure, UserEntity>> _guardedCall(
-    Future<UserModel> Function() action,
-  ) async {
+      Future<UserModel> Function() action,
+      ) async {
     if (!await _networkInfo.isConnected) {
       return const Left(NetworkFailure());
     }
@@ -38,8 +38,13 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(e.message));
     } on AuthException catch (e) {
       return Left(AuthFailure(e.message));
-    } catch (_) {
-      return const Left(UnknownFailure());
+    } catch (e) {
+      // Surface the real exception message (e.g. a raw PlatformException
+      // from the native Facebook/Google SDK) instead of a generic
+      // "Unknown failure" that hides what actually went wrong — this is
+      // exactly the situation that made "unexpected error occurred"
+      // undiagnosable from the UI alone.
+      return Left(ServerFailure(e.toString()));
     }
   }
 
