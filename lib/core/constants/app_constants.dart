@@ -36,7 +36,7 @@ class AppConstants {
   //     --dart-define=BASE_URL=https://your-deployed-api.com/v1
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'https://167.233.144.118//v1',
+    defaultValue: 'http://167.233.144.118:4000/v1',
   );
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
