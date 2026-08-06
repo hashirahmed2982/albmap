@@ -69,9 +69,9 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
                             ),
                         decoration: InputDecoration(
                           hintText: 'events.searchHint'.tr(),
-                          prefixIcon: Icon(Icons.search, color: AppColors.primary),
+                          prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                         ),
                       ),
                     ),

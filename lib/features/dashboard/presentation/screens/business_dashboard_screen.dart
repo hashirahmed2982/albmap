@@ -1,6 +1,4 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:easy_localization/easy_localization.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,7 +9,6 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../map/presentation/providers/business_providers.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
-import '../../domain/entities/business_analytics_entity.dart';
 import '../providers/analytics_providers.dart';
 import '../widgets/send_notification_sheet.dart';
 
@@ -153,7 +150,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
                                 PrimaryButton(
                                   label: 'dashboard.sendNotification'.tr(),
                                   icon: Icons.send_outlined,
-                                  onPressed: () => showModalBottomSheet(
+                                  onPressed: () => showModalBottomSheet<void>(
                                     context: context,
                                     isScrollControlled: true,
                                     builder: (_) => SendNotificationSheet(business: business),

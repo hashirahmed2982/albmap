@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../map/domain/entities/business_entity.dart';
 import '../providers/send_notification_provider.dart';
@@ -43,7 +45,7 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
     if (errorMessage == null) {
       setState(() => _sent = true);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+      AppToast.error(context, errorMessage);
     }
   }
 
@@ -91,14 +93,14 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
             controller: _titleController,
             maxLength: 60,
             decoration: InputDecoration(labelText: 'sendNotification.titleLabel'.tr(), hintText: 'sendNotification.titleHint'.tr()),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+            validator: (v) => Validators.required(v, 'common.required'.tr()),
           ),
           TextFormField(
             controller: _messageController,
             maxLines: 3,
             maxLength: 200,
             decoration: InputDecoration(labelText: 'sendNotification.message'.tr()),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+            validator: (v) => Validators.required(v, 'common.required'.tr()),
           ),
           const SizedBox(height: 8),
           Container(

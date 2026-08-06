@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/forgot_password_sheet.dart';
@@ -39,9 +41,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isSignUpMode && !_acceptedTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('auth.pleaseAcceptTerms'.tr())),
-      );
+      AppToast.warning(context, 'auth.pleaseAcceptTerms'.tr());
       return;
     }
 
@@ -59,21 +59,20 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
 
     if (!success && mounted) {
       final error = ref.read(authControllerProvider).errorMessage;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error ?? 'common.somethingWrong'.tr())));
+      AppToast.error(context, error ?? 'common.somethingWrong'.tr());
     }
   }
 
   Future<void> _handleSocialLogin(Future<bool> Function() signInMethod) async {
     final bool success = await signInMethod();
-    if (!success && mounted) {
+    if (!mounted) return;
+    if (!success) {
       final error = ref.read(authControllerProvider).errorMessage;
       // "Sign-in cancelled" (user backed out of the picker) surfaces the
       // same way as a real failure here — deliberately not special-cased
-      // into silence, since a brief, accurate snackbar is simple and
-      // honest, and cancelling isn't something that needs hiding.
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error ?? 'common.somethingWrong'.tr())));
+      // into silence, since a brief, accurate toast is simple and honest,
+      // and cancelling isn't something that needs hiding.
+      AppToast.error(context, error ?? 'common.somethingWrong'.tr());
     }
   }
 
@@ -142,7 +141,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                             TextFormField(
                               controller: _nameController,
                               decoration: InputDecoration(labelText: 'auth.fullName'.tr()),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'auth.nameRequired'.tr() : null,
+                              validator: (v) => Validators.required(v, 'auth.nameRequired'.tr()),
                             ),
                             const SizedBox(height: 14),
                           ],
@@ -150,11 +149,11 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             decoration: InputDecoration(labelText: 'auth.email'.tr()),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'auth.emailRequired'.tr();
-                              if (!v.contains('@')) return 'auth.emailInvalid'.tr();
-                              return null;
-                            },
+                            validator: (v) => Validators.email(
+                              v,
+                              requiredMessage: 'auth.emailRequired'.tr(),
+                              invalidMessage: 'auth.emailInvalid'.tr(),
+                            ),
                           ),
                           const SizedBox(height: 14),
                           TextFormField(
@@ -167,17 +166,17 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                               ),
                             ),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return 'auth.passwordRequired'.tr();
-                              if (v.length < 6) return 'auth.passwordTooShort'.tr();
-                              return null;
-                            },
+                            validator: (v) => Validators.password(
+                              v,
+                              requiredMessage: 'auth.passwordRequired'.tr(),
+                              tooShortMessage: 'auth.passwordTooShort'.tr(),
+                            ),
                           ),
                           if (!_isSignUpMode) ...[
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: () => showModalBottomSheet(
+                                onPressed: () => showModalBottomSheet<void>(
                                   context: context,
                                   isScrollControlled: true,
                                   builder: (_) => const ForgotPasswordSheet(),

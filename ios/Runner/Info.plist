@@ -45,5 +45,21 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!--
+	  Without these, iOS terminates the app the instant it calls the
+	  corresponding permission API (Geolocator.getCurrentPosition,
+	  ImagePicker.pickImage) instead of showing a system prompt — there is
+	  no fallback behavior, just an immediate crash. Every one of these
+	  maps to a permission this app actually requests:
+	  discover_map_screen (location), and the logo/avatar/event-image
+	  pickers in add_business/edit_profile/add_event (photo library).
+	-->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>AlbMap uses your location to show nearby businesses and events and to sort results by distance.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AlbMap needs access to your photo library so you can choose a logo, profile photo, or event image.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>AlbMap needs access to your camera so you can take a photo for your business logo, profile photo, or event image.</string>
 </dict>
 </plist>

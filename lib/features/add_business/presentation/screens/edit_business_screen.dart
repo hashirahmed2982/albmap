@@ -7,6 +7,8 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -170,21 +172,18 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
     setState(() => _isSubmitting = false);
 
     result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (failure) => AppToast.error(context, failure.message),
       (updated) {
         ref.invalidate(businessDetailsProvider(widget.businessId));
         // Same staleness class as the Add Business fix: without this, "My
         // Businesses" keeps showing the pre-edit status (e.g. still
         // "Approved" even though this edit just sent it back to pending).
         ref.invalidate(myBusinessesProvider(updated.ownerId));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              updated.status == BusinessStatus.pending
-                  ? 'editBusiness.savedPending'.tr()
-                  : 'editBusiness.saved'.tr(),
-            ),
-          ),
+        AppToast.success(
+          context,
+          updated.status == BusinessStatus.pending
+              ? 'editBusiness.savedPending'.tr()
+              : 'editBusiness.saved'.tr(),
         );
         Navigator.of(context).pop();
       },
@@ -348,6 +347,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
+                        validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         onChanged: (_) => setState(() {}),
                       ),
                       const SizedBox(height: 8),
@@ -365,6 +365,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                           controller: _whatsappController,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
+                          validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         ),
                       ],
                       const SizedBox(height: 20),

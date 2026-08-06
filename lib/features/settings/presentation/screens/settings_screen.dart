@@ -69,45 +69,57 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsSection(
               title: 'settings.language'.tr(),
               children: [
-                for (final localeCode in AppConstants.supportedLocales)
-                  RadioListTile<String>(
-                    value: localeCode,
-                    groupValue: currentLocaleCode,
-                    activeColor: AppColors.primary,
-                    title: Text(_localeLabel(localeCode)),
-                    onChanged: (code) {
-                      if (code != null) context.setLocale(Locale(code));
-                    },
+                RadioGroup<String>(
+                  groupValue: currentLocaleCode,
+                  onChanged: (code) {
+                    if (code != null) context.setLocale(Locale(code));
+                  },
+                  child: Column(
+                    children: [
+                      for (final localeCode in AppConstants.supportedLocales)
+                        RadioListTile<String>(
+                          value: localeCode,
+                          activeColor: AppColors.primary,
+                          title: Text(_localeLabel(localeCode)),
+                        ),
+                    ],
                   ),
+                ),
               ],
             ),
             _SettingsSection(
               title: 'settings.notifications'.tr(),
               children: [
                 SwitchListTile(
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primary,
                   title: Text('settings.enableNotifications'.tr()),
                   value: settings.notificationsEnabled,
                   onChanged: controller.setNotificationsEnabled,
                 ),
                 if (settings.notificationsEnabled)
-                  for (final freq in NotificationFrequency.values)
-                    RadioListTile<NotificationFrequency>(
-                      value: freq,
-                      groupValue: settings.notificationFrequency,
-                      activeColor: AppColors.primary,
-                      title: Text(_freqLabel(freq)),
-                      onChanged: (f) {
-                        if (f != null) controller.setNotificationFrequency(f);
-                      },
+                  RadioGroup<NotificationFrequency>(
+                    groupValue: settings.notificationFrequency,
+                    onChanged: (f) {
+                      if (f != null) controller.setNotificationFrequency(f);
+                    },
+                    child: Column(
+                      children: [
+                        for (final freq in NotificationFrequency.values)
+                          RadioListTile<NotificationFrequency>(
+                            value: freq,
+                            activeColor: AppColors.primary,
+                            title: Text(_freqLabel(freq)),
+                          ),
+                      ],
                     ),
+                  ),
               ],
             ),
             _SettingsSection(
               title: 'settings.location'.tr(),
               children: [
                 SwitchListTile(
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primary,
                   title: Text('settings.enableLocation'.tr()),
                   subtitle: Text('settings.enableLocationDesc'.tr()),
                   value: settings.locationEnabled,

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/notification_entity.dart';
-import '../../domain/repositories/notification_repository.dart';
 import '../../domain/usecases/notification_feed_usecases.dart';
 
 class NotificationsState {

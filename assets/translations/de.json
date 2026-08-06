@@ -21,7 +21,9 @@
     "km_away": "{} km entfernt",
     "somethingWrong": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     "noInternet": "Keine Internetverbindung.",
-    "all": "Alle"
+    "all": "Alle",
+    "invalidPhone": "Gib eine gültige Telefonnummer ein",
+    "invalidEmail": "Gib eine gültige E-Mail-Adresse ein"
   },
   "nav": {
     "discover": "Karte",
@@ -157,6 +159,7 @@
     "newPassword": "Neues Passwort",
     "confirmNew": "Neues Passwort bestätigen",
     "mismatch": "Passwörter stimmen nicht überein",
+    "sameAsCurrent": "Das neue Passwort muss sich vom aktuellen unterscheiden",
     "success": "Passwort erfolgreich geändert",
     "action": "Passwort ändern"
   },
@@ -279,6 +282,7 @@
     "submit": "Veranstaltung einreichen",
     "noBusinessTitle": "Du benötigst ein genehmigtes Unternehmen, bevor du Veranstaltungen erstellen kannst",
     "completeAllFields": "Bitte fülle alle Felder aus",
+    "endBeforeStart": "Die Endzeit muss nach der Startzeit liegen",
     "failedToCreate": "Veranstaltung konnte nicht erstellt werden"
   },
   "contactUs": {

@@ -9,15 +9,15 @@ import 'analytics_remote_datasource.dart';
 /// view) increment on top of the seed for the current app session.
 class AnalyticsMockDataSource implements AnalyticsDataSource {
   static final Map<String, BusinessAnalyticsEntity> _store = {
-    'biz-1': BusinessAnalyticsEntity(
+    'biz-1': const BusinessAnalyticsEntity(
       businessId: 'biz-1', profileClicks: 214, websiteClicks: 58, callClicks: 31, favoriteCount: 19,
       last7DaysProfileClicks: [22, 30, 18, 41, 35, 28, 40],
     ),
-    'biz-6': BusinessAnalyticsEntity(
+    'biz-6': const BusinessAnalyticsEntity(
       businessId: 'biz-6', profileClicks: 132, websiteClicks: 24, callClicks: 47, favoriteCount: 8,
       last7DaysProfileClicks: [12, 15, 20, 10, 18, 25, 32],
     ),
-    'biz-7': BusinessAnalyticsEntity(
+    'biz-7': const BusinessAnalyticsEntity(
       businessId: 'biz-7', profileClicks: 0, websiteClicks: 0, callClicks: 0, favoriteCount: 0,
       last7DaysProfileClicks: [0, 0, 0, 0, 0, 0, 0],
     ),

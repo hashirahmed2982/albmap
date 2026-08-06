@@ -63,17 +63,20 @@ class SettingsController extends StateNotifier<SettingsState> {
 
   Future<void> setNotificationsEnabled(bool enabled) async {
     state = state.copyWith(notificationsEnabled: enabled);
-    (await SharedPreferences.getInstance()).setBool(_kNotifEnabled, enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotifEnabled, enabled);
   }
 
   Future<void> setNotificationFrequency(NotificationFrequency freq) async {
     state = state.copyWith(notificationFrequency: freq);
-    (await SharedPreferences.getInstance()).setString(_kNotifFreq, freq.name);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kNotifFreq, freq.name);
   }
 
   Future<void> setLocationEnabled(bool enabled) async {
     state = state.copyWith(locationEnabled: enabled);
-    (await SharedPreferences.getInstance()).setBool(_kLocationEnabled, enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kLocationEnabled, enabled);
   }
 }
 

@@ -1,4 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      Without INTERNET, every Dio API call, map tile fetch, and Firebase
+      call fails outright — some plugin dependencies merge this in
+      transitively, but it shouldn't be left implicit for a permission
+      this core to the app. ACCESS_NETWORK_STATE backs connectivity_plus
+      (the offline/online detection used to decide when to fall back to
+      cached businesses). The two location permissions back
+      geolocator/location (Discover Map's "near me" sort and centering).
+      POST_NOTIFICATIONS is required on Android 13+ (API 33+) for the
+      FirebaseMessaging.requestPermission() call in fcm_service.dart to
+      have any effect — without this declared, that call is a no-op and
+      push notifications never show, with no error surfaced anywhere.
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="albmap"
         android:name="${applicationName}"

@@ -21,7 +21,9 @@
     "km_away": "{} km away",
     "somethingWrong": "Something went wrong. Please try again.",
     "noInternet": "No internet connection.",
-    "all": "All"
+    "all": "All",
+    "invalidPhone": "Enter a valid phone number",
+    "invalidEmail": "Enter a valid email address"
   },
   "nav": {
     "discover": "Discover",
@@ -157,6 +159,7 @@
     "newPassword": "New password",
     "confirmNew": "Confirm new password",
     "mismatch": "Passwords do not match",
+    "sameAsCurrent": "New password must be different from your current password",
     "success": "Password changed successfully",
     "action": "Change password"
   },
@@ -276,6 +279,7 @@
     "submit": "Submit event",
     "noBusinessTitle": "You need an approved business before creating events",
     "completeAllFields": "Please complete all fields",
+    "endBeforeStart": "End time must be after the start time",
     "failedToCreate": "Failed to create event"
   },
   "contactUs": {

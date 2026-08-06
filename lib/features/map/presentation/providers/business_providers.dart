@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../../domain/entities/business_entity.dart';
 import '../../domain/usecases/business_usecases.dart';
 
@@ -23,8 +24,11 @@ class LocationController extends StateNotifier<Position?> {
 
     try {
       state = await Geolocator.getCurrentPosition();
-    } catch (_) {
-      // keep previous state on failure
+    } catch (err, stack) {
+      // Keep previous state on failure — the map falls back to its
+      // default center, so this is a graceful degradation, not a crash.
+      // Still logged so a "map never centers on me" report is diagnosable.
+      AppLogger.warning('Failed to fetch current position', err, stack);
     }
   }
 }

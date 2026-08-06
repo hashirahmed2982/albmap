@@ -21,7 +21,9 @@
     "km_away": "{} km larg",
     "somethingWrong": "Diçka shkoi keq. Ju lutemi provoni përsëri.",
     "noInternet": "Nuk ka lidhje interneti.",
-    "all": "Të gjitha"
+    "all": "Të gjitha",
+    "invalidPhone": "Shkruaj një numër telefoni të vlefshëm",
+    "invalidEmail": "Shkruaj një adresë email të vlefshme"
   },
   "nav": {
     "discover": "Zbulo",
@@ -157,6 +159,7 @@
     "newPassword": "Fjalëkalimi i ri",
     "confirmNew": "Konfirmo fjalëkalimin e ri",
     "mismatch": "Fjalëkalimet nuk përputhen",
+    "sameAsCurrent": "Fjalëkalimi i ri duhet të jetë ndryshe nga ai aktual",
     "success": "Fjalëkalimi u ndryshua me sukses",
     "action": "Ndrysho fjalëkalimin"
   },
@@ -276,6 +279,7 @@
     "submit": "Dërgo eventin",
     "noBusinessTitle": "Të duhet një biznes i aprovuar para se të krijosh evente",
     "completeAllFields": "Ju lutemi plotësoni të gjitha fushat",
+    "endBeforeStart": "Ora e mbarimit duhet të jetë pas orës së fillimit",
     "failedToCreate": "Dështoi krijimi i eventit"
   },
   "contactUs": {

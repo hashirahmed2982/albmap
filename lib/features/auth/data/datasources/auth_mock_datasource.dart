@@ -14,7 +14,7 @@ class AuthMockDataSource implements AuthRemoteDataSource {
 
   final FlutterSecureStorage _secureStorage;
 
-  static final UserModel _fakeUser = const UserModel(
+  static const UserModel _fakeUser = UserModel(
     id: 'business-user-001',
     email: 'demo@albmap.com',
     role: UserRole.business,

@@ -4,13 +4,13 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
@@ -104,7 +104,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
     setState(() => _isUploadingImage = false);
 
     result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (failure) => AppToast.error(context, failure.message),
       (url) => setState(() => _imageUrl = url),
     );
   }
@@ -112,8 +112,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedBusiness == null || _startDate == null || _startTime == null || _endTime == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('addEvent.completeAllFields'.tr())));
+      AppToast.warning(context, 'addEvent.completeAllFields'.tr());
       return;
     }
 
@@ -123,6 +122,15 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
     final endDateTime = DateTime(
       _startDate!.year, _startDate!.month, _startDate!.day, _endTime!.hour, _endTime!.minute,
     );
+
+    // Without this check, picking an end time earlier in the day than the
+    // start time (an easy mis-tap on the time picker) silently created an
+    // event with a negative duration — nothing caught it here, and nothing
+    // downstream re-validates it either.
+    if (!endDateTime.isAfter(startDateTime)) {
+      AppToast.warning(context, 'addEvent.endBeforeStart'.tr());
+      return;
+    }
 
     final event = EventEntity(
       id: const Uuid().v4(),
@@ -141,8 +149,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
       ref.invalidate(eventsProvider);
       Navigator.of(context).pop();
     } else if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('addEvent.failedToCreate'.tr())));
+      AppToast.error(context, 'addEvent.failedToCreate'.tr());
     }
   }
 

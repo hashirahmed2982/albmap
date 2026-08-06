@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -59,7 +61,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(locationControllerProvider.notifier).refresh();
       _recenterOnUser();
-      ref.read(businessListControllerProvider.notifier).load();
+      unawaited(ref.read(businessListControllerProvider.notifier).load());
     });
   }
 
@@ -73,7 +75,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     // a bit later, without needing to fully quit and relaunch (which was
     // the previous "reinitialize app" workaround).
     if (state == AppLifecycleState.resumed) {
-      ref.read(businessListControllerProvider.notifier).load();
+      unawaited(ref.read(businessListControllerProvider.notifier).load());
     }
   }
 
@@ -191,7 +193,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.tune, color: AppColors.primary),
-                    onPressed: () => showModalBottomSheet(
+                    onPressed: () => showModalBottomSheet<void>(
                       context: context,
                       isScrollControlled: true,
                       builder: (_) => const FilterBottomSheet(),
@@ -299,7 +301,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                     width: 42,
                     height: 42,
                     child: GestureDetector(
-                      onTap: () => showModalBottomSheet(
+                      onTap: () => showModalBottomSheet<void>(
                         context: context,
                         builder: (_) => BusinessMarkerSheet(business: business),
                       ),

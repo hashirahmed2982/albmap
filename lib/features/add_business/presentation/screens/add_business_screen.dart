@@ -12,6 +12,8 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -92,7 +94,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     setState(() => _isUploadingLogo = false);
 
     result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (failure) => AppToast.error(context, failure.message),
       (url) => setState(() => _logoUrl = url),
     );
   }
@@ -111,14 +113,11 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
   Future<void> _submit({bool confirmDuplicate = false}) async {
     if (!_formKey.currentState!.validate()) return;
     if (_category == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('addBusiness.selectCategoryError'.tr())));
+      AppToast.warning(context, 'addBusiness.selectCategoryError'.tr());
       return;
     }
     if (_pickedLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('addBusiness.selectLocationError'.tr())),
-      );
+      AppToast.warning(context, 'addBusiness.selectLocationError'.tr());
       return;
     }
 
@@ -154,7 +153,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     setState(() => _isSubmitting = false);
     if (!mounted) return;
 
-    result.fold(
+    await result.fold(
       (failure) async {
         // A duplicate warning is a specific, actionable case — offer
         // "submit anyway" with the conflicting business's details, rather
@@ -186,7 +185,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
           }
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message)));
+        AppToast.error(context, failure.message);
       },
       (_) {
         // Without this, "My Businesses" would keep showing whatever it
@@ -424,6 +423,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
+                        validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         onChanged: (_) => setState(() {}), // refresh WhatsApp preview text below
                       ),
                       const SizedBox(height: 8),
@@ -441,6 +441,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                           controller: _whatsappController,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
+                          validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         ),
                       ],
                       const SizedBox(height: 20),

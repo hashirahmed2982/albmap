@@ -8,6 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -56,7 +58,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     setState(() => _isUploadingAvatar = false);
 
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      AppToast.error(context, error);
     }
   }
 
@@ -72,11 +74,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     setState(() => _isSubmitting = false);
 
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      AppToast.error(context, error);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('editProfile.saveSuccess'.tr())),
-      );
+      AppToast.success(context, 'editProfile.saveSuccess'.tr());
       Navigator.of(context).pop();
     }
   }
@@ -163,13 +163,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           TextFormField(
                             controller: _nameController,
                             decoration: InputDecoration(labelText: 'editProfile.fullName'.tr()),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                            validator: (v) => Validators.required(v, 'common.required'.tr()),
                           ),
                           const SizedBox(height: 14),
                           TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
                             decoration: InputDecoration(labelText: 'editProfile.phone'.tr()),
+                            validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                           ),
                           const SizedBox(height: 8),
                           Text(
