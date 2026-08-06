@@ -19,16 +19,23 @@ class FavoriteToggleController extends StateNotifier<AsyncValue<void>> {
   FavoriteToggleController(this._ref) : super(const AsyncValue.data(null));
   final Ref _ref;
 
-  Future<void> toggleBusiness(BusinessEntity business) async {
+  // Both methods return the failure message (or null on success) instead
+  // of void: the previous version discarded the Either entirely, so a
+  // failed toggle (e.g. a Hive write error) left the star icon looking
+  // like nothing happened, with no way for the caller to know it should
+  // tell the user. Every call site now checks this and shows a toast.
+  Future<String?> toggleBusiness(BusinessEntity business) async {
     final useCase = sl<ToggleFavoriteUseCase>();
-    await useCase(ToggleFavoriteParams(type: FavoriteType.business, business: business));
+    final result = await useCase(ToggleFavoriteParams(type: FavoriteType.business, business: business));
     _ref.invalidate(favoritesProvider);
+    return result.fold((failure) => failure.message, (_) => null);
   }
 
-  Future<void> toggleEvent(EventEntity event) async {
+  Future<String?> toggleEvent(EventEntity event) async {
     final useCase = sl<ToggleFavoriteUseCase>();
-    await useCase(ToggleFavoriteParams(type: FavoriteType.event, event: event));
+    final result = await useCase(ToggleFavoriteParams(type: FavoriteType.event, event: event));
     _ref.invalidate(favoritesProvider);
+    return result.fold((failure) => failure.message, (_) => null);
   }
 }
 

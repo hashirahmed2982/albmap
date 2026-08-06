@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../events/presentation/screens/event_list_tile.dart';
@@ -85,9 +86,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                                 business: favorites.businesses[i],
                                 trailing: IconButton(
                                   icon: const Icon(Icons.favorite, color: AppColors.error),
-                                  onPressed: () => ref
-                                      .read(favoriteToggleControllerProvider.notifier)
-                                      .toggleBusiness(favorites.businesses[i]),
+                                  onPressed: () async {
+                                    final error = await ref
+                                        .read(favoriteToggleControllerProvider.notifier)
+                                        .toggleBusiness(favorites.businesses[i]);
+                                    if (error != null && context.mounted) {
+                                      AppToast.error(context, error);
+                                    }
+                                  },
                                 ),
                               ),
                             ),
