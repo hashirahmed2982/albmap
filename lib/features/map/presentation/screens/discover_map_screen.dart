@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -61,7 +59,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(locationControllerProvider.notifier).refresh();
       _recenterOnUser();
-      unawaited(ref.read(businessListControllerProvider.notifier).load());
+      ref.read(businessListControllerProvider.notifier).load();
     });
   }
 
@@ -75,7 +73,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     // a bit later, without needing to fully quit and relaunch (which was
     // the previous "reinitialize app" workaround).
     if (state == AppLifecycleState.resumed) {
-      unawaited(ref.read(businessListControllerProvider.notifier).load());
+      ref.read(businessListControllerProvider.notifier).load();
     }
   }
 

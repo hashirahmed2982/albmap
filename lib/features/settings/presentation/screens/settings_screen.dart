@@ -2,11 +2,11 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/utils/url_launcher_helper.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../providers/settings_providers.dart';
 
@@ -69,57 +69,45 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsSection(
               title: 'settings.language'.tr(),
               children: [
-                RadioGroup<String>(
-                  groupValue: currentLocaleCode,
-                  onChanged: (code) {
-                    if (code != null) context.setLocale(Locale(code));
-                  },
-                  child: Column(
-                    children: [
-                      for (final localeCode in AppConstants.supportedLocales)
-                        RadioListTile<String>(
-                          value: localeCode,
-                          activeColor: AppColors.primary,
-                          title: Text(_localeLabel(localeCode)),
-                        ),
-                    ],
+                for (final localeCode in AppConstants.supportedLocales)
+                  RadioListTile<String>(
+                    value: localeCode,
+                    groupValue: currentLocaleCode,
+                    activeColor: AppColors.primary,
+                    title: Text(_localeLabel(localeCode)),
+                    onChanged: (code) {
+                      if (code != null) context.setLocale(Locale(code));
+                    },
                   ),
-                ),
               ],
             ),
             _SettingsSection(
               title: 'settings.notifications'.tr(),
               children: [
                 SwitchListTile(
-                  activeThumbColor: AppColors.primary,
+                  activeColor: AppColors.primary,
                   title: Text('settings.enableNotifications'.tr()),
                   value: settings.notificationsEnabled,
                   onChanged: controller.setNotificationsEnabled,
                 ),
                 if (settings.notificationsEnabled)
-                  RadioGroup<NotificationFrequency>(
-                    groupValue: settings.notificationFrequency,
-                    onChanged: (f) {
-                      if (f != null) controller.setNotificationFrequency(f);
-                    },
-                    child: Column(
-                      children: [
-                        for (final freq in NotificationFrequency.values)
-                          RadioListTile<NotificationFrequency>(
-                            value: freq,
-                            activeColor: AppColors.primary,
-                            title: Text(_freqLabel(freq)),
-                          ),
-                      ],
+                  for (final freq in NotificationFrequency.values)
+                    RadioListTile<NotificationFrequency>(
+                      value: freq,
+                      groupValue: settings.notificationFrequency,
+                      activeColor: AppColors.primary,
+                      title: Text(_freqLabel(freq)),
+                      onChanged: (f) {
+                        if (f != null) controller.setNotificationFrequency(f);
+                      },
                     ),
-                  ),
               ],
             ),
             _SettingsSection(
               title: 'settings.location'.tr(),
               children: [
                 SwitchListTile(
-                  activeThumbColor: AppColors.primary,
+                  activeColor: AppColors.primary,
                   title: Text('settings.enableLocation'.tr()),
                   subtitle: Text('settings.enableLocationDesc'.tr()),
                   value: settings.locationEnabled,
@@ -141,12 +129,12 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   title: Text('settings.privacyPolicy'.tr()),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/privacy')),
+                  onTap: () => launchUrl(Uri.parse('https://albmap.app/privacy')),
                 ),
                 ListTile(
                   title: Text('settings.helpSupport'.tr()),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/support')),
+                  onTap: () => launchUrl(Uri.parse('https://albmap.app/support')),
                 ),
               ],
             ),

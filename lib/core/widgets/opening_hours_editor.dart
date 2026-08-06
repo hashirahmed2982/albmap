@@ -125,7 +125,7 @@ class _OpeningHoursEditorState extends State<OpeningHoursEditor> {
           ),
           Switch(
             value: hours.isOpen,
-            activeThumbColor: AppColors.primary,
+            activeColor: AppColors.primary,
             onChanged: (value) {
               setState(() => hours.isOpen = value);
               _emitChange();
