@@ -1,9 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/url_launcher_helper.dart';
 import '../../../../core/widgets/gradient_header.dart';
 
 /// 13. About Us Screen — mission, vision, legal links, social media.
@@ -72,13 +72,13 @@ class AboutUsScreen extends StatelessWidget {
                         ListTile(
                           title: Text('aboutUs.privacyPolicy'.tr()),
                           trailing: const Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
-                          onTap: () => launchUrl(Uri.parse('https://albmap.app/privacy')),
+                          onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/privacy')),
                         ),
                         const Divider(height: 1),
                         ListTile(
                           title: Text('aboutUs.terms'.tr()),
                           trailing: const Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
-                          onTap: () => launchUrl(Uri.parse('https://albmap.app/terms')),
+                          onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/terms')),
                         ),
                       ],
                     ),
@@ -89,11 +89,11 @@ class AboutUsScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _SocialButton(icon: Icons.facebook, onTap: () => launchUrl(Uri.parse('https://facebook.com/albmap'))),
+                      _SocialButton(icon: Icons.facebook, onTap: () => launchUrlSafely(context, Uri.parse('https://facebook.com/albmap'))),
                       const SizedBox(width: 14),
-                      _SocialButton(icon: Icons.camera_alt_outlined, onTap: () => launchUrl(Uri.parse('https://instagram.com/albmap'))),
+                      _SocialButton(icon: Icons.camera_alt_outlined, onTap: () => launchUrlSafely(context, Uri.parse('https://instagram.com/albmap'))),
                       const SizedBox(width: 14),
-                      _SocialButton(icon: Icons.alternate_email, onTap: () => launchUrl(Uri.parse('https://twitter.com/albmap'))),
+                      _SocialButton(icon: Icons.alternate_email, onTap: () => launchUrlSafely(context, Uri.parse('https://twitter.com/albmap'))),
                     ],
                   ),
                   const SizedBox(height: 12),

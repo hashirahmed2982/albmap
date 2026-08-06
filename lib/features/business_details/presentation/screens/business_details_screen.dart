@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import '../../../../core/constants/app_constants.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/url_launcher_helper.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -177,7 +180,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                   ? null
                                   : () {
                                       recordAnalyticsEvent(business.id, AnalyticsEventType.callClick);
-                                      launchUrl(Uri.parse('tel:${business.phone}'));
+                                      unawaited(launchUrlSafely(context, Uri.parse('tel:${business.phone}')));
                                     },
                             ),
                           ),
@@ -196,10 +199,11 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                   // wa.me requires digits only (no '+', spaces, or
                                   // dashes) in full international format.
                                   final sanitized = business.whatsappNumber!.replaceAll(RegExp(r'[^0-9]'), '');
-                                  launchUrl(
+                                  unawaited(launchUrlSafely(
+                                    context,
                                     Uri.parse('https://wa.me/$sanitized'),
                                     mode: LaunchMode.externalApplication,
-                                  );
+                                  ));
                                 },
                                 child: const Icon(Icons.chat_outlined, color: Color(0xFF25D366)),
                               ),
@@ -213,9 +217,9 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                               label: Text('business.directions'.tr(), overflow: TextOverflow.ellipsis),
                               onPressed: () {
                                 recordAnalyticsEvent(business.id, AnalyticsEventType.websiteClick);
-                                launchUrl(Uri.parse(
+                                unawaited(launchUrlSafely(context, Uri.parse(
                                   'https://www.google.com/maps/search/?api=1&query=${business.latitude},${business.longitude}',
-                                ));
+                                )));
                               },
                             ),
                           ),

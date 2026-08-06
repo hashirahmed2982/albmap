@@ -23,7 +23,8 @@
     "noInternet": "No internet connection.",
     "all": "All",
     "invalidPhone": "Enter a valid phone number",
-    "invalidEmail": "Enter a valid email address"
+    "invalidEmail": "Enter a valid email address",
+    "cannotOpenLink": "Couldn't open this link. Please try again later."
   },
   "nav": {
     "discover": "Discover",

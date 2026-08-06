@@ -23,7 +23,8 @@
     "noInternet": "Keine Internetverbindung.",
     "all": "Alle",
     "invalidPhone": "Gib eine gültige Telefonnummer ein",
-    "invalidEmail": "Gib eine gültige E-Mail-Adresse ein"
+    "invalidEmail": "Gib eine gültige E-Mail-Adresse ein",
+    "cannotOpenLink": "Dieser Link konnte nicht geöffnet werden. Bitte versuche es später erneut."
   },
   "nav": {
     "discover": "Karte",

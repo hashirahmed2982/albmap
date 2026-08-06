@@ -23,7 +23,8 @@
     "noInternet": "Nuk ka lidhje interneti.",
     "all": "Të gjitha",
     "invalidPhone": "Shkruaj një numër telefoni të vlefshëm",
-    "invalidEmail": "Shkruaj një adresë email të vlefshme"
+    "invalidEmail": "Shkruaj një adresë email të vlefshme",
+    "cannotOpenLink": "Ky lidhje nuk u hap dot. Ju lutemi provoni përsëri më vonë."
   },
   "nav": {
     "discover": "Zbulo",

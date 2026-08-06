@@ -2,11 +2,11 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/url_launcher_helper.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../providers/settings_providers.dart';
 
@@ -141,12 +141,12 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   title: Text('settings.privacyPolicy'.tr()),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => launchUrl(Uri.parse('https://albmap.app/privacy')),
+                  onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/privacy')),
                 ),
                 ListTile(
                   title: Text('settings.helpSupport'.tr()),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => launchUrl(Uri.parse('https://albmap.app/support')),
+                  onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/support')),
                 ),
               ],
             ),
