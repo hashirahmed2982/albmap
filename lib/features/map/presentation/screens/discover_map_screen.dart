@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -9,6 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../categories/domain/category_translations.dart';
+import '../../../categories/presentation/providers/category_providers.dart';
 import '../../domain/entities/business_entity.dart';
 import '../providers/business_providers.dart';
 import '../widgets/business_list_view.dart';
@@ -39,14 +42,15 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   String _localQuery = '';
-  String? _selectedCategory;
   _ViewMode _viewMode = _ViewMode.map;
+  Timer? _searchDebounce;
+
+  // Below this length, businessSearchResultsProvider itself short-circuits
+  // to an empty list (see business_providers.dart) — no point round-
+  // tripping to the backend for a 1-character query.
+  static const int _minSearchQueryLength = 2;
 
   static const double _barHeight = 52;
-
-  static const List<String> _quickCategories = [
-    'Restaurants', 'Cafes', 'Shops', 'Services', 'Health', 'Entertainment',
-  ];
 
   // Tirana, Albania as a sensible default center.
   static const LatLng _defaultCenter = LatLng(41.3275, 19.8187);
@@ -80,9 +84,24 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _mapController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    // Instant local filtering (over whatever's already loaded) so typing
+    // never feels laggy, while the real backend-wide search — see
+    // businessSearchResultsProvider, previously defined but never called
+    // from any screen — is debounced so we're not firing a network
+    // request on every keystroke.
+    setState(() => _localQuery = value);
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      ref.read(businessSearchQueryProvider.notifier).state = value.trim();
+    });
   }
 
   void _recenterOnUser() {
@@ -92,22 +111,56 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     }
   }
 
-  List<BusinessEntity> _filtered(List<BusinessEntity> all) {
-    Iterable<BusinessEntity> result = all;
-    if (_selectedCategory != null) {
-      result = result.where((b) => b.category == _selectedCategory);
-    }
+  List<BusinessEntity> _byCategory(List<BusinessEntity> all, String? category) {
+    if (category == null) return all;
+    return all.where((b) => b.category == category).toList();
+  }
+
+  /// Local, instant name filter over whatever's already loaded for the
+  /// current map radius — used as-is for short queries, and as a
+  /// no-flicker placeholder while the real backend search (below) is
+  /// still in flight for a longer query.
+  List<BusinessEntity> _localFiltered(List<BusinessEntity> all, String? category) {
+    final Iterable<BusinessEntity> byCategory = _byCategory(all, category);
     final q = _localQuery.trim().toLowerCase();
-    if (q.isNotEmpty) {
-      result = result.where((b) => b.name.toLowerCase().contains(q));
-    }
-    return result.toList();
+    if (q.isEmpty) return byCategory.toList();
+    return byCategory.where((b) => b.name.toLowerCase().contains(q)).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final listState = ref.watch(businessListControllerProvider);
-    final displayed = _filtered(listState.businesses);
+    final String trimmedQuery = _localQuery.trim();
+    // Single source of truth for "which category is selected" — shared
+    // with FilterBottomSheet via businessFilterProvider (previously this
+    // screen's quick-category chips tracked their own separate local
+    // field, so picking a category here didn't show up when the filter
+    // sheet was opened, and vice versa).
+    final String? selectedCategory = ref.watch(businessFilterProvider).category;
+
+    List<BusinessEntity> displayed;
+    if (trimmedQuery.length >= _minSearchQueryLength) {
+      // A real query is active — search the *entire* backend catalog
+      // (searchBusinesses has no radius limit, unlike the normal list
+      // load), not just whatever happened to already be loaded for the
+      // current map view. Category filter still applies client-side,
+      // since the search endpoint only takes a text query.
+      final searchAsync = ref.watch(businessSearchResultsProvider);
+      displayed = searchAsync.when(
+        data: (all) => _byCategory(all, selectedCategory),
+        // Keep showing the last-known local-filtered list while a new
+        // debounced search is loading, rather than flashing an empty
+        // "no results" state on every keystroke.
+        loading: () => _localFiltered(listState.businesses, selectedCategory),
+        // Search failed (offline, server error) — fall back to filtering
+        // what's already loaded rather than showing a dead end; this
+        // mirrors the "never crash for a degraded feature" pattern used
+        // for location/Firebase elsewhere in the app.
+        error: (_, __) => _localFiltered(listState.businesses, selectedCategory),
+      );
+    } else {
+      displayed = _localFiltered(listState.businesses, selectedCategory);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -115,7 +168,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
         top: false,
         child: Column(
           children: [
-            _buildHeader(context, resultCount: displayed.length),
+            _buildHeader(context, resultCount: displayed.length, selectedCategory: selectedCategory),
             Expanded(
               child: _viewMode == _ViewMode.list
                   ? BusinessListView(
@@ -134,7 +187,8 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     );
   }
 
-  Widget _buildHeader(BuildContext context, {required int resultCount}) {
+  Widget _buildHeader(BuildContext context, {required int resultCount, required String? selectedCategory}) {
+    final List<String> quickCategories = ref.watch(categoryNamesProvider);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -160,7 +214,8 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                     borderRadius: BorderRadius.circular(16),
                     child: TextField(
                       controller: _searchController,
-                      onChanged: (v) => setState(() => _localQuery = v),
+                      onChanged: _onSearchChanged,
+                      maxLength: 100,
                       style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                       cursorColor: AppColors.primary,
                       textAlignVertical: TextAlignVertical.center,
@@ -169,6 +224,10 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                         hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
                         prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                         prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
+                        // Suppresses the default "N/100" counter row — this
+                        // field sits in a fixed-height pill (_barHeight),
+                        // and the counter's extra height would overflow it.
+                        counterText: '',
                         isDense: true,
                         filled: true,
                         fillColor: AppColors.surface,
@@ -191,7 +250,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.tune, color: AppColors.primary),
-                    onPressed: () => showModalBottomSheet(
+                    onPressed: () => showModalBottomSheet<void>(
                       context: context,
                       isScrollControlled: true,
                       builder: (_) => const FilterBottomSheet(),
@@ -209,21 +268,18 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
             ],
             selected: {_viewMode},
             onSelectionChanged: (s) => setState(() => _viewMode = s.first),
-            style: SegmentedButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              selectedBackgroundColor: AppColors.primary,
-              selectedForegroundColor: Colors.white,
-              foregroundColor: AppColors.textPrimary,
-              side: const BorderSide(color: AppColors.divider),
-              textStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
-            ),
+            // No explicit style: the app-wide segmentedButtonTheme (see
+            // app_theme.dart) already gives every SegmentedButton this
+            // exact look — kept here before as a one-off override, now a
+            // single source of truth so this and the filter sheet's
+            // sort-by control can never drift apart.
           ),
           const SizedBox(height: 12),
           SizedBox(
             height: 34,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _quickCategories.length + 1,
+              itemCount: quickCategories.length + 1,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 if (i == 0) {
@@ -231,17 +287,21 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                     label: 'common.all'.tr(),
                     color: AppColors.primary,
                     icon: Icons.apps_rounded,
-                    selected: _selectedCategory == null,
-                    onTap: () => setState(() => _selectedCategory = null),
+                    selected: selectedCategory == null,
+                    onTap: () => ref.read(businessFilterProvider.notifier).update(
+                          (f) => f.copyWith(clearCategory: true),
+                        ),
                   );
                 }
-                final category = _quickCategories[i - 1];
+                final category = quickCategories[i - 1];
                 return _CategoryChip(
                   label: localizedCategoryName(context, category),
                   color: categoryColor(category),
                   icon: categoryIcon(category),
-                  selected: _selectedCategory == category,
-                  onTap: () => setState(() => _selectedCategory = category),
+                  selected: selectedCategory == category,
+                  onTap: () => ref.read(businessFilterProvider.notifier).update(
+                        (f) => f.copyWith(category: category),
+                      ),
                 );
               },
             ),
@@ -299,7 +359,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                     width: 42,
                     height: 42,
                     child: GestureDetector(
-                      onTap: () => showModalBottomSheet(
+                      onTap: () => showModalBottomSheet<void>(
                         context: context,
                         builder: (_) => BusinessMarkerSheet(business: business),
                       ),

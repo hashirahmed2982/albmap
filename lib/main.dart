@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +11,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/di/service_locator.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/app_logger.dart';
 
 /// Supported app languages — English, Albanian, German. Kept as one place
 /// so Settings' language picker and MaterialApp.router's supportedLocales
@@ -21,7 +24,31 @@ const List<Locale> kSupportedLocales = [
 const Locale kFallbackLocale = Locale('en');
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Everything below runs inside a guarded zone so an exception thrown
+  // outside the Flutter widget tree (e.g. in a fire-and-forget Future, a
+  // stream callback, or a timer) is logged instead of crashing the app
+  // silently with no trace. FlutterError.onError covers errors raised
+  // *during* the framework's own build/layout/paint pipeline, which
+  // don't otherwise propagate to the zone's error handler.
+  await runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      AppLogger.error('Uncaught Flutter framework error', details.exception, details.stack);
+    };
+    PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+      AppLogger.error('Uncaught platform/async error', error, stack);
+      return true;
+    };
+
+    await _bootstrap();
+  }, (Object error, StackTrace stack) {
+    AppLogger.error('Uncaught zone error', error, stack);
+  });
+}
+
+Future<void> _bootstrap() async {
   await EasyLocalization.ensureInitialized();
 
   // Required before any DateFormat('...', localeCode) call for a non-'en'
@@ -43,8 +70,8 @@ Future<void> main() async {
   // config" principle used for the map tile provider and Google Sign-In.
   try {
     await Firebase.initializeApp();
-  } catch (err) {
-    debugPrint('Firebase.initializeApp() failed (push notifications disabled): $err');
+  } catch (err, stack) {
+    AppLogger.warning('Firebase.initializeApp() failed (push notifications disabled)', err, stack);
   }
 
   await initServiceLocator();

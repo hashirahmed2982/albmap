@@ -3,7 +3,17 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
+    // google-services is intentionally NOT applied here — see the
+    // conditional `apply(plugin = ...)` near the bottom of this file.
+    // Applying it unconditionally makes its
+    // processDebugGoogleServices/processReleaseGoogleServices Gradle
+    // tasks hard-fail the *entire build* ("File google-services.json is
+    // missing") whenever that file isn't present. This project
+    // deliberately ships without Firebase config (see README — Firebase
+    // setup is a manual step left to whoever deploys it) and
+    // main.dart wraps Firebase.initializeApp() to degrade gracefully at
+    // runtime; the build itself needs to degrade the same way, or nobody
+    // can even `flutter run` the app before doing Firebase setup.
 }
 
 android {
@@ -49,4 +59,11 @@ dependencies {
 
 flutter {
     source = "../.."
+}
+
+// See the comment on the `plugins` block above: only wire up
+// google-services once its config file actually exists, so the build
+// doesn't hard-fail before Firebase setup has been done.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }

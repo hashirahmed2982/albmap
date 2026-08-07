@@ -45,6 +45,7 @@ class AuthController extends StateNotifier<AuthState> {
       _getCurrentUserUseCase = sl<GetCurrentUserUseCase>(),
       _logoutUseCase = sl<LogoutUseCase>(),
       _changePasswordUseCase = sl<ChangePasswordUseCase>(),
+      _deleteAccountUseCase = sl<DeleteAccountUseCase>(),
       _updateProfileUseCase = sl<UpdateProfileUseCase>(),
       _uploadAvatarUseCase = sl<UploadAvatarUseCase>(),
       super(const AuthState(isLoading: true)) {
@@ -59,6 +60,7 @@ class AuthController extends StateNotifier<AuthState> {
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final LogoutUseCase _logoutUseCase;
   final ChangePasswordUseCase _changePasswordUseCase;
+  final DeleteAccountUseCase _deleteAccountUseCase;
   final UpdateProfileUseCase _updateProfileUseCase;
   final UploadAvatarUseCase _uploadAvatarUseCase;
 
@@ -183,6 +185,20 @@ class AuthController extends StateNotifier<AuthState> {
       ),
     );
     return result.fold((failure) => failure.message, (_) => null);
+  }
+
+  /// Same null-on-success/message-on-failure contract as changePassword.
+  /// On success, clears auth state exactly like logout() — the account
+  /// no longer exists, so there's nothing left to be "logged in" to.
+  Future<String?> deleteAccount({String? password}) async {
+    final result = await _deleteAccountUseCase(password);
+    return result.fold(
+      (failure) => failure.message,
+      (_) {
+        state = const AuthState();
+        return null;
+      },
+    );
   }
 
   Future<String?> updateProfile({

@@ -32,6 +32,8 @@ class EventModel extends EventEntity {
     super.latitude,
     super.longitude,
     super.address,
+    super.interestCount,
+    super.isInterested,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +50,8 @@ class EventModel extends EventEntity {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       address: json['address'] as String?,
+      interestCount: (json['interestCount'] as num?)?.toInt() ?? 0,
+      isInterested: json['isInterested'] as bool? ?? false,
     );
   }
 
@@ -60,6 +64,28 @@ class EventModel extends EventEntity {
       'startTime': startTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),
       'imageUrl': imageUrl,
+    };
+  }
+
+  /// For the local (Hive) favorites cache only — round-trips through
+  /// fromJson using the same key names as the backend's toPublicEvent, so
+  /// one parser handles both a server response and a cached-locally blob.
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'businessId': businessId,
+      'businessName': businessName,
+      'name': name,
+      'description': description,
+      'category': category,
+      'startTime': startTime.toIso8601String(),
+      'endTime': endTime.toIso8601String(),
+      'imageUrl': imageUrl,
+      'latitude': latitude,
+      'longitude': longitude,
+      'address': address,
+      'interestCount': interestCount,
+      'isInterested': isInterested,
     };
   }
 }

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/notification_entity.dart';
-import '../../domain/repositories/notification_repository.dart';
 import '../../domain/usecases/notification_feed_usecases.dart';
 
 class NotificationsState {
@@ -45,6 +44,8 @@ class NotificationsController extends StateNotifier<NotificationsState> {
       : _getFeedUseCase = sl<GetNotificationFeedUseCase>(),
         _markReadUseCase = sl<MarkNotificationReadUseCase>(),
         _markAllReadUseCase = sl<MarkAllNotificationsReadUseCase>(),
+        _deleteUseCase = sl<DeleteNotificationUseCase>(),
+        _clearAllUseCase = sl<ClearAllNotificationsUseCase>(),
         super(const NotificationsState()) {
     load();
   }
@@ -52,6 +53,8 @@ class NotificationsController extends StateNotifier<NotificationsState> {
   final GetNotificationFeedUseCase _getFeedUseCase;
   final MarkNotificationReadUseCase _markReadUseCase;
   final MarkAllNotificationsReadUseCase _markAllReadUseCase;
+  final DeleteNotificationUseCase _deleteUseCase;
+  final ClearAllNotificationsUseCase _clearAllUseCase;
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -86,6 +89,53 @@ class NotificationsController extends StateNotifier<NotificationsState> {
       unreadCount: 0,
     );
     await _markAllReadUseCase(const NoParams());
+  }
+
+  /// Removes one notification from view immediately (the swipe gesture
+  /// already completed on screen by the time this runs); rolls back —
+  /// reinserts it at its original position — if the server call fails, so
+  /// a failed delete doesn't silently look like it worked. Returns
+  /// whether it actually succeeded, so the UI can surface an error.
+  Future<bool> deleteNotification(String id) async {
+    final int index = state.notifications.indexWhere((n) => n.id == id);
+    if (index == -1) return true;
+    final NotificationEntity removed = state.notifications[index];
+    final bool wasUnread = !removed.isRead;
+
+    state = state.copyWith(
+      notifications: [for (final n in state.notifications) if (n.id != id) n],
+      unreadCount: wasUnread ? (state.unreadCount - 1).clamp(0, 1 << 31) : state.unreadCount,
+    );
+
+    final result = await _deleteUseCase(id);
+    return result.fold(
+      (failure) {
+        final List<NotificationEntity> restored = [...state.notifications];
+        restored.insert(index.clamp(0, restored.length), removed);
+        state = state.copyWith(
+          notifications: restored,
+          unreadCount: wasUnread ? state.unreadCount + 1 : state.unreadCount,
+        );
+        return false;
+      },
+      (_) => true,
+    );
+  }
+
+  /// "Clear all" — same optimistic-with-rollback shape as [deleteNotification].
+  Future<bool> clearAll() async {
+    final NotificationsState previous = state;
+    if (previous.notifications.isEmpty) return true;
+
+    state = state.copyWith(notifications: [], unreadCount: 0);
+    final result = await _clearAllUseCase(const NoParams());
+    return result.fold(
+      (failure) {
+        state = previous;
+        return false;
+      },
+      (_) => true,
+    );
   }
 }
 

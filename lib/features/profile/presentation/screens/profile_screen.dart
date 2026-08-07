@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../auth/presentation/widgets/delete_account_sheet.dart';
 
 /// 8. Profile Screen — business user account management.
 ///
@@ -45,6 +47,12 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildHeader(BuildContext context, WidgetRef ref, {required bool isGuest}) {
     final user = ref.watch(authControllerProvider).user;
+    // Was passing user.profileImageUrl straight to NetworkImage — the
+    // backend returns a server-relative path ("/uploads/xxx.png"), not an
+    // absolute URL, so this silently failed to load (NetworkImage requires
+    // a fully-qualified URI) even when EditProfileScreen's identical
+    // avatar — which does resolve it — showed correctly right next to it.
+    final String? resolvedAvatarUrl = AppConstants.resolveMediaUrl(user?.profileImageUrl);
 
     return Container(
       width: double.infinity,
@@ -69,12 +77,19 @@ class ProfileScreen extends ConsumerWidget {
                 child: CircleAvatar(
                   radius: 48,
                   backgroundColor: AppColors.surface,
-                  backgroundImage: user?.profileImageUrl != null ? NetworkImage(user!.profileImageUrl!) : null,
-                  child: Icon(
-                    isGuest ? Icons.person_outline : Icons.person,
-                    size: 48,
-                    color: AppColors.primary,
-                  ),
+                  backgroundImage: resolvedAvatarUrl != null ? NetworkImage(resolvedAvatarUrl) : null,
+                  // CircleAvatar always paints `child` on top of
+                  // `backgroundImage` — this was set unconditionally
+                  // before, so the person icon covered a real profile
+                  // picture whenever one was set. Only fall back to the
+                  // icon when there's no image to show.
+                  child: resolvedAvatarUrl == null
+                      ? Icon(
+                          isGuest ? Icons.person_outline : Icons.person,
+                          size: 48,
+                          color: AppColors.primary,
+                        )
+                      : null,
                 ),
               ),
               if (!isGuest)
@@ -86,7 +101,12 @@ class ProfileScreen extends ConsumerWidget {
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       icon: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                      onPressed: () {}, // wire image_picker
+                      // This used to be a dead button (onPressed: () {})
+                      // — tapping it visibly did nothing. Edit Profile
+                      // already has a working, tested avatar picker/
+                      // upload flow, so route there instead of
+                      // duplicating that logic in a second place.
+                      onPressed: () => context.push(AppRoutes.editProfile),
                     ),
                   ),
                 ),
@@ -192,13 +212,11 @@ class ProfileScreen extends ConsumerWidget {
         _ProfileTile(
           icon: Icons.dashboard_outlined,
           label: 'profile.myBusinesses'.tr(),
-          accent: AppColors.primary,
           onTap: () => context.push(AppRoutes.myBusinesses),
         ),
         _ProfileTile(
           icon: Icons.storefront_outlined,
           label: 'profile.addBusiness'.tr(),
-          accent: AppColors.secondary,
           onTap: () => context.push(AppRoutes.addBusiness),
         ),
         _ProfileTile(icon: Icons.settings_outlined, label: 'profile.settings'.tr(), onTap: () => context.push(AppRoutes.settings)),
@@ -210,11 +228,28 @@ class ProfileScreen extends ConsumerWidget {
         _ProfileTile(
           icon: Icons.logout,
           label: 'profile.logOut'.tr(),
-          accent: AppColors.error,
+          isDestructive: true,
           onTap: () => _confirmLogout(context, ref),
         ),
       ]),
+      const SizedBox(height: 12),
+      _SectionCard(children: [
+        _ProfileTile(
+          icon: Icons.delete_outline,
+          label: 'profile.deleteAccount'.tr(),
+          isDestructive: true,
+          onTap: () => _showDeleteAccountSheet(context),
+        ),
+      ]),
     ];
+  }
+
+  void _showDeleteAccountSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const DeleteAccountSheet(),
+    );
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {
@@ -260,23 +295,48 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
+/// Every row in the account menu now falls into exactly one of two
+/// consistent color treatments — previously each tile passed its own
+/// arbitrary `accent` (primary red on some, secondary orange on Add
+/// Business, error red on Log Out/Delete Account), and only tiles with an
+/// accent got a colored *label* too — so two rows that were both just
+/// "normal navigation" (e.g. Edit Profile vs. My Businesses) looked
+/// visually different from each other for no reason. Now: a normal row
+/// always gets a brand-primary icon chip and a plain (uncolored) label,
+/// and only a genuinely destructive row (`isDestructive: true`) gets the
+/// error-red treatment on both the icon and the label — a deliberate
+/// two-tone system instead of an unintentional three-color mix.
 class _ProfileTile extends StatelessWidget {
-  const _ProfileTile({required this.icon, required this.label, required this.onTap, this.accent});
+  const _ProfileTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color? accent;
+  final bool isDestructive;
 
   @override
   Widget build(BuildContext context) {
-    final Color color = accent ?? AppColors.primary;
+    final Color color = isDestructive ? AppColors.error : AppColors.primary;
     return ListTile(
       leading: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, size: 20, color: color),
       ),
-      title: Text(label, style: AppTextStyles.bodyLarge.copyWith(color: accent), maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(
+        label,
+        style: AppTextStyles.bodyLarge.copyWith(
+          color: isDestructive ? color : null,
+          fontWeight: isDestructive ? FontWeight.w600 : null,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textSecondary),
       onTap: onTap,
     );

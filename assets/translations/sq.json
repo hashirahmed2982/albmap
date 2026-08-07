@@ -21,7 +21,10 @@
     "km_away": "{} km larg",
     "somethingWrong": "Diçka shkoi keq. Ju lutemi provoni përsëri.",
     "noInternet": "Nuk ka lidhje interneti.",
-    "all": "Të gjitha"
+    "all": "Të gjitha",
+    "invalidPhone": "Shkruaj një numër telefoni të vlefshëm",
+    "invalidEmail": "Shkruaj një adresë email të vlefshme",
+    "cannotOpenLink": "Ky lidhje nuk u hap dot. Ju lutemi provoni përsëri më vonë."
   },
   "nav": {
     "discover": "Zbulo",
@@ -76,7 +79,9 @@
   },
   "filter": {
     "title": "Filtro bizneset",
+    "clearAll": "Pastro të gjitha",
     "category": "Kategoria",
+    "limitByDistance": "Kufizo sipas distancës",
     "radius": "Rrezja: {} km",
     "sortBy": "Rendit sipas",
     "distance": "Distanca",
@@ -95,7 +100,9 @@
     "notFound": "Biznesi nuk u gjet",
     "failedToLoad": "Dështoi ngarkimi i biznesit",
     "shareText": "Shiko {} në AlbMap!",
-    "kmAway": "{} km larg"
+    "kmAway": "{} km larg",
+    "openNow": "Hapur tani",
+    "closedNow": "Mbyllur"
   },
   "events": {
     "title": "Evente",
@@ -108,7 +115,16 @@
     "aboutEvent": "Rreth këtij eventi",
     "addToCalendar": "Shto në kalendar",
     "hostedBy": "Organizuar nga {}",
-    "shareText": "Bashkohu në {} — organizuar nga {}"
+    "shareText": "Bashkohu në {} — organizuar nga {}",
+    "interestedCount": "{} të interesuar",
+    "interested": "I interesuar",
+    "imInterested": "Jam i interesuar",
+    "filterByDate": "Filtro sipas datës",
+    "allUpcoming": "Të gjitha të ardhshmet",
+    "today": "Sot",
+    "thisWeek": "Këtë javë",
+    "thisMonth": "Këtë muaj",
+    "customRange": "Interval i personalizuar"
   },
   "favorites": {
     "title": "Të preferuara",
@@ -119,11 +135,31 @@
     "noEvents": "Nuk ke ende evente të preferuara",
     "failedToLoad": "Dështoi ngarkimi i të preferuarave"
   },
+  "reviews": {
+    "title": "Vlerësimet",
+    "writeReview": "Shkruaj një vlerësim",
+    "editYourReview": "Ndrysho vlerësimin tënd",
+    "updateReview": "Përditëso vlerësimin",
+    "submitReview": "Dërgo vlerësimin",
+    "commentLabel": "Koment (opsionale)",
+    "commentHint": "Ndaj detaje rreth eksperiencës tënde...",
+    "selectRatingError": "Ju lutem zgjidhni një vlerësim me yje",
+    "noReviewsYet": "Ende pa vlerësime — bëhu i pari!",
+    "failedToLoad": "Dështoi ngarkimi i vlerësimeve",
+    "you": "Ti",
+    "anonymous": "Anonim",
+    "deleteConfirmTitle": "Të fshihet vlerësimi yt?",
+    "deleteConfirmBody": "Ky veprim nuk mund të kthehet mbrapsht."
+  },
   "notifications": {
     "title": "Njoftimet",
     "subtitle": "Qëndro i përditësuar",
     "markAllRead": "Shëno të gjitha si të lexuara",
-    "empty": "Ende pa njoftime"
+    "empty": "Ende pa njoftime",
+    "clearAll": "Pastro të gjitha",
+    "clearAllConfirmTitle": "Të pastrohen të gjitha njoftimet?",
+    "clearAllConfirmBody": "Kjo heq çdo njoftim nga feed-i yt. Nuk mund të zhbëhet.",
+    "deleteFailed": "Njoftimi nuk u fshi dot. Provo përsëri."
   },
   "profile": {
     "browsingAsGuest": "Duke shfletuar si Vizitor",
@@ -142,6 +178,12 @@
     "logOut": "Dil",
     "logOutConfirmTitle": "Të dalësh?",
     "logOutConfirmBody": "Do të duhet të hysh përsëri për të hyrë në llogarinë tënde.",
+    "deleteAccount": "Fshi llogarinë",
+    "deleteAccountTitle": "Të fshihet llogaria jote?",
+    "deleteAccountWarning": "Kjo do të fshijë përgjithmonë llogarinë tënde. Nëse zotëron biznese ose evente, do të fshihen edhe listimet, vlerësimet dhe të dhënat e tyre. Ky veprim nuk mund të kthehet mbrapsht.",
+    "deleteAccountPasswordLabel": "Fjalëkalimi",
+    "deleteAccountPasswordHelper": "Vendos fjalëkalimin tënd për të konfirmuar. Lëre bosh nëse je regjistruar me Google ose Facebook.",
+    "deleteAccountConfirm": "Fshi llogarinë time",
     "guest": "VIZITOR"
   },
   "editProfile": {
@@ -157,6 +199,7 @@
     "newPassword": "Fjalëkalimi i ri",
     "confirmNew": "Konfirmo fjalëkalimin e ri",
     "mismatch": "Fjalëkalimet nuk përputhen",
+    "sameAsCurrent": "Fjalëkalimi i ri duhet të jetë ndryshe nga ai aktual",
     "success": "Fjalëkalimi u ndryshua me sukses",
     "action": "Ndrysho fjalëkalimin"
   },
@@ -165,9 +208,7 @@
     "language": "Gjuha",
     "notifications": "Njoftimet",
     "enableNotifications": "Aktivizo njoftimet",
-    "always": "Gjithmonë",
-    "daily": "Përmbledhje ditore",
-    "weekly": "Përmbledhje javore",
+    "enableNotificationsDesc": "Merr njoftime për ofertat e miratuara dhe përditësimet",
     "location": "Vendndodhja",
     "enableLocation": "Aktivizo shërbimet e vendndodhjes",
     "enableLocationDesc": "Përdoret për të treguar distancën dhe bizneset aty pranë",
@@ -276,6 +317,8 @@
     "submit": "Dërgo eventin",
     "noBusinessTitle": "Të duhet një biznes i aprovuar para se të krijosh evente",
     "completeAllFields": "Ju lutemi plotësoni të gjitha fushat",
+    "selectCategoryError": "Ju lutemi zgjidhni një kategori",
+    "endBeforeStart": "Ora e mbarimit duhet të jetë pas orës së fillimit",
     "failedToCreate": "Dështoi krijimi i eventit"
   },
   "contactUs": {
@@ -309,14 +352,15 @@
   },
   "aboutUs": {
     "title": "Rreth Nesh",
-    "tagline": "Zbulo biznese & evente lokale rreth teje",
-    "missionTitle": "Misioni ynë",
-    "missionBody": "AlbMap lidh komunitetet me bizneset dhe eventet lokale që i bëjnë lagjet e tyre të gjalla — duke e bërë zbulimin të lehtë për vizitorët dhe duke u dhënë pronarëve të bizneseve mjetet për të arritur njerëzit rreth tyre.",
-    "visionTitle": "Vizioni ynë",
-    "visionBody": "Të bëhemi platforma kryesore për zbulimin lokal — një hartë, çdo komunitet.",
     "privacyPolicy": "Politika e Privatësisë",
     "terms": "Kushtet & Kushtet e Përdorimit",
     "followUs": "Na ndiq"
+  },
+  "privacyPolicy": {
+    "title": "Politika e Privatësisë"
+  },
+  "termsConditions": {
+    "title": "Kushtet & Kushtet e Përdorimit"
   },
   "locationPicker": {
     "title": "Vendos vendndodhjen e biznesit",

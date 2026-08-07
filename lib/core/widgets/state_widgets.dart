@@ -35,7 +35,12 @@ class ErrorStateWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(Icons.error_outline_rounded, size: 56, color: AppColors.error),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.error_outline_rounded, size: 40, color: AppColors.error),
+            ),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center, style: AppTextStyles.bodyMedium),
             if (onRetry != null) ...<Widget>[
@@ -74,7 +79,12 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.08), shape: BoxShape.circle),
+              child: Icon(icon, size: 44, color: AppColors.textSecondary.withValues(alpha: 0.6)),
+            ),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center, style: AppTextStyles.bodyMedium),
             if (actionLabel != null && onAction != null) ...<Widget>[

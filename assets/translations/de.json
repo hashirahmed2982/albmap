@@ -21,7 +21,10 @@
     "km_away": "{} km entfernt",
     "somethingWrong": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     "noInternet": "Keine Internetverbindung.",
-    "all": "Alle"
+    "all": "Alle",
+    "invalidPhone": "Gib eine gültige Telefonnummer ein",
+    "invalidEmail": "Gib eine gültige E-Mail-Adresse ein",
+    "cannotOpenLink": "Dieser Link konnte nicht geöffnet werden. Bitte versuche es später erneut."
   },
   "nav": {
     "discover": "Karte",
@@ -76,7 +79,9 @@
   },
   "filter": {
     "title": "Unternehmen filtern",
+    "clearAll": "Alle löschen",
     "category": "Kategorie",
+    "limitByDistance": "Nach Entfernung begrenzen",
     "radius": "Umkreis: {} km",
     "sortBy": "Sortieren nach",
     "distance": "Entfernung",
@@ -95,7 +100,9 @@
     "notFound": "Unternehmen nicht gefunden",
     "failedToLoad": "Unternehmen konnte nicht geladen werden",
     "shareText": "Schau dir {} auf AlbMap an!",
-    "kmAway": "{} km entfernt"
+    "kmAway": "{} km entfernt",
+    "openNow": "Jetzt geöffnet",
+    "closedNow": "Geschlossen"
   },
   "events": {
     "title": "Veranstaltungen",
@@ -108,7 +115,16 @@
     "aboutEvent": "Über diese Veranstaltung",
     "addToCalendar": "Zum Kalender hinzufügen",
     "hostedBy": "Veranstaltet von {}",
-    "shareText": "Nimm teil an {} — veranstaltet von {}"
+    "shareText": "Nimm teil an {} — veranstaltet von {}",
+    "interestedCount": "{} interessiert",
+    "interested": "Interessiert",
+    "imInterested": "Interessiert mich",
+    "filterByDate": "Nach Datum filtern",
+    "allUpcoming": "Alle kommenden",
+    "today": "Heute",
+    "thisWeek": "Diese Woche",
+    "thisMonth": "Diesen Monat",
+    "customRange": "Benutzerdefinierter Zeitraum"
   },
   "favorites": {
     "title": "Favoriten",
@@ -119,11 +135,31 @@
     "noEvents": "Noch keine favorisierten Veranstaltungen",
     "failedToLoad": "Favoriten konnten nicht geladen werden"
   },
+  "reviews": {
+    "title": "Bewertungen",
+    "writeReview": "Bewertung schreiben",
+    "editYourReview": "Deine Bewertung bearbeiten",
+    "updateReview": "Bewertung aktualisieren",
+    "submitReview": "Bewertung abschicken",
+    "commentLabel": "Kommentar (optional)",
+    "commentHint": "Teile Details zu deiner Erfahrung...",
+    "selectRatingError": "Bitte wähle eine Sternebewertung",
+    "noReviewsYet": "Noch keine Bewertungen — sei die/der Erste!",
+    "failedToLoad": "Bewertungen konnten nicht geladen werden",
+    "you": "Du",
+    "anonymous": "Anonym",
+    "deleteConfirmTitle": "Deine Bewertung löschen?",
+    "deleteConfirmBody": "Dies kann nicht rückgängig gemacht werden."
+  },
   "notifications": {
     "title": "Benachrichtigungen",
     "subtitle": "Bleib auf dem Laufenden",
     "markAllRead": "Alle als gelesen markieren",
-    "empty": "Noch keine Benachrichtigungen"
+    "empty": "Noch keine Benachrichtigungen",
+    "clearAll": "Alle löschen",
+    "clearAllConfirmTitle": "Alle Benachrichtigungen löschen?",
+    "clearAllConfirmBody": "Dadurch werden alle Benachrichtigungen aus deinem Feed entfernt. Dies kann nicht rückgängig gemacht werden.",
+    "deleteFailed": "Benachrichtigung konnte nicht gelöscht werden. Bitte versuche es erneut."
   },
   "profile": {
     "browsingAsGuest": "Als Gast unterwegs",
@@ -142,6 +178,12 @@
     "logOut": "Abmelden",
     "logOutConfirmTitle": "Abmelden?",
     "logOutConfirmBody": "Du musst dich erneut anmelden, um auf dein Konto zuzugreifen.",
+    "deleteAccount": "Konto löschen",
+    "deleteAccountTitle": "Konto löschen?",
+    "deleteAccountWarning": "Dies löscht dein Konto dauerhaft. Falls du Unternehmen oder Veranstaltungen besitzt, werden auch deren Einträge, Bewertungen und Daten gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "deleteAccountPasswordLabel": "Passwort",
+    "deleteAccountPasswordHelper": "Gib dein Passwort zur Bestätigung ein. Lass es leer, wenn du dich mit Google oder Facebook angemeldet hast.",
+    "deleteAccountConfirm": "Mein Konto löschen",
     "guest": "GAST"
   },
   "editProfile": {
@@ -157,6 +199,7 @@
     "newPassword": "Neues Passwort",
     "confirmNew": "Neues Passwort bestätigen",
     "mismatch": "Passwörter stimmen nicht überein",
+    "sameAsCurrent": "Das neue Passwort muss sich vom aktuellen unterscheiden",
     "success": "Passwort erfolgreich geändert",
     "action": "Passwort ändern"
   },
@@ -165,9 +208,7 @@
     "language": "Sprache",
     "notifications": "Benachrichtigungen",
     "enableNotifications": "Benachrichtigungen aktivieren",
-    "always": "Immer",
-    "daily": "Tägliche Zusammenfassung",
-    "weekly": "Wöchentliche Zusammenfassung",
+    "enableNotificationsDesc": "Erhalte Benachrichtigungen zu genehmigten Angeboten und Updates",
     "location": "Standort",
     "enableLocation": "Standortdienste aktivieren",
     "enableLocationDesc": "Wird verwendet, um Entfernung und Unternehmen in der Nähe anzuzeigen",
@@ -279,6 +320,8 @@
     "submit": "Veranstaltung einreichen",
     "noBusinessTitle": "Du benötigst ein genehmigtes Unternehmen, bevor du Veranstaltungen erstellen kannst",
     "completeAllFields": "Bitte fülle alle Felder aus",
+    "selectCategoryError": "Bitte wähle eine Kategorie aus",
+    "endBeforeStart": "Die Endzeit muss nach der Startzeit liegen",
     "failedToCreate": "Veranstaltung konnte nicht erstellt werden"
   },
   "contactUs": {
@@ -312,14 +355,15 @@
   },
   "aboutUs": {
     "title": "Über uns",
-    "tagline": "Entdecke lokale Unternehmen & Veranstaltungen in deiner Nähe",
-    "missionTitle": "Unsere Mission",
-    "missionBody": "AlbMap verbindet Gemeinschaften mit den lokalen Unternehmen und Veranstaltungen, die ihre Nachbarschaften lebendig machen — und macht die Entdeckung für Gäste mühelos, während Unternehmern die Werkzeuge gegeben werden, um die Menschen um sie herum zu erreichen.",
-    "visionTitle": "Unsere Vision",
-    "visionBody": "Die führende Plattform für lokale Entdeckungen zu werden — eine Karte, jede Gemeinschaft.",
     "privacyPolicy": "Datenschutzrichtlinie",
     "terms": "Allgemeine Geschäftsbedingungen",
     "followUs": "Folge uns"
+  },
+  "privacyPolicy": {
+    "title": "Datenschutzrichtlinie"
+  },
+  "termsConditions": {
+    "title": "Allgemeine Geschäftsbedingungen"
   },
   "locationPicker": {
     "title": "Unternehmensstandort festlegen",

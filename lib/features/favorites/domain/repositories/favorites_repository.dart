@@ -10,4 +10,5 @@ abstract class FavoritesRepository {
   Future<Either<Failure, List<BusinessEntity>>> getFavoriteBusinesses();
   Future<Either<Failure, List<EventEntity>>> getFavoriteEvents();
   Future<Either<Failure, bool>> isBusinessFavorite(String businessId);
+  Future<Either<Failure, bool>> isEventFavorite(String eventId);
 }

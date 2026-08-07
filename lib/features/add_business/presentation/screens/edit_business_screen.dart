@@ -7,8 +7,11 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
 import '../../../../core/widgets/state_widgets.dart';
@@ -170,21 +173,18 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
     setState(() => _isSubmitting = false);
 
     result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (failure) => AppToast.error(context, failure.message),
       (updated) {
         ref.invalidate(businessDetailsProvider(widget.businessId));
         // Same staleness class as the Add Business fix: without this, "My
         // Businesses" keeps showing the pre-edit status (e.g. still
         // "Approved" even though this edit just sent it back to pending).
         ref.invalidate(myBusinessesProvider(updated.ownerId));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              updated.status == BusinessStatus.pending
-                  ? 'editBusiness.savedPending'.tr()
-                  : 'editBusiness.saved'.tr(),
-            ),
-          ),
+        AppToast.success(
+          context,
+          updated.status == BusinessStatus.pending
+              ? 'editBusiness.savedPending'.tr()
+              : 'editBusiness.saved'.tr(),
         );
         Navigator.of(context).pop();
       },
@@ -211,20 +211,13 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GradientHeader(
-                child: Row(
-                  children: [
-                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('editBusiness.title'.tr(), style: AppTextStyles.h1),
-                          Text(_original!.name, style: AppTextStyles.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: PageHeaderTitle(
+                  title: 'editBusiness.title'.tr(),
+                  subtitle: _original!.name,
+                  icon: categoryIcon(_original!.category),
+                  accent: categoryColor(_original!.category),
+                  // Subtitle is the business's own (variable-length) name.
+                  iconBadgeSize: 32,
                 ),
               ),
               Padding(
@@ -258,6 +251,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                         ),
                       TextFormField(
                         controller: _nameController,
+                        maxLength: 30,
                         decoration: InputDecoration(labelText: 'addBusiness.businessName'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -265,6 +259,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                       TextFormField(
                         controller: _descController,
                         maxLines: 4,
+                        maxLength: 300,
                         decoration: InputDecoration(labelText: 'addBusiness.description'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -281,6 +276,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _streetAddressController,
+                        maxLength: 70,
                         decoration: InputDecoration(labelText: 'addBusiness.streetAddress'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -292,6 +288,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                             flex: 2,
                             child: TextFormField(
                               controller: _cityController,
+                              maxLength: 20,
                               decoration: InputDecoration(labelText: 'addBusiness.city'.tr()),
                               validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                             ),
@@ -300,6 +297,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                           Expanded(
                             child: TextFormField(
                               controller: _postalCodeController,
+                              maxLength: 10,
                               decoration: InputDecoration(labelText: 'addBusiness.postalCode'.tr()),
                               validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                             ),
@@ -309,6 +307,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _countryController,
+                        maxLength: 20,
                         decoration: InputDecoration(labelText: 'addBusiness.country'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -347,7 +346,9 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
+                        maxLength: 20,
                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
+                        validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         onChanged: (_) => setState(() {}),
                       ),
                       const SizedBox(height: 8),
@@ -364,7 +365,9 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                         TextFormField(
                           controller: _whatsappController,
                           keyboardType: TextInputType.phone,
+                          maxLength: 20,
                           decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
+                          validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         ),
                       ],
                       const SizedBox(height: 20),

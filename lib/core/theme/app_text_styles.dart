@@ -4,7 +4,15 @@ import 'app_colors.dart';
 class AppTextStyles {
   AppTextStyles._();
 
-  static const String fontFamily = 'Poppins';
+  // Must match the `family:` name registered in pubspec.yaml's `fonts:`
+  // block — this used to say 'Poppins', a font that was never bundled or
+  // registered anywhere (pubspec.yaml only ships IBM Plex Sans). Flutter
+  // silently falls back to the platform default (Roboto/San Francisco)
+  // for an unregistered font family instead of erroring, so every single
+  // screen in the app was rendering in the stock system font — the
+  // single biggest reason the app read as "default Flutter" rather than
+  // using the custom type system these text styles actually define.
+  static const String fontFamily = 'IBM Plex Sans';
 
   static const TextStyle h1 = TextStyle(
     fontFamily: fontFamily,

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
@@ -38,6 +40,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_currentController.text == _newController.text) {
+      AppToast.warning(context, 'changePassword.sameAsCurrent'.tr());
+      return;
+    }
 
     setState(() => _isSubmitting = true);
     final error = await ref.read(authControllerProvider.notifier).changePassword(
@@ -48,11 +54,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     setState(() => _isSubmitting = false);
 
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      AppToast.error(context, error);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('changePassword.success'.tr())),
-      );
+      AppToast.success(context, 'changePassword.success'.tr());
       Navigator.of(context).pop();
     }
   }
@@ -68,12 +72,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GradientHeader(
-                child: Row(
-                  children: [
-                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                    const SizedBox(width: 4),
-                    Text('changePassword.title'.tr(), style: AppTextStyles.h1),
-                  ],
+                child: PageHeaderTitle(
+                  title: 'changePassword.title'.tr(),
+                  icon: Icons.lock_rounded,
+                  accent: AppColors.primary,
                 ),
               ),
               Padding(
@@ -86,6 +88,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                       TextFormField(
                         controller: _currentController,
                         obscureText: _obscureCurrent,
+                        maxLength: 72,
                         decoration: InputDecoration(
                           labelText: 'changePassword.current'.tr(),
                           suffixIcon: IconButton(
@@ -93,12 +96,13 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                             onPressed: () => setState(() => _obscureCurrent = !_obscureCurrent),
                           ),
                         ),
-                        validator: (v) => (v == null || v.isEmpty) ? 'common.required'.tr() : null,
+                        validator: (v) => Validators.required(v, 'common.required'.tr()),
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _newController,
                         obscureText: _obscureNew,
+                        maxLength: 72,
                         decoration: InputDecoration(
                           labelText: 'changePassword.newPassword'.tr(),
                           suffixIcon: IconButton(
@@ -106,21 +110,24 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                             onPressed: () => setState(() => _obscureNew = !_obscureNew),
                           ),
                         ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'common.required'.tr();
-                          if (v.length < 6) return 'auth.passwordTooShort'.tr();
-                          return null;
-                        },
+                        validator: (v) => Validators.password(
+                          v,
+                          requiredMessage: 'common.required'.tr(),
+                          tooShortMessage: 'auth.passwordTooShort'.tr(),
+                        ),
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _confirmController,
                         obscureText: _obscureNew,
+                        maxLength: 72,
                         decoration: InputDecoration(labelText: 'changePassword.confirmNew'.tr()),
-                        validator: (v) {
-                          if (v != _newController.text) return 'changePassword.mismatch'.tr();
-                          return null;
-                        },
+                        validator: (v) => Validators.confirmPassword(
+                          v,
+                          _newController.text,
+                          requiredMessage: 'common.required'.tr(),
+                          mismatchMessage: 'changePassword.mismatch'.tr(),
+                        ),
                       ),
                       const SizedBox(height: 28),
                       PrimaryButton(

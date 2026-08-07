@@ -14,7 +14,7 @@ class AuthMockDataSource implements AuthRemoteDataSource {
 
   final FlutterSecureStorage _secureStorage;
 
-  static final UserModel _fakeUser = const UserModel(
+  static const UserModel _fakeUser = UserModel(
     id: 'business-user-001',
     email: 'demo@albmap.com',
     role: UserRole.business,
@@ -90,6 +90,16 @@ class AuthMockDataSource implements AuthRemoteDataSource {
     // Mock mode has nothing real to change — succeeds unconditionally
     // otherwise, matching the mock philosophy elsewhere in this file (any
     // non-empty credential "works").
+  }
+
+  @override
+  Future<void> deleteAccount({String? password}) async {
+    await _fakeDelay();
+    if (password != null && password.isEmpty) {
+      throw AuthException('Incorrect password');
+    }
+    // Mock mode has nothing real to delete — succeeds unconditionally
+    // otherwise, matching changePassword's mock philosophy above.
   }
 
   @override

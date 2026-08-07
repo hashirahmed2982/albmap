@@ -3,14 +3,25 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/utils/app_logger.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/business_entity.dart';
 import '../../domain/usecases/business_usecases.dart';
 
 /// Current device location, refreshed on demand from the Discover Map screen.
 class LocationController extends StateNotifier<Position?> {
-  LocationController() : super(null);
+  LocationController(this._ref) : super(null);
+  final Ref _ref;
 
   Future<void> refresh() async {
+    // Respect the "Enable location" switch in Settings — previously this
+    // asked the OS for a fix unconditionally, so turning the switch off
+    // did nothing (it just wrote a SharedPreferences value nobody read).
+    if (!_ref.read(settingsControllerProvider).locationEnabled) {
+      state = null;
+      return;
+    }
+
     final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
 
@@ -23,25 +34,45 @@ class LocationController extends StateNotifier<Position?> {
 
     try {
       state = await Geolocator.getCurrentPosition();
-    } catch (_) {
-      // keep previous state on failure
+    } catch (err, stack) {
+      // Keep previous state on failure — the map falls back to its
+      // default center, so this is a graceful degradation, not a crash.
+      // Still logged so a "map never centers on me" report is diagnosable.
+      AppLogger.warning('Failed to fetch current position', err, stack);
     }
   }
+
+  /// Called from SettingsController the moment "Enable location" is
+  /// turned off, so anything already showing distance/"near me" data
+  /// reflects the change immediately rather than waiting for the next
+  /// screen that happens to call refresh().
+  void clear() => state = null;
 }
 
 final locationControllerProvider =
-    StateNotifierProvider<LocationController, Position?>((ref) => LocationController());
+    StateNotifierProvider<LocationController, Position?>((ref) => LocationController(ref));
 
 class BusinessFilter {
-  const BusinessFilter({this.category, this.radiusKm = 10, this.sortBy = 'distance'});
+  const BusinessFilter({this.category, this.radiusKm, this.sortBy = 'distance'});
   final String? category;
-  final double radiusKm;
+
+  /// Null means "no distance limit" — the default. Discovery should show
+  /// every business worldwide until the user explicitly opts into a
+  /// radius via the filter sheet, not silently restrict to a 10km bubble
+  /// around wherever the device happens to be.
+  final double? radiusKm;
   final String sortBy;
 
-  BusinessFilter copyWith({String? category, double? radiusKm, String? sortBy, bool clearCategory = false}) {
+  BusinessFilter copyWith({
+    String? category,
+    double? radiusKm,
+    String? sortBy,
+    bool clearCategory = false,
+    bool clearRadius = false,
+  }) {
     return BusinessFilter(
       category: clearCategory ? null : (category ?? this.category),
-      radiusKm: radiusKm ?? this.radiusKm,
+      radiusKm: clearRadius ? null : (radiusKm ?? this.radiusKm),
       sortBy: sortBy ?? this.sortBy,
     );
   }

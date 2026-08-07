@@ -81,4 +81,16 @@ class NotificationMockDataSource implements NotificationRemoteDataSource {
       );
     }
   }
+
+  @override
+  Future<void> deleteNotification(String notificationId) async {
+    await _fakeDelay();
+    _feed.removeWhere((n) => n.id == notificationId);
+  }
+
+  @override
+  Future<void> deleteAllNotifications() async {
+    await _fakeDelay();
+    _feed.clear();
+  }
 }

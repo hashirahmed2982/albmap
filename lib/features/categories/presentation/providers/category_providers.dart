@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/usecase/usecase.dart';
+import '../../domain/category_visuals.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/usecases/get_categories_usecase.dart';
 
@@ -12,7 +13,14 @@ import '../../domain/usecases/get_categories_usecase.dart';
 final categoriesProvider = FutureProvider<List<CategoryEntity>>((ref) async {
   final useCase = sl<GetCategoriesUseCase>();
   final result = await useCase(const NoParams());
-  return result.fold((_) => const <CategoryEntity>[], (categories) => categories);
+  final categories = result.fold((_) => const <CategoryEntity>[], (categories) => categories);
+  // Side effect, deliberately: CategoryVisuals.iconFor/colorFor are called
+  // from plain (non-Riverpod) functions all over the map/list UI that
+  // only have a category name string to work with, not a WidgetRef — see
+  // category_visuals.dart's doc comment for why that's the right
+  // tradeoff here instead of threading a provider through every call site.
+  CategoryVisuals.update(categories);
+  return categories;
 });
 
 /// Just the names, for widgets that only need strings (dropdowns, chip

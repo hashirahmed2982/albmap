@@ -14,6 +14,8 @@ class EventEntity extends Equatable {
     this.latitude,
     this.longitude,
     this.address,
+    this.interestCount = 0,
+    this.isInterested = false,
   });
 
   final String id;
@@ -29,6 +31,16 @@ class EventEntity extends Equatable {
   final double? longitude;
   final String? address;
 
+  /// How many users have marked "I'm interested" / RSVP'd — only
+  /// meaningful when this came from an endpoint that joins
+  /// event_interests (GET /events, GET /events/:id); other sources (event
+  /// creation echo, local favorites cache) default this to 0.
+  final int interestCount;
+
+  /// Whether the *current* signed-in user has marked interest — false for
+  /// a guest/anonymous caller, same caveat as [interestCount] above.
+  final bool isInterested;
+
   bool get isUpcoming => startTime.isAfter(DateTime.now());
   bool get isOngoing =>
       DateTime.now().isAfter(startTime) && DateTime.now().isBefore(endTime);
@@ -37,5 +49,6 @@ class EventEntity extends Equatable {
   List<Object?> get props => <Object?>[
         id, businessId, businessName, name, description, category,
         startTime, endTime, imageUrl, latitude, longitude, address,
+        interestCount, isInterested,
       ];
 }

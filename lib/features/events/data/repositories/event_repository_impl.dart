@@ -78,4 +78,30 @@ class EventRepositoryImpl implements EventRepository {
       return const Left(UnknownFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, void>> addInterest(String eventId) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      await _remote.addInterest(eventId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> removeInterest(String eventId) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      await _remote.removeInterest(eventId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
 }

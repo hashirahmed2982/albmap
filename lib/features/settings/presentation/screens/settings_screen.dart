@@ -1,10 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
@@ -29,17 +31,6 @@ class SettingsScreen extends ConsumerWidget {
         return 'settings.german'.tr();
       default:
         return 'settings.english'.tr();
-    }
-  }
-
-  String _freqLabel(NotificationFrequency freq) {
-    switch (freq) {
-      case NotificationFrequency.always:
-        return 'settings.always'.tr();
-      case NotificationFrequency.daily:
-        return 'settings.daily'.tr();
-      case NotificationFrequency.weekly:
-        return 'settings.weekly'.tr();
     }
   }
 
@@ -87,20 +78,10 @@ class SettingsScreen extends ConsumerWidget {
                 SwitchListTile(
                   activeColor: AppColors.primary,
                   title: Text('settings.enableNotifications'.tr()),
+                  subtitle: Text('settings.enableNotificationsDesc'.tr()),
                   value: settings.notificationsEnabled,
                   onChanged: controller.setNotificationsEnabled,
                 ),
-                if (settings.notificationsEnabled)
-                  for (final freq in NotificationFrequency.values)
-                    RadioListTile<NotificationFrequency>(
-                      value: freq,
-                      groupValue: settings.notificationFrequency,
-                      activeColor: AppColors.primary,
-                      title: Text(_freqLabel(freq)),
-                      onChanged: (f) {
-                        if (f != null) controller.setNotificationFrequency(f);
-                      },
-                    ),
               ],
             ),
             _SettingsSection(
@@ -129,7 +110,11 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   title: Text('settings.privacyPolicy'.tr()),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => launchUrl(Uri.parse('https://albmap.app/privacy')),
+                  // Was launching a dead external albmap.app URL — now the
+                  // same admin-editable content the About Us screen and
+                  // the website's /privacy page render (see
+                  // siteContentProvider).
+                  onTap: () => context.push(AppRoutes.privacyPolicy),
                 ),
                 ListTile(
                   title: Text('settings.helpSupport'.tr()),

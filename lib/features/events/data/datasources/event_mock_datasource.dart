@@ -73,6 +73,37 @@ class EventMockDataSource implements EventRemoteDataSource {
   }
 
   @override
+  Future<void> addInterest(String eventId) async {
+    await _fakeDelay();
+    _replaceInterest(eventId, isInterested: true);
+  }
+
+  @override
+  Future<void> removeInterest(String eventId) async {
+    await _fakeDelay();
+    _replaceInterest(eventId, isInterested: false);
+  }
+
+  /// EventModel is immutable, so "mutating" interest state in this
+  /// in-memory fake means swapping the list entry for a copy with the
+  /// updated fields — mirrors what the real backend does by recomputing
+  /// interestCount/isInterested from event_interests on every read.
+  void _replaceInterest(String eventId, {required bool isInterested}) {
+    final index = _events.indexWhere((e) => e.id == eventId);
+    if (index == -1) return;
+    final current = _events[index];
+    if (current.isInterested == isInterested) return;
+    _events[index] = EventModel(
+      id: current.id, businessId: current.businessId, businessName: current.businessName,
+      name: current.name, description: current.description, category: current.category,
+      startTime: current.startTime, endTime: current.endTime, imageUrl: current.imageUrl,
+      latitude: current.latitude, longitude: current.longitude, address: current.address,
+      interestCount: current.interestCount + (isInterested ? 1 : -1),
+      isInterested: isInterested,
+    );
+  }
+
+  @override
   Future<String> uploadEventImage(String filePath) async {
     await _fakeDelay();
     return filePath;

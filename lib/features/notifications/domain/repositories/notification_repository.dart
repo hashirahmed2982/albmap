@@ -28,4 +28,12 @@ abstract class NotificationRepository {
 
   Future<Either<Failure, void>> markAsRead(String notificationId);
   Future<Either<Failure, void>> markAllAsRead();
+
+  /// Hides this notification from the current user's feed only — it's a
+  /// shared row (a broadcast is the same row every recipient sees), so
+  /// this can never delete it for anyone else.
+  Future<Either<Failure, void>> deleteNotification(String notificationId);
+
+  /// "Clear all" — hides every notification currently in the feed.
+  Future<Either<Failure, void>> deleteAllNotifications();
 }

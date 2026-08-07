@@ -1,0 +1,3634 @@
+From 928fc9ad9d91d6730496f4ccf7a590f142827269 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 6 Aug 2026 07:22:27 +0000
+Subject: [PATCH 1/3] Fix build-breaking Android Firebase config, iOS
+ permissions, input validation, and error handling
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- android: make google-services Gradle plugin apply conditionally on
+  google-services.json existing — previously the build hard-failed for
+  anyone without Firebase configured, contradicting the app's own
+  documented "degrade gracefully without Firebase" design
+- android: declare INTERNET, ACCESS_NETWORK_STATE, location, and
+  POST_NOTIFICATIONS permissions (POST_NOTIFICATIONS is required on
+  Android 13+ for FirebaseMessaging.requestPermission() to do anything)
+- ios: add NSLocationWhenInUseUsageDescription/NSPhotoLibraryUsageDescription/
+  NSCameraUsageDescription — without these the app is killed by iOS the
+  instant it requests location or photo library access
+- ios: bump IPHONEOS_DEPLOYMENT_TARGET/MinimumOSVersion from 12.0 to 13.0
+  to match the actual minimum required by the resolved Firebase/
+  google_sign_in/etc. dependency versions
+- fix dependency resolution: drop unused codegen dev-dependencies
+  (build_runner/freezed/json_serializable/injectable_generator/
+  riverpod_generator/hive_generator/riverpod_lint/custom_lint) that
+  conflicted with each other under the current Dart SDK and made
+  `flutter pub get` fail outright; none of them were actually used
+  anywhere in lib/
+- add core/utils/validators.dart: centralized email/phone/password
+  validation, replacing weak ad-hoc checks (e.g. `v.contains('@')`,
+  which accepted strings like "@" or "a@") across every form in the
+  app, and add real phone-format validation where there was none
+- add core/widgets/app_toast.dart: consistent success/error/warning/info
+  toasts (icon + color-coded), replacing bare SnackBars, with
+  hideCurrentSnackBar() so messages don't queue up stale
+- fix forgot-password sheet silently doing nothing on failure (no error
+  ever shown) and not validating the email field at all
+- fix contact-us form not clearing name/email controllers after a
+  successful submit (only message was cleared)
+- add end-time-before-start-time validation to Add Event (previously
+  created events with negative duration)
+- add "new password must differ from current" check to Change Password
+- wire up global error handling in main.dart (FlutterError.onError,
+  PlatformDispatcher.onError, runZonedGuarded) and a real AppLogger
+  (core/utils/app_logger.dart was previously an empty stub nothing used)
+- fix `flutter analyze`: 36 issues -> 0 (duplicate imports, deprecated
+  Radio/Switch APIs migrated to RadioGroup/activeThumbColor, missing
+  showModalBottomSheet type args, unawaited futures, unused imports,
+  missing const)
+- add test/ (previously nonexistent): unit tests for Validators and
+  AppConstants media-URL resolution, widget tests for PrimaryButton's
+  double-submit guard and AppToast
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01UWLxdJ74EiJDqqczEM3fhE
+---
+ analysis_options.yaml                         |   3 -
+ android/app/build.gradle.kts                  |  19 +-
+ android/app/src/main/AndroidManifest.xml      |  18 +
+ assets/translations/de.json                   |   6 +-
+ assets/translations/en.json                   |   6 +-
+ assets/translations/sq.json                   |   6 +-
+ ios/Flutter/AppFrameworkInfo.plist            |   2 +-
+ ios/Runner.xcodeproj/project.pbxproj          |   6 +-
+ ios/Runner/Info.plist                         |  16 +
+ lib/core/usecase/usecase.dart                 |   4 +-
+ lib/core/utils/app_logger.dart                |  39 ++
+ lib/core/utils/validators.dart                |  88 +++
+ lib/core/widgets/app_toast.dart               |  69 ++
+ lib/core/widgets/opening_hours_editor.dart    |   2 +-
+ .../screens/add_business_screen.dart          |  17 +-
+ .../screens/edit_business_screen.dart         |  19 +-
+ .../screens/add_event_screen.dart             |  19 +-
+ .../datasources/auth_mock_datasource.dart     |   2 +-
+ .../screens/login_signup_screen.dart          |  43 +-
+ .../widgets/forgot_password_sheet.dart        |  70 +-
+ .../screens/contact_us_screen.dart            |  18 +-
+ .../analytics_mock_datasource.dart            |   6 +-
+ .../screens/business_dashboard_screen.dart    |   5 +-
+ .../widgets/send_notification_sheet.dart      |   8 +-
+ .../screens/event_details_screen.dart         |   1 -
+ .../presentation/screens/event_list_tile.dart |   1 -
+ .../presentation/screens/events_screen.dart   |   4 +-
+ .../providers/business_providers.dart         |   8 +-
+ .../screens/discover_map_screen.dart          |  10 +-
+ .../providers/notifications_providers.dart    |   1 -
+ .../screens/notifications_screen.dart         |   1 -
+ .../screens/change_password_screen.dart       |  34 +-
+ .../screens/edit_profile_screen.dart          |  13 +-
+ .../providers/settings_providers.dart         |   9 +-
+ .../presentation/screens/settings_screen.dart |  52 +-
+ lib/main.dart                                 |  33 +-
+ pubspec.lock                                  | 621 +++++-------------
+ pubspec.yaml                                  |  14 -
+ test/core/constants/app_constants_test.dart   |  58 ++
+ test/core/utils/validators_test.dart          | 145 ++++
+ test/core/widgets/app_toast_test.dart         |  58 ++
+ test/core/widgets/primary_button_test.dart    |  47 ++
+ 42 files changed, 989 insertions(+), 612 deletions(-)
+ create mode 100644 lib/core/utils/validators.dart
+ create mode 100644 lib/core/widgets/app_toast.dart
+ create mode 100644 test/core/constants/app_constants_test.dart
+ create mode 100644 test/core/utils/validators_test.dart
+ create mode 100644 test/core/widgets/app_toast_test.dart
+ create mode 100644 test/core/widgets/primary_button_test.dart
+
+diff --git a/analysis_options.yaml b/analysis_options.yaml
+index b2187d0..14fabc3 100644
+--- a/analysis_options.yaml
++++ b/analysis_options.yaml
+@@ -9,8 +9,6 @@ analyzer:
+     strict-casts: true
+     strict-inference: true
+     strict-raw-types: true
+-  plugins:
+-    - custom_lint
+ 
+ linter:
+   rules:
+@@ -18,7 +16,6 @@ linter:
+     - avoid_print
+     - avoid_empty_else
+     - avoid_relative_lib_imports
+-    - avoid_returning_null_for_future
+     - avoid_slow_async_io
+     - cancel_subscriptions
+     - close_sinks
+diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
+index a58ec0c..c1f1494 100644
+--- a/android/app/build.gradle.kts
++++ b/android/app/build.gradle.kts
+@@ -3,7 +3,17 @@ plugins {
+     id("kotlin-android")
+     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+     id("dev.flutter.flutter-gradle-plugin")
+-    id("com.google.gms.google-services")
++    // google-services is intentionally NOT applied here — see the
++    // conditional `apply(plugin = ...)` near the bottom of this file.
++    // Applying it unconditionally makes its
++    // processDebugGoogleServices/processReleaseGoogleServices Gradle
++    // tasks hard-fail the *entire build* ("File google-services.json is
++    // missing") whenever that file isn't present. This project
++    // deliberately ships without Firebase config (see README — Firebase
++    // setup is a manual step left to whoever deploys it) and
++    // main.dart wraps Firebase.initializeApp() to degrade gracefully at
++    // runtime; the build itself needs to degrade the same way, or nobody
++    // can even `flutter run` the app before doing Firebase setup.
+ }
+ 
+ android {
+@@ -49,4 +59,11 @@ dependencies {
+ 
+ flutter {
+     source = "../.."
++}
++
++// See the comment on the `plugins` block above: only wire up
++// google-services once its config file actually exists, so the build
++// doesn't hard-fail before Firebase setup has been done.
++if (file("google-services.json").exists()) {
++    apply(plugin = "com.google.gms.google-services")
+ }
+\ No newline at end of file
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index adbf3be..6cd8189 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -1,4 +1,22 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android">
++    <!--
++      Without INTERNET, every Dio API call, map tile fetch, and Firebase
++      call fails outright — some plugin dependencies merge this in
++      transitively, but it shouldn't be left implicit for a permission
++      this core to the app. ACCESS_NETWORK_STATE backs connectivity_plus
++      (the offline/online detection used to decide when to fall back to
++      cached businesses). The two location permissions back
++      geolocator/location (Discover Map's "near me" sort and centering).
++      POST_NOTIFICATIONS is required on Android 13+ (API 33+) for the
++      FirebaseMessaging.requestPermission() call in fcm_service.dart to
++      have any effect — without this declared, that call is a no-op and
++      push notifications never show, with no error surfaced anywhere.
++    -->
++    <uses-permission android:name="android.permission.INTERNET"/>
++    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
++    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
++    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
++    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+     <application
+         android:label="albmap"
+         android:name="${applicationName}"
+diff --git a/assets/translations/de.json b/assets/translations/de.json
+index 1ee1f95..436085a 100644
+--- a/assets/translations/de.json
++++ b/assets/translations/de.json
+@@ -21,7 +21,9 @@
+     "km_away": "{} km entfernt",
+     "somethingWrong": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+     "noInternet": "Keine Internetverbindung.",
+-    "all": "Alle"
++    "all": "Alle",
++    "invalidPhone": "Gib eine gültige Telefonnummer ein",
++    "invalidEmail": "Gib eine gültige E-Mail-Adresse ein"
+   },
+   "nav": {
+     "discover": "Karte",
+@@ -157,6 +159,7 @@
+     "newPassword": "Neues Passwort",
+     "confirmNew": "Neues Passwort bestätigen",
+     "mismatch": "Passwörter stimmen nicht überein",
++    "sameAsCurrent": "Das neue Passwort muss sich vom aktuellen unterscheiden",
+     "success": "Passwort erfolgreich geändert",
+     "action": "Passwort ändern"
+   },
+@@ -279,6 +282,7 @@
+     "submit": "Veranstaltung einreichen",
+     "noBusinessTitle": "Du benötigst ein genehmigtes Unternehmen, bevor du Veranstaltungen erstellen kannst",
+     "completeAllFields": "Bitte fülle alle Felder aus",
++    "endBeforeStart": "Die Endzeit muss nach der Startzeit liegen",
+     "failedToCreate": "Veranstaltung konnte nicht erstellt werden"
+   },
+   "contactUs": {
+diff --git a/assets/translations/en.json b/assets/translations/en.json
+index 998f90f..f7fb1d2 100644
+--- a/assets/translations/en.json
++++ b/assets/translations/en.json
+@@ -21,7 +21,9 @@
+     "km_away": "{} km away",
+     "somethingWrong": "Something went wrong. Please try again.",
+     "noInternet": "No internet connection.",
+-    "all": "All"
++    "all": "All",
++    "invalidPhone": "Enter a valid phone number",
++    "invalidEmail": "Enter a valid email address"
+   },
+   "nav": {
+     "discover": "Discover",
+@@ -157,6 +159,7 @@
+     "newPassword": "New password",
+     "confirmNew": "Confirm new password",
+     "mismatch": "Passwords do not match",
++    "sameAsCurrent": "New password must be different from your current password",
+     "success": "Password changed successfully",
+     "action": "Change password"
+   },
+@@ -276,6 +279,7 @@
+     "submit": "Submit event",
+     "noBusinessTitle": "You need an approved business before creating events",
+     "completeAllFields": "Please complete all fields",
++    "endBeforeStart": "End time must be after the start time",
+     "failedToCreate": "Failed to create event"
+   },
+   "contactUs": {
+diff --git a/assets/translations/sq.json b/assets/translations/sq.json
+index 87fd555..f76547c 100644
+--- a/assets/translations/sq.json
++++ b/assets/translations/sq.json
+@@ -21,7 +21,9 @@
+     "km_away": "{} km larg",
+     "somethingWrong": "Diçka shkoi keq. Ju lutemi provoni përsëri.",
+     "noInternet": "Nuk ka lidhje interneti.",
+-    "all": "Të gjitha"
++    "all": "Të gjitha",
++    "invalidPhone": "Shkruaj një numër telefoni të vlefshëm",
++    "invalidEmail": "Shkruaj një adresë email të vlefshme"
+   },
+   "nav": {
+     "discover": "Zbulo",
+@@ -157,6 +159,7 @@
+     "newPassword": "Fjalëkalimi i ri",
+     "confirmNew": "Konfirmo fjalëkalimin e ri",
+     "mismatch": "Fjalëkalimet nuk përputhen",
++    "sameAsCurrent": "Fjalëkalimi i ri duhet të jetë ndryshe nga ai aktual",
+     "success": "Fjalëkalimi u ndryshua me sukses",
+     "action": "Ndrysho fjalëkalimin"
+   },
+@@ -276,6 +279,7 @@
+     "submit": "Dërgo eventin",
+     "noBusinessTitle": "Të duhet një biznes i aprovuar para se të krijosh evente",
+     "completeAllFields": "Ju lutemi plotësoni të gjitha fushat",
++    "endBeforeStart": "Ora e mbarimit duhet të jetë pas orës së fillimit",
+     "failedToCreate": "Dështoi krijimi i eventit"
+   },
+   "contactUs": {
+diff --git a/ios/Flutter/AppFrameworkInfo.plist b/ios/Flutter/AppFrameworkInfo.plist
+index 7c56964..1dc6cf7 100644
+--- a/ios/Flutter/AppFrameworkInfo.plist
++++ b/ios/Flutter/AppFrameworkInfo.plist
+@@ -21,6 +21,6 @@
+   <key>CFBundleVersion</key>
+   <string>1.0</string>
+   <key>MinimumOSVersion</key>
+-  <string>12.0</string>
++  <string>13.0</string>
+ </dict>
+ </plist>
+diff --git a/ios/Runner.xcodeproj/project.pbxproj b/ios/Runner.xcodeproj/project.pbxproj
+index 138e2e8..a5874dd 100644
+--- a/ios/Runner.xcodeproj/project.pbxproj
++++ b/ios/Runner.xcodeproj/project.pbxproj
+@@ -346,7 +346,7 @@
+ 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+ 				GCC_WARN_UNUSED_FUNCTION = YES;
+ 				GCC_WARN_UNUSED_VARIABLE = YES;
+-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
++				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+ 				MTL_ENABLE_DEBUG_INFO = NO;
+ 				SDKROOT = iphoneos;
+ 				SUPPORTED_PLATFORMS = iphoneos;
+@@ -472,7 +472,7 @@
+ 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+ 				GCC_WARN_UNUSED_FUNCTION = YES;
+ 				GCC_WARN_UNUSED_VARIABLE = YES;
+-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
++				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+ 				MTL_ENABLE_DEBUG_INFO = YES;
+ 				ONLY_ACTIVE_ARCH = YES;
+ 				SDKROOT = iphoneos;
+@@ -523,7 +523,7 @@
+ 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+ 				GCC_WARN_UNUSED_FUNCTION = YES;
+ 				GCC_WARN_UNUSED_VARIABLE = YES;
+-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
++				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+ 				MTL_ENABLE_DEBUG_INFO = NO;
+ 				SDKROOT = iphoneos;
+ 				SUPPORTED_PLATFORMS = iphoneos;
+diff --git a/ios/Runner/Info.plist b/ios/Runner/Info.plist
+index f20fe44..8c5a49d 100644
+--- a/ios/Runner/Info.plist
++++ b/ios/Runner/Info.plist
+@@ -45,5 +45,21 @@
+ 	<true/>
+ 	<key>UIApplicationSupportsIndirectInputEvents</key>
+ 	<true/>
++
++	<!--
++	  Without these, iOS terminates the app the instant it calls the
++	  corresponding permission API (Geolocator.getCurrentPosition,
++	  ImagePicker.pickImage) instead of showing a system prompt — there is
++	  no fallback behavior, just an immediate crash. Every one of these
++	  maps to a permission this app actually requests:
++	  discover_map_screen (location), and the logo/avatar/event-image
++	  pickers in add_business/edit_profile/add_event (photo library).
++	-->
++	<key>NSLocationWhenInUseUsageDescription</key>
++	<string>AlbMap uses your location to show nearby businesses and events and to sort results by distance.</string>
++	<key>NSPhotoLibraryUsageDescription</key>
++	<string>AlbMap needs access to your photo library so you can choose a logo, profile photo, or event image.</string>
++	<key>NSCameraUsageDescription</key>
++	<string>AlbMap needs access to your camera so you can take a photo for your business logo, profile photo, or event image.</string>
+ </dict>
+ </plist>
+diff --git a/lib/core/usecase/usecase.dart b/lib/core/usecase/usecase.dart
+index 28f570b..ee486b5 100644
+--- a/lib/core/usecase/usecase.dart
++++ b/lib/core/usecase/usecase.dart
+@@ -5,8 +5,8 @@ import '../error/failures.dart';
+ 
+ /// Every use case in the domain layer implements this so the
+ /// presentation layer interacts with them uniformly.
+-abstract class UseCase<Type, Params> {
+-  Future<Either<Failure, Type>> call(Params params);
++abstract class UseCase<SuccessType, Params> {
++  Future<Either<Failure, SuccessType>> call(Params params);
+ }
+ 
+ /// For use cases that take no parameters.
+diff --git a/lib/core/utils/app_logger.dart b/lib/core/utils/app_logger.dart
+index e69de29..0209f60 100644
+--- a/lib/core/utils/app_logger.dart
++++ b/lib/core/utils/app_logger.dart
+@@ -0,0 +1,39 @@
++import 'package:flutter/foundation.dart';
++import 'package:logger/logger.dart';
++
++/// Single shared logger for the app.
++///
++/// Before this existed, error handling was a mix of `debugPrint` (silent
++/// in release builds, unstructured) and bare `catch (_) {}` blocks that
++/// swallowed failures with no trace at all — meaning a bug reported from
++/// production had nothing to go on. Routing every caught exception through
++/// here gives us one consistent, leveled, release-safe place to look, and
++/// is the natural hook point for wiring in a crash-reporting SDK
++/// (Crashlytics/Sentry) later without touching every call site again.
++class AppLogger {
++  AppLogger._();
++
++  static final Logger _logger = Logger(
++    printer: PrettyPrinter(
++      methodCount: 1,
++      errorMethodCount: 5,
++      lineLength: 100,
++      colors: !kReleaseMode,
++      printEmojis: true,
++      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
++    ),
++    // Keep noisy debug/verbose logs out of release builds; warnings and
++    // above still surface so real issues aren't lost.
++    level: kReleaseMode ? Level.warning : Level.debug,
++  );
++
++  static void debug(String message) => _logger.d(message);
++
++  static void info(String message) => _logger.i(message);
++
++  static void warning(String message, [Object? error, StackTrace? stackTrace]) =>
++      _logger.w(message, error: error, stackTrace: stackTrace);
++
++  static void error(String message, [Object? error, StackTrace? stackTrace]) =>
++      _logger.e(message, error: error, stackTrace: stackTrace);
++}
+diff --git a/lib/core/utils/validators.dart b/lib/core/utils/validators.dart
+new file mode 100644
+index 0000000..c36da1d
+--- /dev/null
++++ b/lib/core/utils/validators.dart
+@@ -0,0 +1,88 @@
++/// Centralized form-field validators.
++///
++/// Every screen used to hand-roll its own `validator: (v) => ...` closures,
++/// which meant the "email" check on the login screen (`v.contains('@')`)
++/// accepted garbage like `"@"` or `"a@"` while another screen might do
++/// something slightly different. Centralizing these keeps every field in
++/// the app to the same bar and makes fixing a rule (e.g. tightening the
++/// email regex) a one-line change instead of a grep-and-replace across a
++/// dozen files.
++///
++/// All validators return `null` when the value is valid, otherwise a
++/// human-readable (already-translated) error string.
++library;
++
++class Validators {
++  Validators._();
++
++  /// RFC-5322-ish email pattern — deliberately not the "full spec" regex
++  /// (that one is famously enormous and still wrong); this catches the
++  /// realistic classes of typo'd input we actually see: missing '@',
++  /// missing domain, missing TLD, stray spaces, multiple '@'.
++  static final RegExp _emailPattern = RegExp(
++    r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$',
++  );
++
++  /// Characters a phone number is allowed to be made of: an optional
++  /// leading '+', digits, and the usual separators (space, hyphen,
++  /// parentheses, dot) — covers "(069) 123 4567", "+355 69-123-4567",
++  /// "069.123.4567", etc. Letters or anything else fail this first.
++  static final RegExp _phoneAllowedChars = RegExp(r'^\+?[0-9\s\-().]+$');
++
++  static String? required(String? value, String message) {
++    if (value == null || value.trim().isEmpty) return message;
++    return null;
++  }
++
++  static String? email(String? value, {required String requiredMessage, required String invalidMessage}) {
++    final String trimmed = value?.trim() ?? '';
++    if (trimmed.isEmpty) return requiredMessage;
++    if (!_emailPattern.hasMatch(trimmed)) return invalidMessage;
++    return null;
++  }
++
++  /// A phone "looks valid" if it's built only from digits/+/separators
++  /// (checked via [_phoneAllowedChars]) *and* has a realistic number of
++  /// actual digits once separators are stripped — anchoring on digit
++  /// *count* rather than a strict positional pattern is what lets
++  /// "(069) 123 4567" pass without also letting "123" or "call me" pass.
++  static bool _looksLikePhone(String value) {
++    if (!_phoneAllowedChars.hasMatch(value)) return false;
++    final int digitCount = value.replaceAll(RegExp(r'[^0-9]'), '').length;
++    return digitCount >= 7 && digitCount <= 15;
++  }
++
++  /// Phone is treated as optional across the app (business/profile forms
++  /// let it be left blank), but if the user *did* type something, it has
++  /// to look like a phone number rather than silently accepting anything.
++  static String? optionalPhone(String? value, {required String invalidMessage}) {
++    final String trimmed = value?.trim() ?? '';
++    if (trimmed.isEmpty) return null;
++    if (!_looksLikePhone(trimmed)) return invalidMessage;
++    return null;
++  }
++
++  static String? requiredPhone(String? value, {required String requiredMessage, required String invalidMessage}) {
++    final String trimmed = value?.trim() ?? '';
++    if (trimmed.isEmpty) return requiredMessage;
++    if (!_looksLikePhone(trimmed)) return invalidMessage;
++    return null;
++  }
++
++  static String? password(
++    String? value, {
++    required String requiredMessage,
++    required String tooShortMessage,
++    int minLength = 6,
++  }) {
++    if (value == null || value.isEmpty) return requiredMessage;
++    if (value.length < minLength) return tooShortMessage;
++    return null;
++  }
++
++  static String? confirmPassword(String? value, String original, {required String requiredMessage, required String mismatchMessage}) {
++    if (value == null || value.isEmpty) return requiredMessage;
++    if (value != original) return mismatchMessage;
++    return null;
++  }
++}
+diff --git a/lib/core/widgets/app_toast.dart b/lib/core/widgets/app_toast.dart
+new file mode 100644
+index 0000000..59f8fc7
+--- /dev/null
++++ b/lib/core/widgets/app_toast.dart
+@@ -0,0 +1,69 @@
++import 'package:flutter/material.dart';
++
++import '../theme/app_colors.dart';
++import '../theme/app_text_styles.dart';
++
++/// One place for every toast/snackbar the app shows.
++///
++/// Before this existed, each screen built its own bare
++/// `ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(...)))`
++/// — no icon, no color coding, no floating behavior, and inconsistent
++/// duration. A user couldn't tell an error from a confirmation at a
++/// glance, and some screens forgot to clear a still-showing snackbar
++/// before pushing a new one (so messages would queue up and appear
++/// seconds late). Routing everything through here fixes both: consistent
++/// look, and `hideCurrentSnackBar()` before every show so the newest
++/// message is always the one the user sees immediately.
++class AppToast {
++  AppToast._();
++
++  static void success(BuildContext context, String message) {
++    _show(context, message: message, background: AppColors.success, icon: Icons.check_circle_outline);
++  }
++
++  static void error(BuildContext context, String message) {
++    _show(context, message: message, background: AppColors.error, icon: Icons.error_outline);
++  }
++
++  static void info(BuildContext context, String message) {
++    _show(context, message: message, background: AppColors.info, icon: Icons.info_outline);
++  }
++
++  static void warning(BuildContext context, String message) {
++    _show(context, message: message, background: AppColors.warning, icon: Icons.warning_amber_outlined);
++  }
++
++  static void _show(
++    BuildContext context, {
++    required String message,
++    required Color background,
++    required IconData icon,
++  }) {
++    if (!context.mounted) return;
++    final messenger = ScaffoldMessenger.of(context);
++    // Clear any still-visible snackbar first so messages never queue up
++    // behind each other and show stale/delayed.
++    messenger.hideCurrentSnackBar();
++    messenger.showSnackBar(
++      SnackBar(
++        behavior: SnackBarBehavior.floating,
++        backgroundColor: background,
++        duration: const Duration(seconds: 3),
++        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
++        margin: const EdgeInsets.all(12),
++        content: Row(
++          children: [
++            Icon(icon, color: Colors.white, size: 20),
++            const SizedBox(width: 10),
++            Expanded(
++              child: Text(
++                message,
++                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
+diff --git a/lib/core/widgets/opening_hours_editor.dart b/lib/core/widgets/opening_hours_editor.dart
+index 6f155ad..d63e225 100644
+--- a/lib/core/widgets/opening_hours_editor.dart
++++ b/lib/core/widgets/opening_hours_editor.dart
+@@ -125,7 +125,7 @@ class _OpeningHoursEditorState extends State<OpeningHoursEditor> {
+           ),
+           Switch(
+             value: hours.isOpen,
+-            activeColor: AppColors.primary,
++            activeThumbColor: AppColors.primary,
+             onChanged: (value) {
+               setState(() => hours.isOpen = value);
+               _emitChange();
+diff --git a/lib/features/add_business/presentation/screens/add_business_screen.dart b/lib/features/add_business/presentation/screens/add_business_screen.dart
+index e2660bb..cc32a5f 100644
+--- a/lib/features/add_business/presentation/screens/add_business_screen.dart
++++ b/lib/features/add_business/presentation/screens/add_business_screen.dart
+@@ -12,6 +12,8 @@ import '../../../../core/di/service_locator.dart';
+ import '../../../../core/error/failures.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/validators.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ import '../../../../core/widgets/opening_hours_editor.dart';
+ import '../../../../core/widgets/primary_button.dart';
+@@ -92,7 +94,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
+     setState(() => _isUploadingLogo = false);
+ 
+     result.fold(
+-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
++      (failure) => AppToast.error(context, failure.message),
+       (url) => setState(() => _logoUrl = url),
+     );
+   }
+@@ -111,14 +113,11 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
+   Future<void> _submit({bool confirmDuplicate = false}) async {
+     if (!_formKey.currentState!.validate()) return;
+     if (_category == null) {
+-      ScaffoldMessenger.of(context)
+-          .showSnackBar(SnackBar(content: Text('addBusiness.selectCategoryError'.tr())));
++      AppToast.warning(context, 'addBusiness.selectCategoryError'.tr());
+       return;
+     }
+     if (_pickedLocation == null) {
+-      ScaffoldMessenger.of(context).showSnackBar(
+-        SnackBar(content: Text('addBusiness.selectLocationError'.tr())),
+-      );
++      AppToast.warning(context, 'addBusiness.selectLocationError'.tr());
+       return;
+     }
+ 
+@@ -154,7 +153,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
+     setState(() => _isSubmitting = false);
+     if (!mounted) return;
+ 
+-    result.fold(
++    await result.fold(
+       (failure) async {
+         // A duplicate warning is a specific, actionable case — offer
+         // "submit anyway" with the conflicting business's details, rather
+@@ -186,7 +185,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
+           }
+           return;
+         }
+-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message)));
++        AppToast.error(context, failure.message);
+       },
+       (_) {
+         // Without this, "My Businesses" would keep showing whatever it
+@@ -424,6 +423,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
+                         controller: _phoneController,
+                         keyboardType: TextInputType.phone,
+                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
++                        validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
+                         onChanged: (_) => setState(() {}), // refresh WhatsApp preview text below
+                       ),
+                       const SizedBox(height: 8),
+@@ -441,6 +441,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
+                           controller: _whatsappController,
+                           keyboardType: TextInputType.phone,
+                           decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
++                          validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
+                         ),
+                       ],
+                       const SizedBox(height: 20),
+diff --git a/lib/features/add_business/presentation/screens/edit_business_screen.dart b/lib/features/add_business/presentation/screens/edit_business_screen.dart
+index 94514c6..841640f 100644
+--- a/lib/features/add_business/presentation/screens/edit_business_screen.dart
++++ b/lib/features/add_business/presentation/screens/edit_business_screen.dart
+@@ -7,6 +7,8 @@ import '../../../../core/constants/app_constants.dart';
+ import '../../../../core/di/service_locator.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/validators.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ import '../../../../core/widgets/opening_hours_editor.dart';
+ import '../../../../core/widgets/primary_button.dart';
+@@ -170,21 +172,18 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
+     setState(() => _isSubmitting = false);
+ 
+     result.fold(
+-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
++      (failure) => AppToast.error(context, failure.message),
+       (updated) {
+         ref.invalidate(businessDetailsProvider(widget.businessId));
+         // Same staleness class as the Add Business fix: without this, "My
+         // Businesses" keeps showing the pre-edit status (e.g. still
+         // "Approved" even though this edit just sent it back to pending).
+         ref.invalidate(myBusinessesProvider(updated.ownerId));
+-        ScaffoldMessenger.of(context).showSnackBar(
+-          SnackBar(
+-            content: Text(
+-              updated.status == BusinessStatus.pending
+-                  ? 'editBusiness.savedPending'.tr()
+-                  : 'editBusiness.saved'.tr(),
+-            ),
+-          ),
++        AppToast.success(
++          context,
++          updated.status == BusinessStatus.pending
++              ? 'editBusiness.savedPending'.tr()
++              : 'editBusiness.saved'.tr(),
+         );
+         Navigator.of(context).pop();
+       },
+@@ -348,6 +347,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
+                         controller: _phoneController,
+                         keyboardType: TextInputType.phone,
+                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
++                        validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
+                         onChanged: (_) => setState(() {}),
+                       ),
+                       const SizedBox(height: 8),
+@@ -365,6 +365,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
+                           controller: _whatsappController,
+                           keyboardType: TextInputType.phone,
+                           decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
++                          validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
+                         ),
+                       ],
+                       const SizedBox(height: 20),
+diff --git a/lib/features/add_event/presentation/screens/add_event_screen.dart b/lib/features/add_event/presentation/screens/add_event_screen.dart
+index 2c84f85..a75c18c 100644
+--- a/lib/features/add_event/presentation/screens/add_event_screen.dart
++++ b/lib/features/add_event/presentation/screens/add_event_screen.dart
+@@ -4,13 +4,13 @@ import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:image_picker/image_picker.dart';
+-import 'package:intl/intl.dart';
+ import 'package:uuid/uuid.dart';
+ 
+ import '../../../../core/di/service_locator.dart';
+ import '../../../../core/constants/app_constants.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ import '../../../../core/widgets/primary_button.dart';
+ import '../../../../core/widgets/selection_field.dart';
+@@ -104,7 +104,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
+     setState(() => _isUploadingImage = false);
+ 
+     result.fold(
+-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
++      (failure) => AppToast.error(context, failure.message),
+       (url) => setState(() => _imageUrl = url),
+     );
+   }
+@@ -112,8 +112,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
+   Future<void> _submit() async {
+     if (!_formKey.currentState!.validate()) return;
+     if (_selectedBusiness == null || _startDate == null || _startTime == null || _endTime == null) {
+-      ScaffoldMessenger.of(context)
+-          .showSnackBar(SnackBar(content: Text('addEvent.completeAllFields'.tr())));
++      AppToast.warning(context, 'addEvent.completeAllFields'.tr());
+       return;
+     }
+ 
+@@ -124,6 +123,15 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
+       _startDate!.year, _startDate!.month, _startDate!.day, _endTime!.hour, _endTime!.minute,
+     );
+ 
++    // Without this check, picking an end time earlier in the day than the
++    // start time (an easy mis-tap on the time picker) silently created an
++    // event with a negative duration — nothing caught it here, and nothing
++    // downstream re-validates it either.
++    if (!endDateTime.isAfter(startDateTime)) {
++      AppToast.warning(context, 'addEvent.endBeforeStart'.tr());
++      return;
++    }
++
+     final event = EventEntity(
+       id: const Uuid().v4(),
+       businessId: _selectedBusiness!.id,
+@@ -141,8 +149,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
+       ref.invalidate(eventsProvider);
+       Navigator.of(context).pop();
+     } else if (mounted) {
+-      ScaffoldMessenger.of(context)
+-          .showSnackBar(SnackBar(content: Text('addEvent.failedToCreate'.tr())));
++      AppToast.error(context, 'addEvent.failedToCreate'.tr());
+     }
+   }
+ 
+diff --git a/lib/features/auth/data/datasources/auth_mock_datasource.dart b/lib/features/auth/data/datasources/auth_mock_datasource.dart
+index e28a51a..33aca0f 100644
+--- a/lib/features/auth/data/datasources/auth_mock_datasource.dart
++++ b/lib/features/auth/data/datasources/auth_mock_datasource.dart
+@@ -14,7 +14,7 @@ class AuthMockDataSource implements AuthRemoteDataSource {
+ 
+   final FlutterSecureStorage _secureStorage;
+ 
+-  static final UserModel _fakeUser = const UserModel(
++  static const UserModel _fakeUser = UserModel(
+     id: 'business-user-001',
+     email: 'demo@albmap.com',
+     role: UserRole.business,
+diff --git a/lib/features/auth/presentation/screens/login_signup_screen.dart b/lib/features/auth/presentation/screens/login_signup_screen.dart
+index 37340b4..7396d50 100644
+--- a/lib/features/auth/presentation/screens/login_signup_screen.dart
++++ b/lib/features/auth/presentation/screens/login_signup_screen.dart
+@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/validators.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/primary_button.dart';
+ import '../providers/auth_providers.dart';
+ import '../widgets/forgot_password_sheet.dart';
+@@ -39,9 +41,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
+   Future<void> _submit() async {
+     if (!_formKey.currentState!.validate()) return;
+     if (_isSignUpMode && !_acceptedTerms) {
+-      ScaffoldMessenger.of(context).showSnackBar(
+-        SnackBar(content: Text('auth.pleaseAcceptTerms'.tr())),
+-      );
++      AppToast.warning(context, 'auth.pleaseAcceptTerms'.tr());
+       return;
+     }
+ 
+@@ -59,21 +59,20 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
+ 
+     if (!success && mounted) {
+       final error = ref.read(authControllerProvider).errorMessage;
+-      ScaffoldMessenger.of(context)
+-          .showSnackBar(SnackBar(content: Text(error ?? 'common.somethingWrong'.tr())));
++      AppToast.error(context, error ?? 'common.somethingWrong'.tr());
+     }
+   }
+ 
+   Future<void> _handleSocialLogin(Future<bool> Function() signInMethod) async {
+     final bool success = await signInMethod();
+-    if (!success && mounted) {
++    if (!mounted) return;
++    if (!success) {
+       final error = ref.read(authControllerProvider).errorMessage;
+       // "Sign-in cancelled" (user backed out of the picker) surfaces the
+       // same way as a real failure here — deliberately not special-cased
+-      // into silence, since a brief, accurate snackbar is simple and
+-      // honest, and cancelling isn't something that needs hiding.
+-      ScaffoldMessenger.of(context)
+-          .showSnackBar(SnackBar(content: Text(error ?? 'common.somethingWrong'.tr())));
++      // into silence, since a brief, accurate toast is simple and honest,
++      // and cancelling isn't something that needs hiding.
++      AppToast.error(context, error ?? 'common.somethingWrong'.tr());
+     }
+   }
+ 
+@@ -142,7 +141,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
+                             TextFormField(
+                               controller: _nameController,
+                               decoration: InputDecoration(labelText: 'auth.fullName'.tr()),
+-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'auth.nameRequired'.tr() : null,
++                              validator: (v) => Validators.required(v, 'auth.nameRequired'.tr()),
+                             ),
+                             const SizedBox(height: 14),
+                           ],
+@@ -150,11 +149,11 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
+                             controller: _emailController,
+                             keyboardType: TextInputType.emailAddress,
+                             decoration: InputDecoration(labelText: 'auth.email'.tr()),
+-                            validator: (v) {
+-                              if (v == null || v.trim().isEmpty) return 'auth.emailRequired'.tr();
+-                              if (!v.contains('@')) return 'auth.emailInvalid'.tr();
+-                              return null;
+-                            },
++                            validator: (v) => Validators.email(
++                              v,
++                              requiredMessage: 'auth.emailRequired'.tr(),
++                              invalidMessage: 'auth.emailInvalid'.tr(),
++                            ),
+                           ),
+                           const SizedBox(height: 14),
+                           TextFormField(
+@@ -167,17 +166,17 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
+                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                               ),
+                             ),
+-                            validator: (v) {
+-                              if (v == null || v.isEmpty) return 'auth.passwordRequired'.tr();
+-                              if (v.length < 6) return 'auth.passwordTooShort'.tr();
+-                              return null;
+-                            },
++                            validator: (v) => Validators.password(
++                              v,
++                              requiredMessage: 'auth.passwordRequired'.tr(),
++                              tooShortMessage: 'auth.passwordTooShort'.tr(),
++                            ),
+                           ),
+                           if (!_isSignUpMode) ...[
+                             Align(
+                               alignment: Alignment.centerRight,
+                               child: TextButton(
+-                                onPressed: () => showModalBottomSheet(
++                                onPressed: () => showModalBottomSheet<void>(
+                                   context: context,
+                                   isScrollControlled: true,
+                                   builder: (_) => const ForgotPasswordSheet(),
+diff --git a/lib/features/auth/presentation/widgets/forgot_password_sheet.dart b/lib/features/auth/presentation/widgets/forgot_password_sheet.dart
+index 1bd16d1..28401e2 100644
+--- a/lib/features/auth/presentation/widgets/forgot_password_sheet.dart
++++ b/lib/features/auth/presentation/widgets/forgot_password_sheet.dart
+@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../../../../core/di/service_locator.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/validators.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/primary_button.dart';
+ import '../../domain/repositories/auth_repository.dart';
+ 
+@@ -15,19 +17,31 @@ class ForgotPasswordSheet extends ConsumerStatefulWidget {
+ }
+ 
+ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
++  final _formKey = GlobalKey<FormState>();
+   final _emailController = TextEditingController();
+   bool _isLoading = false;
+   bool _sent = false;
+ 
++  @override
++  void dispose() {
++    _emailController.dispose();
++    super.dispose();
++  }
++
+   Future<void> _submit() async {
+-    if (_emailController.text.trim().isEmpty) return;
++    if (!_formKey.currentState!.validate()) return;
+     setState(() => _isLoading = true);
+     final result = await sl<AuthRepository>().forgotPassword(email: _emailController.text.trim());
+     if (!mounted) return;
+-    setState(() {
+-      _isLoading = false;
+-      _sent = result.isRight();
+-    });
++    setState(() => _isLoading = false);
++    result.fold(
++      // Without this, a failed request (bad connection, unknown email,
++      // server error) just quietly stopped the spinner — nothing told the
++      // user it didn't work, so they'd sit there waiting for an email
++      // that was never sent with no idea anything went wrong.
++      (failure) => AppToast.error(context, failure.message),
++      (_) => setState(() => _sent = true),
++    );
+   }
+ 
+   @override
+@@ -37,26 +51,34 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
+         left: 24, right: 24, top: 24,
+         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+       ),
+-      child: Column(
+-        mainAxisSize: MainAxisSize.min,
+-        crossAxisAlignment: CrossAxisAlignment.stretch,
+-        children: [
+-          Text('auth.resetPasswordTitle'.tr(), style: AppTextStyles.h3),
+-          const SizedBox(height: 8),
+-          if (_sent)
+-            Text('auth.resetPasswordSent'.tr(), style: AppTextStyles.bodyMedium)
+-          else ...[
+-            Text('auth.resetPasswordSubtitle'.tr(), style: AppTextStyles.bodyMedium),
+-            const SizedBox(height: 16),
+-            TextField(
+-              controller: _emailController,
+-              keyboardType: TextInputType.emailAddress,
+-              decoration: InputDecoration(labelText: 'auth.email'.tr()),
+-            ),
+-            const SizedBox(height: 16),
+-            PrimaryButton(label: 'auth.sendResetLink'.tr(), isLoading: _isLoading, onPressed: _submit),
++      child: Form(
++        key: _formKey,
++        child: Column(
++          mainAxisSize: MainAxisSize.min,
++          crossAxisAlignment: CrossAxisAlignment.stretch,
++          children: [
++            Text('auth.resetPasswordTitle'.tr(), style: AppTextStyles.h3),
++            const SizedBox(height: 8),
++            if (_sent)
++              Text('auth.resetPasswordSent'.tr(), style: AppTextStyles.bodyMedium)
++            else ...[
++              Text('auth.resetPasswordSubtitle'.tr(), style: AppTextStyles.bodyMedium),
++              const SizedBox(height: 16),
++              TextFormField(
++                controller: _emailController,
++                keyboardType: TextInputType.emailAddress,
++                decoration: InputDecoration(labelText: 'auth.email'.tr()),
++                validator: (v) => Validators.email(
++                  v,
++                  requiredMessage: 'auth.emailRequired'.tr(),
++                  invalidMessage: 'auth.emailInvalid'.tr(),
++                ),
++              ),
++              const SizedBox(height: 16),
++              PrimaryButton(label: 'auth.sendResetLink'.tr(), isLoading: _isLoading, onPressed: _submit),
++            ],
+           ],
+-        ],
++        ),
+       ),
+     );
+   }
+diff --git a/lib/features/contact_us/presentation/screens/contact_us_screen.dart b/lib/features/contact_us/presentation/screens/contact_us_screen.dart
+index 6c4d908..d05a140 100644
+--- a/lib/features/contact_us/presentation/screens/contact_us_screen.dart
++++ b/lib/features/contact_us/presentation/screens/contact_us_screen.dart
+@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/validators.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ import '../../../../core/widgets/primary_button.dart';
+ import '../../../../core/widgets/selection_field.dart';
+@@ -45,10 +47,12 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
+     await Future<void>.delayed(const Duration(milliseconds: 600));
+     if (!mounted) return;
+     setState(() => _isSubmitting = false);
+-    ScaffoldMessenger.of(context)
+-        .showSnackBar(SnackBar(content: Text('contactUs.sent'.tr())));
++    AppToast.success(context, 'contactUs.sent'.tr());
+     _formKey.currentState!.reset();
++    _nameController.clear();
++    _emailController.clear();
+     _messageController.clear();
++    setState(() => _inquiryType = 'general');
+   }
+ 
+   @override
+@@ -90,14 +94,18 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
+                             TextFormField(
+                               controller: _nameController,
+                               decoration: InputDecoration(labelText: 'contactUs.name'.tr()),
+-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
++                              validator: (v) => Validators.required(v, 'common.required'.tr()),
+                             ),
+                             const SizedBox(height: 14),
+                             TextFormField(
+                               controller: _emailController,
+                               keyboardType: TextInputType.emailAddress,
+                               decoration: InputDecoration(labelText: 'contactUs.email'.tr()),
+-                              validator: (v) => (v == null || !v.contains('@')) ? 'contactUs.validEmail'.tr() : null,
++                              validator: (v) => Validators.email(
++                                v,
++                                requiredMessage: 'contactUs.validEmail'.tr(),
++                                invalidMessage: 'contactUs.validEmail'.tr(),
++                              ),
+                             ),
+                             const SizedBox(height: 14),
+                             SelectionField<String>(
+@@ -114,7 +122,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
+                               controller: _messageController,
+                               maxLines: 5,
+                               decoration: InputDecoration(labelText: 'contactUs.message'.tr()),
+-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
++                              validator: (v) => Validators.required(v, 'common.required'.tr()),
+                             ),
+                           ],
+                         ),
+diff --git a/lib/features/dashboard/data/datasources/analytics_mock_datasource.dart b/lib/features/dashboard/data/datasources/analytics_mock_datasource.dart
+index a144609..24886d0 100644
+--- a/lib/features/dashboard/data/datasources/analytics_mock_datasource.dart
++++ b/lib/features/dashboard/data/datasources/analytics_mock_datasource.dart
+@@ -9,15 +9,15 @@ import 'analytics_remote_datasource.dart';
+ /// view) increment on top of the seed for the current app session.
+ class AnalyticsMockDataSource implements AnalyticsDataSource {
+   static final Map<String, BusinessAnalyticsEntity> _store = {
+-    'biz-1': BusinessAnalyticsEntity(
++    'biz-1': const BusinessAnalyticsEntity(
+       businessId: 'biz-1', profileClicks: 214, websiteClicks: 58, callClicks: 31, favoriteCount: 19,
+       last7DaysProfileClicks: [22, 30, 18, 41, 35, 28, 40],
+     ),
+-    'biz-6': BusinessAnalyticsEntity(
++    'biz-6': const BusinessAnalyticsEntity(
+       businessId: 'biz-6', profileClicks: 132, websiteClicks: 24, callClicks: 47, favoriteCount: 8,
+       last7DaysProfileClicks: [12, 15, 20, 10, 18, 25, 32],
+     ),
+-    'biz-7': BusinessAnalyticsEntity(
++    'biz-7': const BusinessAnalyticsEntity(
+       businessId: 'biz-7', profileClicks: 0, websiteClicks: 0, callClicks: 0, favoriteCount: 0,
+       last7DaysProfileClicks: [0, 0, 0, 0, 0, 0, 0],
+     ),
+diff --git a/lib/features/dashboard/presentation/screens/business_dashboard_screen.dart b/lib/features/dashboard/presentation/screens/business_dashboard_screen.dart
+index 32b3bd5..f262c9c 100644
+--- a/lib/features/dashboard/presentation/screens/business_dashboard_screen.dart
++++ b/lib/features/dashboard/presentation/screens/business_dashboard_screen.dart
+@@ -1,6 +1,4 @@
+ import 'package:easy_localization/easy_localization.dart';
+-import 'package:easy_localization/easy_localization.dart';
+-import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+@@ -11,7 +9,6 @@ import '../../../../core/widgets/primary_button.dart';
+ import '../../../../core/widgets/state_widgets.dart';
+ import '../../../map/presentation/providers/business_providers.dart';
+ import '../../../map/presentation/widgets/business_list_view.dart';
+-import '../../domain/entities/business_analytics_entity.dart';
+ import '../providers/analytics_providers.dart';
+ import '../widgets/send_notification_sheet.dart';
+ 
+@@ -153,7 +150,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
+                                 PrimaryButton(
+                                   label: 'dashboard.sendNotification'.tr(),
+                                   icon: Icons.send_outlined,
+-                                  onPressed: () => showModalBottomSheet(
++                                  onPressed: () => showModalBottomSheet<void>(
+                                     context: context,
+                                     isScrollControlled: true,
+                                     builder: (_) => SendNotificationSheet(business: business),
+diff --git a/lib/features/dashboard/presentation/widgets/send_notification_sheet.dart b/lib/features/dashboard/presentation/widgets/send_notification_sheet.dart
+index c82493d..70604ce 100644
+--- a/lib/features/dashboard/presentation/widgets/send_notification_sheet.dart
++++ b/lib/features/dashboard/presentation/widgets/send_notification_sheet.dart
+@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/validators.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/primary_button.dart';
+ import '../../../map/domain/entities/business_entity.dart';
+ import '../providers/send_notification_provider.dart';
+@@ -43,7 +45,7 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
+     if (errorMessage == null) {
+       setState(() => _sent = true);
+     } else if (mounted) {
+-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
++      AppToast.error(context, errorMessage);
+     }
+   }
+ 
+@@ -91,14 +93,14 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
+             controller: _titleController,
+             maxLength: 60,
+             decoration: InputDecoration(labelText: 'sendNotification.titleLabel'.tr(), hintText: 'sendNotification.titleHint'.tr()),
+-            validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
++            validator: (v) => Validators.required(v, 'common.required'.tr()),
+           ),
+           TextFormField(
+             controller: _messageController,
+             maxLines: 3,
+             maxLength: 200,
+             decoration: InputDecoration(labelText: 'sendNotification.message'.tr()),
+-            validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
++            validator: (v) => Validators.required(v, 'common.required'.tr()),
+           ),
+           const SizedBox(height: 8),
+           Container(
+diff --git a/lib/features/events/presentation/screens/event_details_screen.dart b/lib/features/events/presentation/screens/event_details_screen.dart
+index 7c41950..9f35d9e 100644
+--- a/lib/features/events/presentation/screens/event_details_screen.dart
++++ b/lib/features/events/presentation/screens/event_details_screen.dart
+@@ -3,7 +3,6 @@ import 'package:collection/collection.dart';
+ import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+-import 'package:intl/intl.dart';
+ import 'package:share_plus/share_plus.dart';
+ 
+ import '../../../../core/di/service_locator.dart';
+diff --git a/lib/features/events/presentation/screens/event_list_tile.dart b/lib/features/events/presentation/screens/event_list_tile.dart
+index b6d7964..2697500 100644
+--- a/lib/features/events/presentation/screens/event_list_tile.dart
++++ b/lib/features/events/presentation/screens/event_list_tile.dart
+@@ -1,7 +1,6 @@
+ import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+ import 'package:go_router/go_router.dart';
+-import 'package:intl/intl.dart';
+ 
+ import '../../../../core/router/app_router.dart';
+ import '../../../../core/constants/app_constants.dart';
+diff --git a/lib/features/events/presentation/screens/events_screen.dart b/lib/features/events/presentation/screens/events_screen.dart
+index 398ef56..58cb836 100644
+--- a/lib/features/events/presentation/screens/events_screen.dart
++++ b/lib/features/events/presentation/screens/events_screen.dart
+@@ -69,9 +69,9 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
+                             ),
+                         decoration: InputDecoration(
+                           hintText: 'events.searchHint'.tr(),
+-                          prefixIcon: Icon(Icons.search, color: AppColors.primary),
++                          prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                           border: InputBorder.none,
+-                          contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
++                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                         ),
+                       ),
+                     ),
+diff --git a/lib/features/map/presentation/providers/business_providers.dart b/lib/features/map/presentation/providers/business_providers.dart
+index fd4e9c9..e3c2800 100644
+--- a/lib/features/map/presentation/providers/business_providers.dart
++++ b/lib/features/map/presentation/providers/business_providers.dart
+@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
+ 
+ import '../../../../core/di/service_locator.dart';
+ import '../../../../core/error/failures.dart';
++import '../../../../core/utils/app_logger.dart';
+ import '../../domain/entities/business_entity.dart';
+ import '../../domain/usecases/business_usecases.dart';
+ 
+@@ -23,8 +24,11 @@ class LocationController extends StateNotifier<Position?> {
+ 
+     try {
+       state = await Geolocator.getCurrentPosition();
+-    } catch (_) {
+-      // keep previous state on failure
++    } catch (err, stack) {
++      // Keep previous state on failure — the map falls back to its
++      // default center, so this is a graceful degradation, not a crash.
++      // Still logged so a "map never centers on me" report is diagnosable.
++      AppLogger.warning('Failed to fetch current position', err, stack);
+     }
+   }
+ }
+diff --git a/lib/features/map/presentation/screens/discover_map_screen.dart b/lib/features/map/presentation/screens/discover_map_screen.dart
+index 4762886..5848db2 100644
+--- a/lib/features/map/presentation/screens/discover_map_screen.dart
++++ b/lib/features/map/presentation/screens/discover_map_screen.dart
+@@ -1,3 +1,5 @@
++import 'dart:async';
++
+ import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_map/flutter_map.dart';
+@@ -59,7 +61,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
+     WidgetsBinding.instance.addPostFrameCallback((_) async {
+       await ref.read(locationControllerProvider.notifier).refresh();
+       _recenterOnUser();
+-      ref.read(businessListControllerProvider.notifier).load();
++      unawaited(ref.read(businessListControllerProvider.notifier).load());
+     });
+   }
+ 
+@@ -73,7 +75,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
+     // a bit later, without needing to fully quit and relaunch (which was
+     // the previous "reinitialize app" workaround).
+     if (state == AppLifecycleState.resumed) {
+-      ref.read(businessListControllerProvider.notifier).load();
++      unawaited(ref.read(businessListControllerProvider.notifier).load());
+     }
+   }
+ 
+@@ -191,7 +193,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
+                   child: IconButton(
+                     padding: EdgeInsets.zero,
+                     icon: const Icon(Icons.tune, color: AppColors.primary),
+-                    onPressed: () => showModalBottomSheet(
++                    onPressed: () => showModalBottomSheet<void>(
+                       context: context,
+                       isScrollControlled: true,
+                       builder: (_) => const FilterBottomSheet(),
+@@ -299,7 +301,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
+                     width: 42,
+                     height: 42,
+                     child: GestureDetector(
+-                      onTap: () => showModalBottomSheet(
++                      onTap: () => showModalBottomSheet<void>(
+                         context: context,
+                         builder: (_) => BusinessMarkerSheet(business: business),
+                       ),
+diff --git a/lib/features/notifications/presentation/providers/notifications_providers.dart b/lib/features/notifications/presentation/providers/notifications_providers.dart
+index c47f518..d50e66a 100644
+--- a/lib/features/notifications/presentation/providers/notifications_providers.dart
++++ b/lib/features/notifications/presentation/providers/notifications_providers.dart
+@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import '../../../../core/di/service_locator.dart';
+ import '../../../../core/usecase/usecase.dart';
+ import '../../domain/entities/notification_entity.dart';
+-import '../../domain/repositories/notification_repository.dart';
+ import '../../domain/usecases/notification_feed_usecases.dart';
+ 
+ class NotificationsState {
+diff --git a/lib/features/notifications/presentation/screens/notifications_screen.dart b/lib/features/notifications/presentation/screens/notifications_screen.dart
+index 57c9370..71f5cc8 100644
+--- a/lib/features/notifications/presentation/screens/notifications_screen.dart
++++ b/lib/features/notifications/presentation/screens/notifications_screen.dart
+@@ -1,7 +1,6 @@
+ import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+-import 'package:intl/intl.dart';
+ 
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
+diff --git a/lib/features/profile/presentation/screens/change_password_screen.dart b/lib/features/profile/presentation/screens/change_password_screen.dart
+index 9e64a5e..a902f8a 100644
+--- a/lib/features/profile/presentation/screens/change_password_screen.dart
++++ b/lib/features/profile/presentation/screens/change_password_screen.dart
+@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/validators.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ import '../../../../core/widgets/primary_button.dart';
+ import '../../../auth/presentation/providers/auth_providers.dart';
+@@ -38,6 +40,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
+ 
+   Future<void> _submit() async {
+     if (!_formKey.currentState!.validate()) return;
++    if (_currentController.text == _newController.text) {
++      AppToast.warning(context, 'changePassword.sameAsCurrent'.tr());
++      return;
++    }
+ 
+     setState(() => _isSubmitting = true);
+     final error = await ref.read(authControllerProvider.notifier).changePassword(
+@@ -48,11 +54,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
+     setState(() => _isSubmitting = false);
+ 
+     if (error != null) {
+-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
++      AppToast.error(context, error);
+     } else {
+-      ScaffoldMessenger.of(context).showSnackBar(
+-        SnackBar(content: Text('changePassword.success'.tr())),
+-      );
++      AppToast.success(context, 'changePassword.success'.tr());
+       Navigator.of(context).pop();
+     }
+   }
+@@ -93,7 +97,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
+                             onPressed: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                           ),
+                         ),
+-                        validator: (v) => (v == null || v.isEmpty) ? 'common.required'.tr() : null,
++                        validator: (v) => Validators.required(v, 'common.required'.tr()),
+                       ),
+                       const SizedBox(height: 14),
+                       TextFormField(
+@@ -106,21 +110,23 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
+                             onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                           ),
+                         ),
+-                        validator: (v) {
+-                          if (v == null || v.isEmpty) return 'common.required'.tr();
+-                          if (v.length < 6) return 'auth.passwordTooShort'.tr();
+-                          return null;
+-                        },
++                        validator: (v) => Validators.password(
++                          v,
++                          requiredMessage: 'common.required'.tr(),
++                          tooShortMessage: 'auth.passwordTooShort'.tr(),
++                        ),
+                       ),
+                       const SizedBox(height: 14),
+                       TextFormField(
+                         controller: _confirmController,
+                         obscureText: _obscureNew,
+                         decoration: InputDecoration(labelText: 'changePassword.confirmNew'.tr()),
+-                        validator: (v) {
+-                          if (v != _newController.text) return 'changePassword.mismatch'.tr();
+-                          return null;
+-                        },
++                        validator: (v) => Validators.confirmPassword(
++                          v,
++                          _newController.text,
++                          requiredMessage: 'common.required'.tr(),
++                          mismatchMessage: 'changePassword.mismatch'.tr(),
++                        ),
+                       ),
+                       const SizedBox(height: 28),
+                       PrimaryButton(
+diff --git a/lib/features/profile/presentation/screens/edit_profile_screen.dart b/lib/features/profile/presentation/screens/edit_profile_screen.dart
+index 4bfc7bd..7f67934 100644
+--- a/lib/features/profile/presentation/screens/edit_profile_screen.dart
++++ b/lib/features/profile/presentation/screens/edit_profile_screen.dart
+@@ -8,6 +8,8 @@ import 'package:image_picker/image_picker.dart';
+ import '../../../../core/constants/app_constants.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/validators.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ import '../../../../core/widgets/primary_button.dart';
+ import '../../../auth/presentation/providers/auth_providers.dart';
+@@ -56,7 +58,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+     setState(() => _isUploadingAvatar = false);
+ 
+     if (error != null) {
+-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
++      AppToast.error(context, error);
+     }
+   }
+ 
+@@ -72,11 +74,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+     setState(() => _isSubmitting = false);
+ 
+     if (error != null) {
+-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
++      AppToast.error(context, error);
+     } else {
+-      ScaffoldMessenger.of(context).showSnackBar(
+-        SnackBar(content: Text('editProfile.saveSuccess'.tr())),
+-      );
++      AppToast.success(context, 'editProfile.saveSuccess'.tr());
+       Navigator.of(context).pop();
+     }
+   }
+@@ -163,13 +163,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+                           TextFormField(
+                             controller: _nameController,
+                             decoration: InputDecoration(labelText: 'editProfile.fullName'.tr()),
+-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
++                            validator: (v) => Validators.required(v, 'common.required'.tr()),
+                           ),
+                           const SizedBox(height: 14),
+                           TextFormField(
+                             controller: _phoneController,
+                             keyboardType: TextInputType.phone,
+                             decoration: InputDecoration(labelText: 'editProfile.phone'.tr()),
++                            validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
+                           ),
+                           const SizedBox(height: 8),
+                           Text(
+diff --git a/lib/features/settings/presentation/providers/settings_providers.dart b/lib/features/settings/presentation/providers/settings_providers.dart
+index 8989b51..89975fc 100644
+--- a/lib/features/settings/presentation/providers/settings_providers.dart
++++ b/lib/features/settings/presentation/providers/settings_providers.dart
+@@ -63,17 +63,20 @@ class SettingsController extends StateNotifier<SettingsState> {
+ 
+   Future<void> setNotificationsEnabled(bool enabled) async {
+     state = state.copyWith(notificationsEnabled: enabled);
+-    (await SharedPreferences.getInstance()).setBool(_kNotifEnabled, enabled);
++    final prefs = await SharedPreferences.getInstance();
++    await prefs.setBool(_kNotifEnabled, enabled);
+   }
+ 
+   Future<void> setNotificationFrequency(NotificationFrequency freq) async {
+     state = state.copyWith(notificationFrequency: freq);
+-    (await SharedPreferences.getInstance()).setString(_kNotifFreq, freq.name);
++    final prefs = await SharedPreferences.getInstance();
++    await prefs.setString(_kNotifFreq, freq.name);
+   }
+ 
+   Future<void> setLocationEnabled(bool enabled) async {
+     state = state.copyWith(locationEnabled: enabled);
+-    (await SharedPreferences.getInstance()).setBool(_kLocationEnabled, enabled);
++    final prefs = await SharedPreferences.getInstance();
++    await prefs.setBool(_kLocationEnabled, enabled);
+   }
+ }
+ 
+diff --git a/lib/features/settings/presentation/screens/settings_screen.dart b/lib/features/settings/presentation/screens/settings_screen.dart
+index 3f8881c..56481a1 100644
+--- a/lib/features/settings/presentation/screens/settings_screen.dart
++++ b/lib/features/settings/presentation/screens/settings_screen.dart
+@@ -69,45 +69,57 @@ class SettingsScreen extends ConsumerWidget {
+             _SettingsSection(
+               title: 'settings.language'.tr(),
+               children: [
+-                for (final localeCode in AppConstants.supportedLocales)
+-                  RadioListTile<String>(
+-                    value: localeCode,
+-                    groupValue: currentLocaleCode,
+-                    activeColor: AppColors.primary,
+-                    title: Text(_localeLabel(localeCode)),
+-                    onChanged: (code) {
+-                      if (code != null) context.setLocale(Locale(code));
+-                    },
++                RadioGroup<String>(
++                  groupValue: currentLocaleCode,
++                  onChanged: (code) {
++                    if (code != null) context.setLocale(Locale(code));
++                  },
++                  child: Column(
++                    children: [
++                      for (final localeCode in AppConstants.supportedLocales)
++                        RadioListTile<String>(
++                          value: localeCode,
++                          activeColor: AppColors.primary,
++                          title: Text(_localeLabel(localeCode)),
++                        ),
++                    ],
+                   ),
++                ),
+               ],
+             ),
+             _SettingsSection(
+               title: 'settings.notifications'.tr(),
+               children: [
+                 SwitchListTile(
+-                  activeColor: AppColors.primary,
++                  activeThumbColor: AppColors.primary,
+                   title: Text('settings.enableNotifications'.tr()),
+                   value: settings.notificationsEnabled,
+                   onChanged: controller.setNotificationsEnabled,
+                 ),
+                 if (settings.notificationsEnabled)
+-                  for (final freq in NotificationFrequency.values)
+-                    RadioListTile<NotificationFrequency>(
+-                      value: freq,
+-                      groupValue: settings.notificationFrequency,
+-                      activeColor: AppColors.primary,
+-                      title: Text(_freqLabel(freq)),
+-                      onChanged: (f) {
+-                        if (f != null) controller.setNotificationFrequency(f);
+-                      },
++                  RadioGroup<NotificationFrequency>(
++                    groupValue: settings.notificationFrequency,
++                    onChanged: (f) {
++                      if (f != null) controller.setNotificationFrequency(f);
++                    },
++                    child: Column(
++                      children: [
++                        for (final freq in NotificationFrequency.values)
++                          RadioListTile<NotificationFrequency>(
++                            value: freq,
++                            activeColor: AppColors.primary,
++                            title: Text(_freqLabel(freq)),
++                          ),
++                      ],
+                     ),
++                  ),
+               ],
+             ),
+             _SettingsSection(
+               title: 'settings.location'.tr(),
+               children: [
+                 SwitchListTile(
+-                  activeColor: AppColors.primary,
++                  activeThumbColor: AppColors.primary,
+                   title: Text('settings.enableLocation'.tr()),
+                   subtitle: Text('settings.enableLocationDesc'.tr()),
+                   value: settings.locationEnabled,
+diff --git a/lib/main.dart b/lib/main.dart
+index b1afc62..e02045c 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -1,3 +1,5 @@
++import 'dart:async';
++
+ import 'package:easy_localization/easy_localization.dart';
+ import 'package:firebase_core/firebase_core.dart';
+ import 'package:flutter/foundation.dart';
+@@ -9,6 +11,7 @@ import 'package:intl/date_symbol_data_local.dart';
+ import 'core/di/service_locator.dart';
+ import 'core/router/app_router.dart';
+ import 'core/theme/app_theme.dart';
++import 'core/utils/app_logger.dart';
+ 
+ /// Supported app languages — English, Albanian, German. Kept as one place
+ /// so Settings' language picker and MaterialApp.router's supportedLocales
+@@ -21,7 +24,31 @@ const List<Locale> kSupportedLocales = [
+ const Locale kFallbackLocale = Locale('en');
+ 
+ Future<void> main() async {
+-  WidgetsFlutterBinding.ensureInitialized();
++  // Everything below runs inside a guarded zone so an exception thrown
++  // outside the Flutter widget tree (e.g. in a fire-and-forget Future, a
++  // stream callback, or a timer) is logged instead of crashing the app
++  // silently with no trace. FlutterError.onError covers errors raised
++  // *during* the framework's own build/layout/paint pipeline, which
++  // don't otherwise propagate to the zone's error handler.
++  await runZonedGuarded(() async {
++    WidgetsFlutterBinding.ensureInitialized();
++
++    FlutterError.onError = (FlutterErrorDetails details) {
++      FlutterError.presentError(details);
++      AppLogger.error('Uncaught Flutter framework error', details.exception, details.stack);
++    };
++    PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
++      AppLogger.error('Uncaught platform/async error', error, stack);
++      return true;
++    };
++
++    await _bootstrap();
++  }, (Object error, StackTrace stack) {
++    AppLogger.error('Uncaught zone error', error, stack);
++  });
++}
++
++Future<void> _bootstrap() async {
+   await EasyLocalization.ensureInitialized();
+ 
+   // Required before any DateFormat('...', localeCode) call for a non-'en'
+@@ -43,8 +70,8 @@ Future<void> main() async {
+   // config" principle used for the map tile provider and Google Sign-In.
+   try {
+     await Firebase.initializeApp();
+-  } catch (err) {
+-    debugPrint('Firebase.initializeApp() failed (push notifications disabled): $err');
++  } catch (err, stack) {
++    AppLogger.warning('Firebase.initializeApp() failed (push notifications disabled)', err, stack);
+   }
+ 
+   await initServiceLocator();
+diff --git a/pubspec.lock b/pubspec.lock
+index e840e7e..58b7f49 100644
+--- a/pubspec.lock
++++ b/pubspec.lock
+@@ -5,47 +5,34 @@ packages:
+     dependency: transitive
+     description:
+       name: _fe_analyzer_shared
+-      sha256: "16e298750b6d0af7ce8a3ba7c18c69c3785d11b15ec83f6dcd0ad2a0009b3cab"
++      sha256: cd6add6f846f35fb79f3c315296703c1a24f3cfd7f4739d91a74961c1c7e9f1b
+       url: "https://pub.dev"
+     source: hosted
+-    version: "76.0.0"
++    version: "100.0.0"
+   _flutterfire_internals:
+     dependency: transitive
+     description:
+       name: _flutterfire_internals
+-      sha256: "50e24b769bd1e725732f0aff18b806b8731c1fbcf4e8018ab98e7c4805a2a52f"
++      sha256: ff0a84a2734d9e1089f8aedd5c0af0061b82fb94e95260d943404e0ef2134b11
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.3.57"
+-  _macros:
+-    dependency: transitive
+-    description: dart
+-    source: sdk
+-    version: "0.3.3"
++    version: "1.3.59"
+   add_2_calendar:
+     dependency: "direct main"
+     description:
+       name: add_2_calendar
+-      sha256: "8d7a82aba607d35f2a5bc913419e12f865a96a350a8ad2509a59322bc161f200"
++      sha256: "8274d1c7a776fdb46b7b7b9a4ed6b1b80ec8f2a9325fe46e2336687bcbc18ce5"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.0.1"
++    version: "3.1.1"
+   analyzer:
+     dependency: transitive
+     description:
+       name: analyzer
+-      sha256: "1f14db053a8c23e260789e9b0980fa27f2680dd640932cae5e1137cce0e46e1e"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "6.11.0"
+-  analyzer_plugin:
+-    dependency: transitive
+-    description:
+-      name: analyzer_plugin
+-      sha256: "9661b30b13a685efaee9f02e5d01ed9f2b423bd889d28a304d02d704aee69161"
++      sha256: "6ba98576948803398b69e3a444df24eacdbe12ed699c7014e120ea38552debbf"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.11.3"
++    version: "13.0.0"
+   args:
+     dependency: transitive
+     description:
+@@ -58,10 +45,10 @@ packages:
+     dependency: transitive
+     description:
+       name: async
+-      sha256: "758e6d74e971c3e5aceb4110bfd6698efc7f501675bcfe0c775459a8140750eb"
++      sha256: e2eb0491ba5ddb6177742d2da23904574082139b07c1e33b8503b9f46f3e1a37
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.13.0"
++    version: "2.13.1"
+   boolean_selector:
+     dependency: transitive
+     description:
+@@ -74,50 +61,10 @@ packages:
+     dependency: transitive
+     description:
+       name: build
+-      sha256: cef23f1eda9b57566c81e2133d196f8e3df48f244b317368d65c5943d91148f0
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.4.2"
+-  build_config:
+-    dependency: transitive
+-    description:
+-      name: build_config
+-      sha256: "4ae2de3e1e67ea270081eaee972e1bd8f027d459f249e0f1186730784c2e7e33"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "1.1.2"
+-  build_daemon:
+-    dependency: transitive
+-    description:
+-      name: build_daemon
+-      sha256: bf05f6e12cfea92d3c09308d7bcdab1906cd8a179b023269eed00c071004b957
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "4.1.1"
+-  build_resolvers:
+-    dependency: transitive
+-    description:
+-      name: build_resolvers
+-      sha256: b9e4fda21d846e192628e7a4f6deda6888c36b5b69ba02ff291a01fd529140f0
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.4.4"
+-  build_runner:
+-    dependency: "direct dev"
+-    description:
+-      name: build_runner
+-      sha256: "74691599a5bc750dc96a6b4bfd48f7d9d66453eab04c7f4063134800d6a5c573"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.4.14"
+-  build_runner_core:
+-    dependency: transitive
+-    description:
+-      name: build_runner_core
+-      sha256: "22e3aa1c80e0ada3722fe5b63fd43d9c8990759d0a2cf489c8c5d7b2bdebc021"
++      sha256: "45d14a0fb23e018d8287c32fc98d726ce466b231928ed9b9200f29bd3ccd39ae"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "8.0.0"
++    version: "4.0.7"
+   built_collection:
+     dependency: transitive
+     description:
+@@ -130,18 +77,18 @@ packages:
+     dependency: transitive
+     description:
+       name: built_value
+-      sha256: "34e4067d30ce212937df995f03b69992eea683539ceeac7f679a1f1eba055b56"
++      sha256: "31b24be6615ec7fcf70b3aa5a7469fe35826485e639a16dd7eb83ba30e4cc6a8"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "8.12.6"
++    version: "8.12.7"
+   cached_network_image:
+     dependency: "direct main"
+     description:
+       name: cached_network_image
+-      sha256: "4a5d8d2c728b0f3d0245f69f921d7be90cae4c2fd5288f773088672c0893f819"
++      sha256: "7c1183e361e5c8b0a0f21a28401eecdbde252441106a9816400dd4c2b2424916"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.4.0"
++    version: "3.4.1"
+   cached_network_image_platform_interface:
+     dependency: transitive
+     description:
+@@ -154,42 +101,18 @@ packages:
+     dependency: transitive
+     description:
+       name: cached_network_image_web
+-      sha256: "6322dde7a5ad92202e64df659241104a43db20ed594c41ca18de1014598d7996"
++      sha256: "980842f4e8e2535b8dbd3d5ca0b1f0ba66bf61d14cc3a17a9b4788a3685ba062"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.3.0"
++    version: "1.3.1"
+   characters:
+     dependency: transitive
+     description:
+       name: characters
+-      sha256: f71061c654a3380576a52b451dd5532377954cf9dbd272a78fc8479606670803
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "1.4.0"
+-  checked_yaml:
+-    dependency: transitive
+-    description:
+-      name: checked_yaml
+-      sha256: "959525d3162f249993882720d52b7e0c833978df229be20702b33d48d91de70f"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.0.4"
+-  ci:
+-    dependency: transitive
+-    description:
+-      name: ci
+-      sha256: "145d095ce05cddac4d797a158bc4cf3b6016d1fe63d8c3d2fbd7212590adca13"
++      sha256: faf38497bda5ead2a8c7615f4f7939df04333478bf32e4173fcb06d428b5716b
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.1.0"
+-  cli_util:
+-    dependency: transitive
+-    description:
+-      name: cli_util
+-      sha256: ff6785f7e9e3c38ac98b2fb035701789de90154024a75b6cb926445e83197d1c
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "0.4.2"
++    version: "1.4.1"
+   clock:
+     dependency: transitive
+     description:
+@@ -198,6 +121,14 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "1.1.2"
++  code_assets:
++    dependency: transitive
++    description:
++      name: code_assets
++      sha256: bf394f466ba9205f1812a0433b392d6af280f155f56651eda7c18cc32ed493b8
++      url: "https://pub.dev"
++    source: hosted
++    version: "1.2.1"
+   code_builder:
+     dependency: transitive
+     description:
+@@ -242,10 +173,10 @@ packages:
+     dependency: transitive
+     description:
+       name: cross_file
+-      sha256: "28bb3ae56f117b5aec029d702a90f57d285cd975c3c5c281eaca38dbc47c5937"
++      sha256: "92c9c43c383bfa1c32079d3bc492d55d6d4318044b7b47edaff8971cbb555c51"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.3.5+2"
++    version: "0.3.5+4"
+   crypto:
+     dependency: transitive
+     description:
+@@ -254,30 +185,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "3.0.7"
+-  custom_lint:
+-    dependency: "direct dev"
+-    description:
+-      name: custom_lint
+-      sha256: "4500e88854e7581ee43586abeaf4443cb22375d6d289241a87b1aadf678d5545"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "0.6.10"
+-  custom_lint_builder:
+-    dependency: transitive
+-    description:
+-      name: custom_lint_builder
+-      sha256: "5a95eff100da256fbf086b329c17c8b49058c261cdf56d3a4157d3c31c511d78"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "0.6.10"
+-  custom_lint_core:
+-    dependency: transitive
+-    description:
+-      name: custom_lint_core
+-      sha256: "76a4046cc71d976222a078a8fd4a65e198b70545a8d690a75196dd14f08510f6"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "0.6.10"
+   dart_earcut:
+     dependency: transitive
+     description:
+@@ -290,10 +197,10 @@ packages:
+     dependency: transitive
+     description:
+       name: dart_style
+-      sha256: "7306ab8a2359a48d22310ad823521d723acfed60ee1f7e37388e8986853b6820"
++      sha256: "59d53ef8eaed9d288ed9767618e2b31c4fa0383a127db59d5eb2e737a7638a60"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.3.8"
++    version: "3.1.9"
+   dartz:
+     dependency: "direct main"
+     description:
+@@ -314,18 +221,18 @@ packages:
+     dependency: "direct main"
+     description:
+       name: dio
+-      sha256: ea2bad3c89a27635ce2d85cce4d6b199da49a5a48ec77b03e45b65a3b90922b0
++      sha256: "0df44ebba85e503958eb75d07eedd3c86275a58c1d3eda2f2ce8f0a2c3abbb3c"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "5.10.0"
++    version: "5.11.0"
+   dio_web_adapter:
+     dependency: transitive
+     description:
+       name: dio_web_adapter
+-      sha256: dd58dc3861eb36edb13b217efc006a1c21e5bbc341de8c229b85634fa5e362e4
++      sha256: "0786d0b7295a373de356fc0af4f6f1d0ab2844ed31b19dfc5e7556b70e24212c"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.2.0"
++    version: "2.2.1"
+   easy_localization:
+     dependency: "direct main"
+     description:
+@@ -346,10 +253,10 @@ packages:
+     dependency: "direct main"
+     description:
+       name: equatable
+-      sha256: "3e0141505477fd8ad55d6eb4e7776d3fe8430be8e497ccb1521370c3f21a3e2b"
++      sha256: "3bce007a596ff8b3119c45d68aaef631272537c03d30e5d4534dd24bf4c5eaa2"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.0.8"
++    version: "2.1.0"
+   facebook_auth_desktop:
+     dependency: transitive
+     description:
+@@ -394,10 +301,10 @@ packages:
+     dependency: transitive
+     description:
+       name: file_selector_macos
+-      sha256: "19124ff4a3d8864fdc62072b6a2ef6c222d55a3404fe14893a3c02744907b60c"
++      sha256: "5e0bbe9c312416f1787a68259ea1505b52f258c587f12920422671807c4d618a"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.9.4+4"
++    version: "0.9.5"
+   file_selector_platform_interface:
+     dependency: transitive
+     description:
+@@ -418,50 +325,50 @@ packages:
+     dependency: "direct main"
+     description:
+       name: firebase_core
+-      sha256: "5bba5924139e91d26446fd2601c18a6aa62c1161c768a989bb5e245dcdc20644"
++      sha256: "7be63a3f841fc9663342f7f3a011a42aef6a61066943c90b1c434d79d5c995c5"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.15.0"
++    version: "3.15.2"
+   firebase_core_platform_interface:
+     dependency: transitive
+     description:
+       name: firebase_core_platform_interface
+-      sha256: "8bcfad6d7033f5ea951d15b867622a824b13812178bfec0c779b9d81de011bbb"
++      sha256: "0ecda14c1bfc9ed8cac303dd0f8d04a320811b479362a9a4efb14fd331a473ce"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "5.4.2"
++    version: "6.0.3"
+   firebase_core_web:
+     dependency: transitive
+     description:
+       name: firebase_core_web
+-      sha256: eb3afccfc452b2b2075acbe0c4b27de62dd596802b4e5e19869c1e926cbb20b3
++      sha256: "0ed0dc292e8f9ac50992e2394e9d336a0275b6ae400d64163fdf0a8a8b556c37"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.24.0"
++    version: "2.24.1"
+   firebase_messaging:
+     dependency: "direct main"
+     description:
+       name: firebase_messaging
+-      sha256: "29941ba5a3204d80656c0e52103369aa9a53edfd9ceae05a2bb3376f24fda453"
++      sha256: "60be38574f8b5658e2f22b7e311ff2064bea835c248424a383783464e8e02fcc"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "15.1.0"
++    version: "15.2.10"
+   firebase_messaging_platform_interface:
+     dependency: transitive
+     description:
+       name: firebase_messaging_platform_interface
+-      sha256: "1c9dacccb1aee1bf17ba519dda5563a16fdd2ec1e79b5f2e421cb4bf75a166f7"
++      sha256: "685e1771b3d1f9c8502771ccc9f91485b376ffe16d553533f335b9183ea99754"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "4.6.8"
++    version: "4.6.10"
+   firebase_messaging_web:
+     dependency: transitive
+     description:
+       name: firebase_messaging_web
+-      sha256: "54317c26fa92f0d90a2017977ac791cb0504eca29fcf397f06adf727d4a7a2d5"
++      sha256: "0d1be17bc89ed3ff5001789c92df678b2e963a51b6fa2bdb467532cc9dbed390"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.10.8"
++    version: "3.10.10"
+   fixnum:
+     dependency: transitive
+     description:
+@@ -479,10 +386,10 @@ packages:
+     dependency: transitive
+     description:
+       name: flutter_cache_manager
+-      sha256: "400b6592f16a4409a7f2bb929a9a7e38c72cceb8ffb99ee57bbf2cb2cecf8386"
++      sha256: "1de7849213b4c73c85aca7e0ac687a9a5d82ccdb594366b9dcc26cb6a2189cd2"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.4.1"
++    version: "3.4.2"
+   flutter_facebook_auth:
+     dependency: "direct main"
+     description:
+@@ -556,10 +463,10 @@ packages:
+     dependency: transitive
+     description:
+       name: flutter_plugin_android_lifecycle
+-      sha256: c2fe1001710127dfa7da89977a08d591398370d099aacdaa6d44da7eb14b8476
++      sha256: "3854fe5e3bff0b113c658f260b90c95dea17c92db0f2addeac2e343dd9969785"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.0.31"
++    version: "2.0.35"
+   flutter_rating_bar:
+     dependency: "direct main"
+     description:
+@@ -628,10 +535,10 @@ packages:
+     dependency: "direct main"
+     description:
+       name: flutter_svg
+-      sha256: "87fbd7c534435b6c5d9d98b01e1fd527812b82e68ddd8bd35fc45ed0fa8f0a95"
++      sha256: "35882981abcbfb8c15b286f0cd690ff25bac12d95eff3e25ee207f37d4c42e7f"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.2.3"
++    version: "2.3.0"
+   flutter_test:
+     dependency: "direct dev"
+     description: flutter
+@@ -642,30 +549,6 @@ packages:
+     description: flutter
+     source: sdk
+     version: "0.0.0"
+-  freezed:
+-    dependency: "direct dev"
+-    description:
+-      name: freezed
+-      sha256: "44c19278dd9d89292cf46e97dc0c1e52ce03275f40a97c5a348e802a924bf40e"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.5.7"
+-  freezed_annotation:
+-    dependency: "direct main"
+-    description:
+-      name: freezed_annotation
+-      sha256: c2e2d632dd9b8a2b7751117abcfc2b4888ecfe181bd9fca7170d9ef02e595fe2
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.4.4"
+-  frontend_server_client:
+-    dependency: transitive
+-    description:
+-      name: frontend_server_client
+-      sha256: f64a0333a82f30b0cca061bc3d143813a486dc086b574bfb233b7c1372427694
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "4.0.0"
+   geolocator:
+     dependency: "direct main"
+     description:
+@@ -786,14 +669,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "0.12.4+4"
+-  graphs:
+-    dependency: transitive
+-    description:
+-      name: graphs
+-      sha256: "741bbf84165310a68ff28fe9e727332eef1407342fca52759cb21ad8177bb8d0"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.3.2"
+   hive:
+     dependency: "direct main"
+     description:
+@@ -810,22 +685,14 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "1.1.0"
+-  hive_generator:
+-    dependency: "direct dev"
+-    description:
+-      name: hive_generator
+-      sha256: "06cb8f58ace74de61f63500564931f9505368f45f98958bd7a6c35ba24159db4"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.0.1"
+-  hotreloader:
++  hooks:
+     dependency: transitive
+     description:
+-      name: hotreloader
+-      sha256: "66871df468fc24eee81f1a0a7cb98acc104716f9b7376d355437b48d633c4ebf"
++      name: hooks
++      sha256: "9a62a50b50b769a737bc0a8ff381f333529df3ab746b2f6b02e83760231455ba"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "4.4.0"
++    version: "2.0.2"
+   http:
+     dependency: transitive
+     description:
+@@ -834,14 +701,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "1.6.0"
+-  http_multi_server:
+-    dependency: transitive
+-    description:
+-      name: http_multi_server
+-      sha256: aa6199f908078bb1c5efb8d8638d4ae191aac11b311132c3ef48ce352fb52ef8
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "3.2.2"
+   http_parser:
+     dependency: transitive
+     description:
+@@ -854,18 +713,18 @@ packages:
+     dependency: "direct main"
+     description:
+       name: image_picker
+-      sha256: "784210112be18ea55f69d7076e2c656a4e24949fa9e76429fe53af0c0f4fa320"
++      sha256: d8402284df184bc05f4a2210c6c23983b0720f4cd87cbd05c5390a78af602667
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.2.1"
++    version: "1.2.3"
+   image_picker_android:
+     dependency: transitive
+     description:
+       name: image_picker_android
+-      sha256: "28f3987ca0ec702d346eae1d90eda59603a2101b52f1e234ded62cff1d5cfa6e"
++      sha256: "6f3a1995eafb000333174fae92202622033b0ee7fd917a6cd3730295264df84a"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.8.13+1"
++    version: "0.8.13+19"
+   image_picker_for_web:
+     dependency: transitive
+     description:
+@@ -878,10 +737,10 @@ packages:
+     dependency: transitive
+     description:
+       name: image_picker_ios
+-      sha256: eb06fe30bab4c4497bad449b66448f50edcc695f1c59408e78aa3a8059eb8f0e
++      sha256: b9c4a438a9ff4f60808c9cf0039b93a42bb6c2211ef6ebb647394b2b3fa84588
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.8.13"
++    version: "0.8.13+6"
+   image_picker_linux:
+     dependency: transitive
+     description:
+@@ -894,10 +753,10 @@ packages:
+     dependency: transitive
+     description:
+       name: image_picker_macos
+-      sha256: d58cd9d67793d52beefd6585b12050af0a7663c0c2a6ece0fb110a35d6955e04
++      sha256: "86f0f15a309de7e1a552c12df9ce5b59fe927e71385329355aec4776c6a8ec91"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.2.2"
++    version: "0.2.2+1"
+   image_picker_platform_interface:
+     dependency: transitive
+     description:
+@@ -914,22 +773,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "0.2.2"
+-  injectable:
+-    dependency: "direct main"
+-    description:
+-      name: injectable
+-      sha256: "29559f7e3daebf0084597de86a825ae7f149d9e30264b7fbc71d1069ae82697d"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.6.0"
+-  injectable_generator:
+-    dependency: "direct dev"
+-    description:
+-      name: injectable_generator
+-      sha256: af403d76c7b18b4217335e0075e950cd0579fd7f8d7bd47ee7c85ada31680ba1
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.6.2"
+   intl:
+     dependency: "direct main"
+     description:
+@@ -938,38 +781,38 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "0.20.2"
+-  io:
++  jni:
+     dependency: transitive
+     description:
+-      name: io
+-      sha256: dfd5a80599cf0165756e3181807ed3e77daf6dd4137caaad72d0b7931597650b
++      name: jni
++      sha256: f038e58b4dc2c9037f50e233175086337e0b305e356d28211bf55f21c504cbd3
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.0.5"
+-  js:
++    version: "1.0.3"
++  jni_flutter:
+     dependency: transitive
+     description:
+-      name: js
+-      sha256: f2c445dce49627136094980615a031419f7f3eb393237e4ecd97ac15dea343f3
++      name: jni_flutter
++      sha256: "7b717011ea40d04fd47c2731d3d1d36eb99eba3435c2753d62489e8c3c9991d5"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.6.7"
+-  json_annotation:
+-    dependency: "direct main"
++    version: "1.0.2"
++  jni_util:
++    dependency: transitive
+     description:
+-      name: json_annotation
+-      sha256: "1ce844379ca14835a50d2f019a3099f419082cfdd231cd86a142af94dd5c6bb1"
++      name: jni_util
++      sha256: "1ba86da04a5f2bf18fde2edb235587e70c5b0fc5bd4ba955f46b00942c3fc35f"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "4.9.0"
+-  json_serializable:
+-    dependency: "direct dev"
++    version: "1.0.0"
++  js:
++    dependency: transitive
+     description:
+-      name: json_serializable
+-      sha256: c2fcb3920cf2b6ae6845954186420fca40bc0a8abcc84903b7801f17d7050d7c
++      name: js
++      sha256: f2c445dce49627136094980615a031419f7f3eb393237e4ecd97ac15dea343f3
+       url: "https://pub.dev"
+     source: hosted
+-    version: "6.9.0"
++    version: "0.6.7"
+   latlong2:
+     dependency: "direct main"
+     description:
+@@ -982,26 +825,26 @@ packages:
+     dependency: transitive
+     description:
+       name: leak_tracker
+-      sha256: "6bb818ecbdffe216e81182c2f0714a2e62b593f4a4f13098713ff1685dfb6ab0"
++      sha256: "33e2e26bdd85a0112ec15400c8cbffea70d0f9c3407491f672a2fad47915e2de"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "10.0.9"
++    version: "11.0.2"
+   leak_tracker_flutter_testing:
+     dependency: transitive
+     description:
+       name: leak_tracker_flutter_testing
+-      sha256: f8b613e7e6a13ec79cfdc0e97638fddb3ab848452eff057653abd3edba760573
++      sha256: "1dbc140bb5a23c75ea9c4811222756104fbcd1a27173f0c34ca01e16bea473c1"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.0.9"
++    version: "3.0.10"
+   leak_tracker_testing:
+     dependency: transitive
+     description:
+       name: leak_tracker_testing
+-      sha256: "6ba465d5d76e67ddf503e1161d1f4a6bc42306f9d66ca1e8f079a47290fb06d3"
++      sha256: "8d5a2d49f4a66b49744b23b018848400d23e54caf9463f4eb20df3eb8acb2eb1"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.0.1"
++    version: "3.0.2"
+   lints:
+     dependency: transitive
+     description:
+@@ -1058,38 +901,30 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "1.3.0"
+-  macros:
+-    dependency: transitive
+-    description:
+-      name: macros
+-      sha256: "1d9e801cd66f7ea3663c45fc708450db1fa57f988142c64289142c9b7ee80656"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "0.1.3-main.0"
+   matcher:
+     dependency: transitive
+     description:
+       name: matcher
+-      sha256: dc58c723c3c24bf8d3e2d3ad3f2f9d7bd9cf43ec6feaa64181775e60190153f2
++      sha256: dc0b7dc7651697ea4ff3e69ef44b0407ea32c487a39fff6a4004fa585e901861
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.12.17"
++    version: "0.12.19"
+   material_color_utilities:
+     dependency: transitive
+     description:
+       name: material_color_utilities
+-      sha256: f7142bb1154231d7ea5f96bc7bde4bda2a0945d2806bb11670e30b850d56bdec
++      sha256: "9c337007e82b1889149c82ed242ed1cb24a66044e30979c44912381e9be4c48b"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.11.1"
++    version: "0.13.0"
+   meta:
+     dependency: transitive
+     description:
+       name: meta
+-      sha256: e3641ec5d63ebf0d9b41bd43201a66e3fc79a65db5f61fc181f04cd27aab950c
++      sha256: "1741988757a65eb6b36abe716829688cf01910bbf91c34354ff7ec1c3de2b349"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.16.0"
++    version: "1.18.0"
+   mgrs_dart:
+     dependency: transitive
+     description:
+@@ -1102,18 +937,18 @@ packages:
+     dependency: transitive
+     description:
+       name: mime
+-      sha256: "801fd0b26f14a4a58ccb09d5892c3fbdeff209594300a542492cf13fba9d247a"
++      sha256: "41a20518f0cb1256669420fdba0cd90d21561e560ac240f26ef8322e45bb7ed6"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.0.6"
++    version: "2.0.0"
+   mockito:
+     dependency: "direct dev"
+     description:
+       name: mockito
+-      sha256: f99d8d072e249f719a5531735d146d8cf04c580d93920b04de75bef6dfb2daf6
++      sha256: c8d040d754367108fbe482dcb79dd72b8fe60ac6727abd15b4783c5560297ee6
+       url: "https://pub.dev"
+     source: hosted
+-    version: "5.4.5"
++    version: "5.7.0"
+   nm:
+     dependency: transitive
+     description:
+@@ -1122,6 +957,14 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "0.5.0"
++  objective_c:
++    dependency: transitive
++    description:
++      name: objective_c
++      sha256: b7fb95a6d9a4f009edd63dc5ac69f07420b23a16161c6dd8660290b59c602e8e
++      url: "https://pub.dev"
++    source: hosted
++    version: "9.5.0"
+   octo_image:
+     dependency: transitive
+     description:
+@@ -1174,42 +1017,42 @@ packages:
+     dependency: transitive
+     description:
+       name: path_provider
+-      sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
++      sha256: a7f4874f987173da295a61c181b8ee71dab59b332a486b391babf26a1b884825
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.1.5"
++    version: "2.1.6"
+   path_provider_android:
+     dependency: transitive
+     description:
+       name: path_provider_android
+-      sha256: "3b4c1fc3aa55ddc9cd4aa6759984330d5c8e66aa7702a6223c61540dc6380c37"
++      sha256: "69cbd515a62b94d32a7944f086b2f82b4ac40a1d45bebfc00813a430ab2dabcd"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.2.19"
++    version: "2.3.1"
+   path_provider_foundation:
+     dependency: transitive
+     description:
+       name: path_provider_foundation
+-      sha256: "16eef174aacb07e09c351502740fa6254c165757638eba1e9116b0a781201bbd"
++      sha256: "2a376b7d6392d80cd3705782d2caa734ca4727776db0b6ec36ef3f1855197699"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.2"
++    version: "2.6.0"
+   path_provider_linux:
+     dependency: transitive
+     description:
+       name: path_provider_linux
+-      sha256: f7a1fe3a634fe7734c8d3f2766ad746ae2a2884abe22e241a8b301bf5cac3279
++      sha256: "58c2005f147315b11e9b4a7bc889cd5203e250cba8e3f012dae259b4972b5c16"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.2.1"
++    version: "2.2.2"
+   path_provider_platform_interface:
+     dependency: transitive
+     description:
+       name: path_provider_platform_interface
+-      sha256: "88f5779f72ba699763fa3a3b06aa4bf6de76c8e5de842cf6f29e2e06476c2334"
++      sha256: "484838772624c3a4b94f1e44a3e19897fee738f2d5c4ce448443b0417f7c9dda"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.1.2"
++    version: "2.1.3"
+   path_provider_windows:
+     dependency: transitive
+     description:
+@@ -1238,34 +1081,34 @@ packages:
+     dependency: transitive
+     description:
+       name: permission_handler_apple
+-      sha256: "79dfa1df734798aa3cfdad166d3a3698c206d8813de13516ea1071b5d7e2f420"
++      sha256: "11b7e94a9d2fbee23c27f0cae0105c6266c03fd83b9a2eda6cf09141fc82624b"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "9.4.10"
++    version: "9.5.0"
+   permission_handler_html:
+     dependency: transitive
+     description:
+       name: permission_handler_html
+-      sha256: "38f000e83355abb3392140f6bc3030660cfaef189e1f87824facb76300b4ff24"
++      sha256: "6ea98b3f17f60d3b527f2647ed2ab4dc0f6bfe25b22cb1c363f5d8f62252f6ac"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.1.3+5"
++    version: "0.1.4+1"
+   permission_handler_platform_interface:
+     dependency: transitive
+     description:
+       name: permission_handler_platform_interface
+-      sha256: eb99b295153abce5d683cac8c02e22faab63e50679b937fa1bf67d58bb282878
++      sha256: a5c8a97ecf5616112a5b16d4b8e9ec0e5ae90ef63ac69c0d7b8ae240be760b23
+       url: "https://pub.dev"
+     source: hosted
+-    version: "4.3.0"
++    version: "4.4.0"
+   permission_handler_windows:
+     dependency: transitive
+     description:
+       name: permission_handler_windows
+-      sha256: "1a790728016f79a41216d88672dbc5df30e686e811ad4e698bfc51f76ad91f1e"
++      sha256: caeae01858a0a7d2df67a445ac98e1ad95e55a0e77c73044f4e9b1c8c2289cbd
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.2.1"
++    version: "0.2.2"
+   petitparser:
+     dependency: transitive
+     description:
+@@ -1298,14 +1141,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "1.0.1"
+-  pool:
+-    dependency: transitive
+-    description:
+-      name: pool
+-      sha256: "978783255c543aa3586a1b3c21f6e9d720eb315376a915872c61ef8b5c20177d"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "1.5.2"
+   pretty_dio_logger:
+     dependency: "direct main"
+     description:
+@@ -1330,22 +1165,14 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "2.2.0"
+-  pubspec_parse:
+-    dependency: transitive
+-    description:
+-      name: pubspec_parse
+-      sha256: "0560ba233314abbed0a48a2956f7f022cce7c3e1e73df540277da7544cad4082"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "1.5.0"
+-  recase:
++  record_use:
+     dependency: transitive
+     description:
+-      name: recase
+-      sha256: e4eb4ec2dcdee52dcf99cb4ceabaffc631d7424ee55e56f280bc039737f89213
++      name: record_use
++      sha256: "2551bd8eecfe95d14ae75f6021ad0248be5c27f138c2ec12fcb52b500b3ba1ed"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "4.1.0"
++    version: "0.6.0"
+   riverpod:
+     dependency: transitive
+     description:
+@@ -1354,38 +1181,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "2.6.1"
+-  riverpod_analyzer_utils:
+-    dependency: transitive
+-    description:
+-      name: riverpod_analyzer_utils
+-      sha256: "0dcb0af32d561f8fa000c6a6d95633c9fb08ea8a8df46e3f9daca59f11218167"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "0.5.6"
+-  riverpod_annotation:
+-    dependency: "direct main"
+-    description:
+-      name: riverpod_annotation
+-      sha256: e14b0bf45b71326654e2705d462f21b958f987087be850afd60578fcd502d1b8
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.6.1"
+-  riverpod_generator:
+-    dependency: "direct dev"
+-    description:
+-      name: riverpod_generator
+-      sha256: "851aedac7ad52693d12af3bf6d92b1626d516ed6b764eb61bf19e968b5e0b931"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.6.1"
+-  riverpod_lint:
+-    dependency: "direct dev"
+-    description:
+-      name: riverpod_lint
+-      sha256: "0684c21a9a4582c28c897d55c7b611fa59a351579061b43f8c92c005804e63a8"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.6.1"
+   rxdart:
+     dependency: transitive
+     description:
+@@ -1414,26 +1209,26 @@ packages:
+     dependency: "direct main"
+     description:
+       name: shared_preferences
+-      sha256: "6e8bf70b7fef813df4e9a36f658ac46d107db4b4cfe1048b477d4e453a8159f5"
++      sha256: c3025c5534b01739267eb7d76959bbc25a6d10f6988e1c2a3036940133dd10bf
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.5.3"
++    version: "2.5.5"
+   shared_preferences_android:
+     dependency: transitive
+     description:
+       name: shared_preferences_android
+-      sha256: bd14436108211b0d4ee5038689a56d4ae3620fd72fd6036e113bf1345bc74d9e
++      sha256: "0634e64bd719f89c012f392938e173521f535d3ecaf66558fa94a056d22b5cc7"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.13"
++    version: "2.4.27"
+   shared_preferences_foundation:
+     dependency: transitive
+     description:
+       name: shared_preferences_foundation
+-      sha256: "6a52cfcdaeac77cad8c97b539ff688ccfc458c007b4db12be584fbe5c0e49e03"
++      sha256: "4e7eaffc2b17ba398759f1151415869a34771ba11ebbccd1b0145472a619a64f"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.5.4"
++    version: "2.5.6"
+   shared_preferences_linux:
+     dependency: transitive
+     description:
+@@ -1446,10 +1241,10 @@ packages:
+     dependency: transitive
+     description:
+       name: shared_preferences_platform_interface
+-      sha256: "57cbf196c486bc2cf1f02b85784932c6094376284b3ad5779d1b1c6c6a816b80"
++      sha256: "649dc798a33931919ea356c4305c2d1f81619ea6e92244070b520187b5140ef9"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.1"
++    version: "2.4.2"
+   shared_preferences_web:
+     dependency: transitive
+     description:
+@@ -1466,22 +1261,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "2.4.1"
+-  shelf:
+-    dependency: transitive
+-    description:
+-      name: shelf
+-      sha256: e7dd780a7ffb623c57850b33f43309312fc863fb6aa3d276a754bb299839ef12
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "1.4.2"
+-  shelf_web_socket:
+-    dependency: transitive
+-    description:
+-      name: shelf_web_socket
+-      sha256: cc36c297b52866d203dbf9332263c94becc2fe0ceaa9681d07b6ef9807023b67
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.0.1"
+   shimmer:
+     dependency: "direct main"
+     description:
+@@ -1507,66 +1286,58 @@ packages:
+     dependency: transitive
+     description:
+       name: source_gen
+-      sha256: "14658ba5f669685cd3d63701d01b31ea748310f7ab854e471962670abcf57832"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "1.5.0"
+-  source_helper:
+-    dependency: transitive
+-    description:
+-      name: source_helper
+-      sha256: "86d247119aedce8e63f4751bd9626fc9613255935558447569ad42f9f5b48b3c"
++      sha256: a603f1fb984a7391ae5978d1b92bfaaa08b350dca5c825256f925818f7943bf5
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.3.5"
++    version: "4.2.4"
+   source_span:
+     dependency: transitive
+     description:
+       name: source_span
+-      sha256: "254ee5351d6cb365c859e20ee823c3bb479bf4a293c22d17a9f1bf144ce86f7c"
++      sha256: "56a02f1f4cd1a2d96303c0144c93bd6d909eea6bee6bf5a0e0b685edbd4c47ab"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.10.1"
++    version: "1.10.2"
+   sqflite:
+     dependency: transitive
+     description:
+       name: sqflite
+-      sha256: e2297b1da52f127bc7a3da11439985d9b536f75070f3325e62ada69a5c585d03
++      sha256: "58a799e6ac17dd32fbab93813d39ed835a75ccc0f8f85b8955fe318c6712b082"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.2"
++    version: "2.4.3"
+   sqflite_android:
+     dependency: transitive
+     description:
+       name: sqflite_android
+-      sha256: "2b3070c5fa881839f8b402ee4a39c1b4d561704d4ebbbcfb808a119bc2a1701b"
++      sha256: d0548f9d7422a2dae99ec6f8b0a3074463b132d216fa5ba0d230eeefc901983b
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.1"
++    version: "2.4.3"
+   sqflite_common:
+     dependency: transitive
+     description:
+       name: sqflite_common
+-      sha256: "6ef422a4525ecc601db6c0a2233ff448c731307906e92cabc9ba292afaae16a6"
++      sha256: "5bf6a55c166e73bf651ba7ec3ed486e577620e3dc8f3a9c6a258a8031b624590"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.5.6"
++    version: "2.5.11"
+   sqflite_darwin:
+     dependency: transitive
+     description:
+       name: sqflite_darwin
+-      sha256: "279832e5cde3fe99e8571879498c9211f3ca6391b0d818df4e17d9fff5c6ccb3"
++      sha256: c86ca18b8f666bbf903924687fe21cc16fc385d086005067e26619ca530bef9f
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.2"
++    version: "2.4.3+1"
+   sqflite_platform_interface:
+     dependency: transitive
+     description:
+       name: sqflite_platform_interface
+-      sha256: "8dd4515c7bdcae0a785b0062859336de775e8c65db81ae33dd5445f35be61920"
++      sha256: f84939f84350d92d04416f8bc4dc52d3896aec7716cc9e80cf0146342139dc50
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.0"
++    version: "2.4.1"
+   stack_trace:
+     dependency: transitive
+     description:
+@@ -1591,14 +1362,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "2.1.4"
+-  stream_transform:
+-    dependency: transitive
+-    description:
+-      name: stream_transform
+-      sha256: ad47125e588cfd37a9a7f86c7d6356dde8dfe89d071d293f80ca9e9273a33871
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "2.1.1"
+   string_scanner:
+     dependency: transitive
+     description:
+@@ -1611,10 +1374,10 @@ packages:
+     dependency: transitive
+     description:
+       name: synchronized
+-      sha256: c254ade258ec8282947a0acbbc90b9575b4f19673533ee46f2f6e9b3aeefd7c0
++      sha256: "61894a1956de6b4fc1aefd0892e109514a1a706cbece3ac59decd90ff5a7a423"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.4.0"
++    version: "3.4.1+1"
+   table_calendar:
+     dependency: "direct main"
+     description:
+@@ -1635,10 +1398,10 @@ packages:
+     dependency: transitive
+     description:
+       name: test_api
+-      sha256: fb31f383e2ee25fbbfe06b40fe21e1e458d14080e3c67e7ba0acfde4df4e0bbd
++      sha256: "949a932224383300f01be9221c39180316445ecb8e7547f70a41a35bf421fb9e"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.7.4"
++    version: "0.7.11"
+   timezone:
+     dependency: transitive
+     description:
+@@ -1647,14 +1410,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "0.9.4"
+-  timing:
+-    dependency: transitive
+-    description:
+-      name: timing
+-      sha256: "62ee18aca144e4a9f29d212f5a4c6a053be252b895ab14b5821996cff4ed90fe"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "1.0.2"
+   typed_data:
+     dependency: transitive
+     description:
+@@ -1683,18 +1438,18 @@ packages:
+     dependency: transitive
+     description:
+       name: url_launcher_android
+-      sha256: "81777b08c498a292d93ff2feead633174c386291e35612f8da438d6e92c4447e"
++      sha256: b413d49b73867ac08dd2f9890efd3cc11f2a0e577618d50843440a1fb3776c32
+       url: "https://pub.dev"
+     source: hosted
+-    version: "6.3.20"
++    version: "6.3.32"
+   url_launcher_ios:
+     dependency: transitive
+     description:
+       name: url_launcher_ios
+-      sha256: d80b3f567a617cb923546034cc94bfe44eb15f989fe670b37f26abdb9d939cb7
++      sha256: "580fe5dfb51671ae38191d316e027f6b76272b026370708c2d898799750a02b0"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "6.3.4"
++    version: "6.4.1"
+   url_launcher_linux:
+     dependency: transitive
+     description:
+@@ -1707,10 +1462,10 @@ packages:
+     dependency: transitive
+     description:
+       name: url_launcher_macos
+-      sha256: c043a77d6600ac9c38300567f33ef12b0ef4f4783a2c1f00231d2b1941fea13f
++      sha256: "368adf46f71ad3c21b8f06614adb38346f193f3a59ba8fe9a2fd74133070ba18"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "3.2.3"
++    version: "3.2.5"
+   url_launcher_platform_interface:
+     dependency: transitive
+     description:
+@@ -1723,10 +1478,10 @@ packages:
+     dependency: transitive
+     description:
+       name: url_launcher_web
+-      sha256: "4bd2b7b4dc4d4d0b94e5babfffbca8eac1a126c7f3d6ecbc1a11013faa3abba2"
++      sha256: "85c81589622fbc87c1c683aaea164d3604a7777495a79d91e39ffcdec39ddb34"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.1"
++    version: "2.4.3"
+   url_launcher_windows:
+     dependency: transitive
+     description:
+@@ -1739,18 +1494,18 @@ packages:
+     dependency: "direct main"
+     description:
+       name: uuid
+-      sha256: "1fef9e8e11e2991bb773070d4656b7bd5d850967a2456cfc83cf47925ba79489"
++      sha256: "9b129329f58692f6e6578329498a8fe9fbe98f090beb764ffbb8ee2eadd01dcd"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "4.5.3"
++    version: "4.6.0"
+   vector_graphics:
+     dependency: transitive
+     description:
+       name: vector_graphics
+-      sha256: a4f059dc26fc8295b5921376600a194c4ec7d55e72f2fe4c7d2831e103d461e6
++      sha256: "9d0e3b9cb16542ad660daee871e726a10d13a93b7b5391677c3160e8f5e83935"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.1.19"
++    version: "1.2.3"
+   vector_graphics_codec:
+     dependency: transitive
+     description:
+@@ -1763,26 +1518,26 @@ packages:
+     dependency: transitive
+     description:
+       name: vector_graphics_compiler
+-      sha256: d354a7ec6931e6047785f4db12a1f61ec3d43b207fc0790f863818543f8ff0dc
++      sha256: "4dca4feb77dc3ec7f6e27e49c53241eb8217f55e4f9b12599a27f8903bca5682"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.1.19"
++    version: "1.3.0"
+   vector_math:
+     dependency: transitive
+     description:
+       name: vector_math
+-      sha256: "80b3257d1492ce4d091729e3a67a60407d227c27241d6927be0130c98e741803"
++      sha256: d530bd74fea330e6e364cda7a85019c434070188383e1cd8d9777ee586914c5b
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.1.4"
++    version: "2.2.0"
+   vm_service:
+     dependency: transitive
+     description:
+       name: vm_service
+-      sha256: ddfa8d30d89985b96407efce8acbdd124701f96741f2d981ca860662f1c0dc02
++      sha256: "0016aef94fc66495ac78af5859181e3f3bf2026bd8eecc72b9565601e19ab360"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "15.0.0"
++    version: "15.2.0"
+   watcher:
+     dependency: transitive
+     description:
+@@ -1799,22 +1554,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "1.1.1"
+-  web_socket:
+-    dependency: transitive
+-    description:
+-      name: web_socket
+-      sha256: "34d64019aa8e36bf9842ac014bb5d2f5586ca73df5e4d9bf5c936975cae6982c"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "1.0.1"
+-  web_socket_channel:
+-    dependency: transitive
+-    description:
+-      name: web_socket_channel
+-      sha256: d645757fb0f4773d602444000a8131ff5d48c9e47adfe9772652dd1a4f2d45c8
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "3.0.3"
+   win32:
+     dependency: transitive
+     description:
+@@ -1856,5 +1595,5 @@ packages:
+     source: hosted
+     version: "3.1.3"
+ sdks:
+-  dart: ">=3.8.0 <4.0.0"
+-  flutter: ">=3.32.0"
++  dart: ">=3.12.0 <4.0.0"
++  flutter: ">=3.44.0"
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 9abcb36..074e35f 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -30,7 +30,6 @@ dependencies:
+ 
+   # State management
+   flutter_riverpod: ^2.5.1
+-  riverpod_annotation: ^2.3.5
+   google_sign_in: ^6.2.2
+   flutter_facebook_auth: ^7.1.1
+ 
+@@ -67,11 +66,6 @@ dependencies:
+ 
+   # Dependency injection
+   get_it: ^7.7.0
+-  injectable: ^2.4.2
+-
+-  # JSON serialization
+-  json_annotation: ^4.9.0
+-  freezed_annotation: ^2.4.1
+ 
+   # UI utilities
+   cached_network_image: ^3.3.1
+@@ -93,15 +87,7 @@ dev_dependencies:
+   flutter_test:
+     sdk: flutter
+   flutter_lints: ^4.0.0
+-  build_runner: ^2.4.11
+-  freezed: ^2.5.5
+-  json_serializable: ^6.8.0
+-  injectable_generator: ^2.6.1
+-  riverpod_generator: ^2.4.0
+-  hive_generator: ^2.0.1
+   mockito: ^5.4.4
+-  riverpod_lint: ^2.3.13
+-  custom_lint: ^0.6.4
+ 
+ flutter:
+   uses-material-design: true
+diff --git a/test/core/constants/app_constants_test.dart b/test/core/constants/app_constants_test.dart
+new file mode 100644
+index 0000000..07f1f54
+--- /dev/null
++++ b/test/core/constants/app_constants_test.dart
+@@ -0,0 +1,58 @@
++import 'package:flutter_test/flutter_test.dart';
++import 'package:albmap/core/constants/app_constants.dart';
++
++void main() {
++  group('AppConstants.isRemoteMediaPath', () {
++    test('null/empty is never remote', () {
++      expect(AppConstants.isRemoteMediaPath(null), isFalse);
++      expect(AppConstants.isRemoteMediaPath(''), isFalse);
++    });
++
++    test('absolute http(s) URLs are remote', () {
++      expect(AppConstants.isRemoteMediaPath('https://cdn.example.com/a.png'), isTrue);
++      expect(AppConstants.isRemoteMediaPath('http://cdn.example.com/a.png'), isTrue);
++    });
++
++    test('server-relative /uploads/ paths are remote', () {
++      expect(AppConstants.isRemoteMediaPath('/uploads/logo123.png'), isTrue);
++    });
++
++    // The bug class this guards against: a raw local file path (what
++    // ImagePicker.pickImage returns before upload) getting fed to
++    // Image.network instead of Image.file, which throws at runtime.
++    test('a bare local file path is not remote', () {
++      expect(AppConstants.isRemoteMediaPath('/data/user/0/com.example/cache/image_picker123.jpg'), isFalse);
++      expect(AppConstants.isRemoteMediaPath('/private/var/mobile/tmp/img.jpg'), isFalse);
++    });
++  });
++
++  group('AppConstants.resolveMediaUrl', () {
++    test('null/empty passes through as null', () {
++      expect(AppConstants.resolveMediaUrl(null), isNull);
++      expect(AppConstants.resolveMediaUrl(''), isNull);
++    });
++
++    test('already-absolute URLs pass through unchanged', () {
++      expect(
++        AppConstants.resolveMediaUrl('https://cdn.example.com/a.png'),
++        'https://cdn.example.com/a.png',
++      );
++    });
++
++    test('a local (non-remote, non-/uploads/) path passes through unchanged', () {
++      expect(
++        AppConstants.resolveMediaUrl('/data/user/0/com.example/cache/img.jpg'),
++        '/data/user/0/com.example/cache/img.jpg',
++      );
++    });
++
++    test('a /uploads/ path is resolved against the API origin', () {
++      final resolved = AppConstants.resolveMediaUrl('/uploads/logo123.png');
++      expect(resolved, isNotNull);
++      expect(resolved, endsWith('/uploads/logo123.png'));
++      // The API base URL's "/v1" suffix must not leak into the media
++      // origin — uploaded files are served from the server root.
++      expect(resolved, isNot(contains('/v1/uploads')));
++    });
++  });
++}
+diff --git a/test/core/utils/validators_test.dart b/test/core/utils/validators_test.dart
+new file mode 100644
+index 0000000..5b2ed1c
+--- /dev/null
++++ b/test/core/utils/validators_test.dart
+@@ -0,0 +1,145 @@
++import 'package:flutter_test/flutter_test.dart';
++import 'package:albmap/core/utils/validators.dart';
++
++void main() {
++  group('Validators.required', () {
++    test('rejects null, empty, and whitespace-only input', () {
++      expect(Validators.required(null, 'req'), 'req');
++      expect(Validators.required('', 'req'), 'req');
++      expect(Validators.required('   ', 'req'), 'req');
++    });
++
++    test('accepts non-empty text, including with surrounding whitespace', () {
++      expect(Validators.required('Jane', 'req'), isNull);
++      expect(Validators.required('  Jane  ', 'req'), isNull);
++    });
++  });
++
++  group('Validators.email', () {
++    String? v(String? input) => Validators.email(input, requiredMessage: 'required', invalidMessage: 'invalid');
++
++    test('rejects null/empty as required', () {
++      expect(v(null), 'required');
++      expect(v(''), 'required');
++      expect(v('   '), 'required');
++    });
++
++    // This is the exact class of input the previous `v.contains('@')`
++    // check across the app let straight through — the whole reason
++    // Validators.email exists instead of every screen hand-rolling its
++    // own check.
++    test('rejects strings that merely contain an @ but are not real emails', () {
++      expect(v('@'), 'invalid');
++      expect(v('a@'), 'invalid');
++      expect(v('@b.com'), 'invalid');
++      expect(v('a@b'), 'invalid'); // no TLD
++      expect(v('a@@b.com'), 'invalid');
++      expect(v('a b@example.com'), 'invalid'); // embedded space
++      expect(v('plainstring'), 'invalid');
++    });
++
++    test('accepts realistic valid addresses', () {
++      expect(v('user@example.com'), isNull);
++      expect(v('first.last+tag@sub.example.co.uk'), isNull);
++      expect(v('  user@example.com  '), isNull); // trims surrounding whitespace
++    });
++  });
++
++  group('Validators.optionalPhone', () {
++    String? v(String? input) => Validators.optionalPhone(input, invalidMessage: 'invalid');
++
++    test('empty/null is valid — phone is optional', () {
++      expect(v(null), isNull);
++      expect(v(''), isNull);
++      expect(v('   '), isNull);
++    });
++
++    test('accepts common real-world formats', () {
++      expect(v('+355 69 123 4567'), isNull);
++      expect(v('069-123-4567'), isNull);
++      expect(v('(069) 123 4567'), isNull);
++      expect(v('+1 212 555 0100'), isNull);
++      expect(v('069.123.4567'), isNull);
++    });
++
++    test('rejects letters and obviously-invalid input', () {
++      expect(v('call me maybe'), 'invalid');
++      expect(v('123'), 'invalid'); // too short
++      expect(v('abc1234567'), 'invalid');
++    });
++  });
++
++  group('Validators.requiredPhone', () {
++    test('empty is rejected as required, not as invalid format', () {
++      expect(
++        Validators.requiredPhone(null, requiredMessage: 'required', invalidMessage: 'invalid'),
++        'required',
++      );
++      expect(
++        Validators.requiredPhone('', requiredMessage: 'required', invalidMessage: 'invalid'),
++        'required',
++      );
++    });
++
++    test('valid phone passes', () {
++      expect(
++        Validators.requiredPhone('+355691234567', requiredMessage: 'required', invalidMessage: 'invalid'),
++        isNull,
++      );
++    });
++  });
++
++  group('Validators.password', () {
++    String? v(String? input) => Validators.password(input, requiredMessage: 'required', tooShortMessage: 'short');
++
++    test('rejects null/empty as required', () {
++      expect(v(null), 'required');
++      expect(v(''), 'required');
++    });
++
++    test('rejects passwords under the minimum length', () {
++      expect(v('abc12'), 'short'); // 5 chars, default min is 6
++    });
++
++    test('accepts passwords meeting the minimum length', () {
++      expect(v('abc123'), isNull);
++    });
++
++    test('respects a custom minLength', () {
++      final result = Validators.password(
++        'short1',
++        requiredMessage: 'required',
++        tooShortMessage: 'short',
++        minLength: 8,
++      );
++      expect(result, 'short');
++    });
++  });
++
++  group('Validators.confirmPassword', () {
++    test('rejects empty confirm value as required', () {
++      expect(
++        Validators.confirmPassword(null, 'secret1', requiredMessage: 'required', mismatchMessage: 'mismatch'),
++        'required',
++      );
++      expect(
++        Validators.confirmPassword('', 'secret1', requiredMessage: 'required', mismatchMessage: 'mismatch'),
++        'required',
++      );
++    });
++
++    test('rejects a non-matching confirmation', () {
++      expect(
++        Validators.confirmPassword('secret2', 'secret1', requiredMessage: 'required', mismatchMessage: 'mismatch'),
++        'mismatch',
++      );
++    });
++
++    test('accepts a matching confirmation', () {
++      expect(
++        Validators.confirmPassword('secret1', 'secret1', requiredMessage: 'required', mismatchMessage: 'mismatch'),
++        isNull,
++      );
++    });
++  });
++}
+diff --git a/test/core/widgets/app_toast_test.dart b/test/core/widgets/app_toast_test.dart
+new file mode 100644
+index 0000000..9a76128
+--- /dev/null
++++ b/test/core/widgets/app_toast_test.dart
+@@ -0,0 +1,58 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:albmap/core/widgets/app_toast.dart';
++
++void main() {
++  Future<BuildContext> pumpAndCaptureContext(WidgetTester tester) async {
++    late BuildContext captured;
++    await tester.pumpWidget(
++      MaterialApp(
++        home: Scaffold(
++          body: Builder(
++            builder: (context) {
++              captured = context;
++              return const SizedBox.shrink();
++            },
++          ),
++        ),
++      ),
++    );
++    return captured;
++  }
++
++  testWidgets('AppToast.error shows the given message', (tester) async {
++    final ctx = await pumpAndCaptureContext(tester);
++
++    AppToast.error(ctx, 'Something failed');
++    await tester.pump();
++
++    expect(find.text('Something failed'), findsOneWidget);
++    expect(find.byType(SnackBar), findsOneWidget);
++  });
++
++  testWidgets('AppToast.success shows the given message', (tester) async {
++    final ctx = await pumpAndCaptureContext(tester);
++
++    AppToast.success(ctx, 'Saved successfully');
++    await tester.pump();
++
++    expect(find.text('Saved successfully'), findsOneWidget);
++  });
++
++  // Regression guard: before AppToast, screens called
++  // ScaffoldMessenger.showSnackBar directly, and rapid consecutive calls
++  // (e.g. two validation errors in a row) queued up instead of replacing
++  // each other, so the user saw a stale message for several seconds
++  // before the real one appeared.
++  testWidgets('a second toast replaces the first instead of queuing behind it', (tester) async {
++    final ctx = await pumpAndCaptureContext(tester);
++
++    AppToast.error(ctx, 'First message');
++    await tester.pump();
++    AppToast.error(ctx, 'Second message');
++    await tester.pump();
++
++    expect(find.text('Second message'), findsOneWidget);
++    expect(find.text('First message'), findsNothing);
++  });
++}
+diff --git a/test/core/widgets/primary_button_test.dart b/test/core/widgets/primary_button_test.dart
+new file mode 100644
+index 0000000..fbdfaa9
+--- /dev/null
++++ b/test/core/widgets/primary_button_test.dart
+@@ -0,0 +1,47 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:albmap/core/widgets/primary_button.dart';
++
++void main() {
++  Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
++
++  testWidgets('tapping the button while idle invokes onPressed', (tester) async {
++    var tapped = false;
++    await tester.pumpWidget(
++      wrap(PrimaryButton(label: 'Submit', onPressed: () => tapped = true)),
++    );
++
++    await tester.tap(find.byType(ElevatedButton));
++    expect(tapped, isTrue);
++  });
++
++  // This is the guard against double-submission: without disabling the
++  // button while a request is in flight, a slow network response plus an
++  // impatient double-tap fires the submit handler twice (e.g. two
++  // POST /businesses calls for the same form).
++  testWidgets('isLoading disables the button so it cannot be tapped again', (tester) async {
++    var tapCount = 0;
++    await tester.pumpWidget(
++      wrap(PrimaryButton(label: 'Submit', isLoading: true, onPressed: () => tapCount++)),
++    );
++
++    final buttonWidget = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
++    expect(buttonWidget.onPressed, isNull);
++
++    await tester.tap(find.byType(ElevatedButton), warnIfMissed: false);
++    expect(tapCount, 0);
++
++    // Shows a spinner instead of the label while loading.
++    expect(find.byType(CircularProgressIndicator), findsOneWidget);
++    expect(find.text('Submit'), findsNothing);
++  });
++
++  testWidgets('outlined variant also disables while loading', (tester) async {
++    await tester.pumpWidget(
++      wrap(PrimaryButton(label: 'Continue', outlined: true, isLoading: true, onPressed: () {})),
++    );
++
++    final buttonWidget = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
++    expect(buttonWidget.onPressed, isNull);
++  });
++}
+-- 
+2.43.0
+
+
+From fe0316b58956c7e25a8eada82efca043dccf733a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 6 Aug 2026 07:26:11 +0000
+Subject: [PATCH 2/3] Surface errors when external links
+ (tel/WhatsApp/maps/web) fail to open
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+launchUrl() was called fire-and-forget everywhere it's used (Call,
+WhatsApp, Directions on Business Details; Privacy/Terms/social links on
+Settings and About Us) — on a device with no dialer, no WhatsApp
+installed, or no browser/maps app, the button visibly did nothing, with
+no way to tell it apart from a broken button. Added a shared
+launchUrlSafely() helper (core/utils/url_launcher_helper.dart) that
+awaits the result, logs failures, and shows an AppToast.error when the
+link genuinely could not be opened.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01UWLxdJ74EiJDqqczEM3fhE
+---
+ assets/translations/de.json                   |  3 +-
+ assets/translations/en.json                   |  3 +-
+ assets/translations/sq.json                   |  3 +-
+ lib/core/utils/url_launcher_helper.dart       | 29 +++++++++++++++++++
+ .../presentation/screens/about_us_screen.dart | 12 ++++----
+ .../screens/business_details_screen.dart      | 14 +++++----
+ .../presentation/screens/settings_screen.dart |  6 ++--
+ 7 files changed, 53 insertions(+), 17 deletions(-)
+ create mode 100644 lib/core/utils/url_launcher_helper.dart
+
+diff --git a/assets/translations/de.json b/assets/translations/de.json
+index 436085a..c4b6862 100644
+--- a/assets/translations/de.json
++++ b/assets/translations/de.json
+@@ -23,7 +23,8 @@
+     "noInternet": "Keine Internetverbindung.",
+     "all": "Alle",
+     "invalidPhone": "Gib eine gültige Telefonnummer ein",
+-    "invalidEmail": "Gib eine gültige E-Mail-Adresse ein"
++    "invalidEmail": "Gib eine gültige E-Mail-Adresse ein",
++    "cannotOpenLink": "Dieser Link konnte nicht geöffnet werden. Bitte versuche es später erneut."
+   },
+   "nav": {
+     "discover": "Karte",
+diff --git a/assets/translations/en.json b/assets/translations/en.json
+index f7fb1d2..9c4f06a 100644
+--- a/assets/translations/en.json
++++ b/assets/translations/en.json
+@@ -23,7 +23,8 @@
+     "noInternet": "No internet connection.",
+     "all": "All",
+     "invalidPhone": "Enter a valid phone number",
+-    "invalidEmail": "Enter a valid email address"
++    "invalidEmail": "Enter a valid email address",
++    "cannotOpenLink": "Couldn't open this link. Please try again later."
+   },
+   "nav": {
+     "discover": "Discover",
+diff --git a/assets/translations/sq.json b/assets/translations/sq.json
+index f76547c..662b5b7 100644
+--- a/assets/translations/sq.json
++++ b/assets/translations/sq.json
+@@ -23,7 +23,8 @@
+     "noInternet": "Nuk ka lidhje interneti.",
+     "all": "Të gjitha",
+     "invalidPhone": "Shkruaj një numër telefoni të vlefshëm",
+-    "invalidEmail": "Shkruaj një adresë email të vlefshme"
++    "invalidEmail": "Shkruaj një adresë email të vlefshme",
++    "cannotOpenLink": "Ky lidhje nuk u hap dot. Ju lutemi provoni përsëri më vonë."
+   },
+   "nav": {
+     "discover": "Zbulo",
+diff --git a/lib/core/utils/url_launcher_helper.dart b/lib/core/utils/url_launcher_helper.dart
+new file mode 100644
+index 0000000..e98771c
+--- /dev/null
++++ b/lib/core/utils/url_launcher_helper.dart
+@@ -0,0 +1,29 @@
++import 'package:easy_localization/easy_localization.dart';
++import 'package:flutter/material.dart';
++import 'package:url_launcher/url_launcher.dart';
++
++import 'app_logger.dart';
++import '../widgets/app_toast.dart';
++
++/// Wraps [launchUrl] with the error handling every call site needs but
++/// none of them had: `launchUrl` returns `false` (or throws) when there's
++/// no app that can handle the link — no dialer, no WhatsApp, no browser —
++/// and every call site in this app used to fire-and-forget it, so tapping
++/// "Call" on a device with no phone capability just silently did nothing.
++/// This awaits the result, logs failures, and surfaces a toast so the
++/// user isn't left wondering whether the tap registered at all.
++Future<void> launchUrlSafely(
++  BuildContext context,
++  Uri uri, {
++  LaunchMode mode = LaunchMode.platformDefault,
++}) async {
++  bool launched = false;
++  try {
++    launched = await launchUrl(uri, mode: mode);
++  } catch (err, stack) {
++    AppLogger.warning('launchUrl failed for $uri', err, stack);
++  }
++  if (!launched && context.mounted) {
++    AppToast.error(context, 'common.cannotOpenLink'.tr());
++  }
++}
+diff --git a/lib/features/about_us/presentation/screens/about_us_screen.dart b/lib/features/about_us/presentation/screens/about_us_screen.dart
+index c3722c2..3391d71 100644
+--- a/lib/features/about_us/presentation/screens/about_us_screen.dart
++++ b/lib/features/about_us/presentation/screens/about_us_screen.dart
+@@ -1,9 +1,9 @@
+ import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+-import 'package:url_launcher/url_launcher.dart';
+ 
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/url_launcher_helper.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ 
+ /// 13. About Us Screen — mission, vision, legal links, social media.
+@@ -72,13 +72,13 @@ class AboutUsScreen extends StatelessWidget {
+                         ListTile(
+                           title: Text('aboutUs.privacyPolicy'.tr()),
+                           trailing: const Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
+-                          onTap: () => launchUrl(Uri.parse('https://albmap.app/privacy')),
++                          onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/privacy')),
+                         ),
+                         const Divider(height: 1),
+                         ListTile(
+                           title: Text('aboutUs.terms'.tr()),
+                           trailing: const Icon(Icons.open_in_new, size: 18, color: AppColors.textSecondary),
+-                          onTap: () => launchUrl(Uri.parse('https://albmap.app/terms')),
++                          onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/terms')),
+                         ),
+                       ],
+                     ),
+@@ -89,11 +89,11 @@ class AboutUsScreen extends StatelessWidget {
+                   Row(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                     children: [
+-                      _SocialButton(icon: Icons.facebook, onTap: () => launchUrl(Uri.parse('https://facebook.com/albmap'))),
++                      _SocialButton(icon: Icons.facebook, onTap: () => launchUrlSafely(context, Uri.parse('https://facebook.com/albmap'))),
+                       const SizedBox(width: 14),
+-                      _SocialButton(icon: Icons.camera_alt_outlined, onTap: () => launchUrl(Uri.parse('https://instagram.com/albmap'))),
++                      _SocialButton(icon: Icons.camera_alt_outlined, onTap: () => launchUrlSafely(context, Uri.parse('https://instagram.com/albmap'))),
+                       const SizedBox(width: 14),
+-                      _SocialButton(icon: Icons.alternate_email, onTap: () => launchUrl(Uri.parse('https://twitter.com/albmap'))),
++                      _SocialButton(icon: Icons.alternate_email, onTap: () => launchUrlSafely(context, Uri.parse('https://twitter.com/albmap'))),
+                     ],
+                   ),
+                   const SizedBox(height: 12),
+diff --git a/lib/features/business_details/presentation/screens/business_details_screen.dart b/lib/features/business_details/presentation/screens/business_details_screen.dart
+index e889ae7..e4c0bc6 100644
+--- a/lib/features/business_details/presentation/screens/business_details_screen.dart
++++ b/lib/features/business_details/presentation/screens/business_details_screen.dart
+@@ -1,3 +1,5 @@
++import 'dart:async';
++
+ import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+@@ -8,6 +10,7 @@ import '../../../../core/constants/app_constants.dart';
+ 
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/url_launcher_helper.dart';
+ import '../../../../core/widgets/opening_hours_editor.dart';
+ import '../../../../core/widgets/state_widgets.dart';
+ import '../../../auth/presentation/providers/auth_providers.dart';
+@@ -177,7 +180,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
+                                   ? null
+                                   : () {
+                                       recordAnalyticsEvent(business.id, AnalyticsEventType.callClick);
+-                                      launchUrl(Uri.parse('tel:${business.phone}'));
++                                      unawaited(launchUrlSafely(context, Uri.parse('tel:${business.phone}')));
+                                     },
+                             ),
+                           ),
+@@ -196,10 +199,11 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
+                                   // wa.me requires digits only (no '+', spaces, or
+                                   // dashes) in full international format.
+                                   final sanitized = business.whatsappNumber!.replaceAll(RegExp(r'[^0-9]'), '');
+-                                  launchUrl(
++                                  unawaited(launchUrlSafely(
++                                    context,
+                                     Uri.parse('https://wa.me/$sanitized'),
+                                     mode: LaunchMode.externalApplication,
+-                                  );
++                                  ));
+                                 },
+                                 child: const Icon(Icons.chat_outlined, color: Color(0xFF25D366)),
+                               ),
+@@ -213,9 +217,9 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
+                               label: Text('business.directions'.tr(), overflow: TextOverflow.ellipsis),
+                               onPressed: () {
+                                 recordAnalyticsEvent(business.id, AnalyticsEventType.websiteClick);
+-                                launchUrl(Uri.parse(
++                                unawaited(launchUrlSafely(context, Uri.parse(
+                                   'https://www.google.com/maps/search/?api=1&query=${business.latitude},${business.longitude}',
+-                                ));
++                                )));
+                               },
+                             ),
+                           ),
+diff --git a/lib/features/settings/presentation/screens/settings_screen.dart b/lib/features/settings/presentation/screens/settings_screen.dart
+index 56481a1..8f8be49 100644
+--- a/lib/features/settings/presentation/screens/settings_screen.dart
++++ b/lib/features/settings/presentation/screens/settings_screen.dart
+@@ -2,11 +2,11 @@ import 'package:easy_localization/easy_localization.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:package_info_plus/package_info_plus.dart';
+-import 'package:url_launcher/url_launcher.dart';
+ 
+ import '../../../../core/constants/app_constants.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/utils/url_launcher_helper.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ import '../providers/settings_providers.dart';
+ 
+@@ -141,12 +141,12 @@ class SettingsScreen extends ConsumerWidget {
+                 ListTile(
+                   title: Text('settings.privacyPolicy'.tr()),
+                   trailing: const Icon(Icons.chevron_right_rounded),
+-                  onTap: () => launchUrl(Uri.parse('https://albmap.app/privacy')),
++                  onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/privacy')),
+                 ),
+                 ListTile(
+                   title: Text('settings.helpSupport'.tr()),
+                   trailing: const Icon(Icons.chevron_right_rounded),
+-                  onTap: () => launchUrl(Uri.parse('https://albmap.app/support')),
++                  onTap: () => launchUrlSafely(context, Uri.parse('https://albmap.app/support')),
+                 ),
+               ],
+             ),
+-- 
+2.43.0
+
+
+From 38a16176b714ca57cc2d815ff31674e4ce98e365 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 6 Aug 2026 11:44:23 +0000
+Subject: [PATCH 3/3] Surface favorite-toggle failures instead of silently
+ swallowing them
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+FavoriteToggleController.toggleBusiness/toggleEvent discarded the
+Either<Failure, void> result from ToggleFavoriteUseCase entirely, and
+its AsyncValue<void> state was never watched anywhere (only .notifier
+was ever read) — so a failed toggle (e.g. a Hive write error) left the
+favorite icon looking like nothing happened, with no feedback at all.
+Both methods now return the failure message (or null on success), and
+every call site (Business Details, Event Details, Favorites screen)
+shows an AppToast.error when it's non-null.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01UWLxdJ74EiJDqqczEM3fhE
+---
+ .../screens/business_details_screen.dart          | 12 +++++++++---
+ .../screens/event_details_screen.dart             | 10 ++++++++--
+ .../providers/favorites_providers.dart            | 15 +++++++++++----
+ .../presentation/screens/favorites_screen.dart    | 12 +++++++++---
+ 4 files changed, 37 insertions(+), 12 deletions(-)
+
+diff --git a/lib/features/business_details/presentation/screens/business_details_screen.dart b/lib/features/business_details/presentation/screens/business_details_screen.dart
+index e4c0bc6..123ac9c 100644
+--- a/lib/features/business_details/presentation/screens/business_details_screen.dart
++++ b/lib/features/business_details/presentation/screens/business_details_screen.dart
+@@ -11,6 +11,7 @@ import '../../../../core/constants/app_constants.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
+ import '../../../../core/utils/url_launcher_helper.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/opening_hours_editor.dart';
+ import '../../../../core/widgets/state_widgets.dart';
+ import '../../../auth/presentation/providers/auth_providers.dart';
+@@ -76,9 +77,14 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
+                   if (canFavorite)
+                     IconButton(
+                       icon: const Icon(Icons.favorite_border, color: Colors.white),
+-                      onPressed: () => ref
+-                          .read(favoriteToggleControllerProvider.notifier)
+-                          .toggleBusiness(business),
++                      onPressed: () async {
++                        final error = await ref
++                            .read(favoriteToggleControllerProvider.notifier)
++                            .toggleBusiness(business);
++                        if (error != null && context.mounted) {
++                          AppToast.error(context, error);
++                        }
++                      },
+                     ),
+                   IconButton(
+                     icon: const Icon(Icons.share, color: Colors.white),
+diff --git a/lib/features/events/presentation/screens/event_details_screen.dart b/lib/features/events/presentation/screens/event_details_screen.dart
+index 9f35d9e..11bf33d 100644
+--- a/lib/features/events/presentation/screens/event_details_screen.dart
++++ b/lib/features/events/presentation/screens/event_details_screen.dart
+@@ -9,6 +9,7 @@ import '../../../../core/di/service_locator.dart';
+ import '../../../../core/constants/app_constants.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/state_widgets.dart';
+ import '../../../auth/presentation/providers/auth_providers.dart';
+ import '../../../categories/domain/category_translations.dart';
+@@ -59,8 +60,13 @@ class EventDetailsScreen extends ConsumerWidget {
+                   if (canFavorite)
+                     IconButton(
+                       icon: const Icon(Icons.favorite_border, color: Colors.white),
+-                      onPressed: () =>
+-                          ref.read(favoriteToggleControllerProvider.notifier).toggleEvent(event),
++                      onPressed: () async {
++                        final error =
++                            await ref.read(favoriteToggleControllerProvider.notifier).toggleEvent(event);
++                        if (error != null && context.mounted) {
++                          AppToast.error(context, error);
++                        }
++                      },
+                     ),
+                   IconButton(
+                     icon: const Icon(Icons.share, color: Colors.white),
+diff --git a/lib/features/favorites/presentation/providers/favorites_providers.dart b/lib/features/favorites/presentation/providers/favorites_providers.dart
+index 9624a96..ee764e9 100644
+--- a/lib/features/favorites/presentation/providers/favorites_providers.dart
++++ b/lib/features/favorites/presentation/providers/favorites_providers.dart
+@@ -19,16 +19,23 @@ class FavoriteToggleController extends StateNotifier<AsyncValue<void>> {
+   FavoriteToggleController(this._ref) : super(const AsyncValue.data(null));
+   final Ref _ref;
+ 
+-  Future<void> toggleBusiness(BusinessEntity business) async {
++  // Both methods return the failure message (or null on success) instead
++  // of void: the previous version discarded the Either entirely, so a
++  // failed toggle (e.g. a Hive write error) left the star icon looking
++  // like nothing happened, with no way for the caller to know it should
++  // tell the user. Every call site now checks this and shows a toast.
++  Future<String?> toggleBusiness(BusinessEntity business) async {
+     final useCase = sl<ToggleFavoriteUseCase>();
+-    await useCase(ToggleFavoriteParams(type: FavoriteType.business, business: business));
++    final result = await useCase(ToggleFavoriteParams(type: FavoriteType.business, business: business));
+     _ref.invalidate(favoritesProvider);
++    return result.fold((failure) => failure.message, (_) => null);
+   }
+ 
+-  Future<void> toggleEvent(EventEntity event) async {
++  Future<String?> toggleEvent(EventEntity event) async {
+     final useCase = sl<ToggleFavoriteUseCase>();
+-    await useCase(ToggleFavoriteParams(type: FavoriteType.event, event: event));
++    final result = await useCase(ToggleFavoriteParams(type: FavoriteType.event, event: event));
+     _ref.invalidate(favoritesProvider);
++    return result.fold((failure) => failure.message, (_) => null);
+   }
+ }
+ 
+diff --git a/lib/features/favorites/presentation/screens/favorites_screen.dart b/lib/features/favorites/presentation/screens/favorites_screen.dart
+index e970f5f..ffd55a4 100644
+--- a/lib/features/favorites/presentation/screens/favorites_screen.dart
++++ b/lib/features/favorites/presentation/screens/favorites_screen.dart
+@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
++import '../../../../core/widgets/app_toast.dart';
+ import '../../../../core/widgets/gradient_header.dart';
+ import '../../../../core/widgets/state_widgets.dart';
+ import '../../../events/presentation/screens/event_list_tile.dart';
+@@ -85,9 +86,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
+                                 business: favorites.businesses[i],
+                                 trailing: IconButton(
+                                   icon: const Icon(Icons.favorite, color: AppColors.error),
+-                                  onPressed: () => ref
+-                                      .read(favoriteToggleControllerProvider.notifier)
+-                                      .toggleBusiness(favorites.businesses[i]),
++                                  onPressed: () async {
++                                    final error = await ref
++                                        .read(favoriteToggleControllerProvider.notifier)
++                                        .toggleBusiness(favorites.businesses[i]);
++                                    if (error != null && context.mounted) {
++                                      AppToast.error(context, error);
++                                    }
++                                  },
+                                 ),
+                               ),
+                             ),
+-- 
+2.43.0
+

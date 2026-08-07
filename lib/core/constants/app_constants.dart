@@ -107,5 +107,3 @@ class AppConstants {
 enum UserRole { guest, business, admin }
 
 enum BusinessStatus { pending, approved, rejected }
-
-enum NotificationFrequency { always, daily, weekly }

@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
 
@@ -45,10 +48,12 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
     await Future<void>.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
     setState(() => _isSubmitting = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('contactUs.sent'.tr())));
+    AppToast.success(context, 'contactUs.sent'.tr());
     _formKey.currentState!.reset();
+    _nameController.clear();
+    _emailController.clear();
     _messageController.clear();
+    setState(() => _inquiryType = 'general');
   }
 
   @override
@@ -62,12 +67,10 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GradientHeader(
-                child: Row(
-                  children: [
-                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                    const SizedBox(width: 4),
-                    Text('contactUs.title'.tr(), style: AppTextStyles.h1),
-                  ],
+                child: PageHeaderTitle(
+                  title: 'contactUs.title'.tr(),
+                  icon: Icons.mail_rounded,
+                  accent: AppColors.info,
                 ),
               ),
               Padding(
@@ -89,15 +92,21 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                           children: [
                             TextFormField(
                               controller: _nameController,
+                              maxLength: 150,
                               decoration: InputDecoration(labelText: 'contactUs.name'.tr()),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                              validator: (v) => Validators.required(v, 'common.required'.tr()),
                             ),
                             const SizedBox(height: 14),
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
+                              maxLength: 255,
                               decoration: InputDecoration(labelText: 'contactUs.email'.tr()),
-                              validator: (v) => (v == null || !v.contains('@')) ? 'contactUs.validEmail'.tr() : null,
+                              validator: (v) => Validators.email(
+                                v,
+                                requiredMessage: 'contactUs.validEmail'.tr(),
+                                invalidMessage: 'contactUs.validEmail'.tr(),
+                              ),
                             ),
                             const SizedBox(height: 14),
                             SelectionField<String>(
@@ -113,8 +122,9 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                             TextFormField(
                               controller: _messageController,
                               maxLines: 5,
+                              maxLength: 2000,
                               decoration: InputDecoration(labelText: 'contactUs.message'.tr()),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                              validator: (v) => Validators.required(v, 'common.required'.tr()),
                             ),
                           ],
                         ),

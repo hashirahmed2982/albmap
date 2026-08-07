@@ -1,17 +1,15 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:easy_localization/easy_localization.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../map/presentation/providers/business_providers.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
-import '../../domain/entities/business_analytics_entity.dart';
 import '../providers/analytics_providers.dart';
 import '../widgets/send_notification_sheet.dart';
 
@@ -40,20 +38,15 @@ class BusinessDashboardScreen extends ConsumerWidget {
             child: Column(
               children: [
                 GradientHeader(
-                  child: Row(
-                    children: [
-                      IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('dashboard.title'.tr(), style: AppTextStyles.h1),
-                            Text(business.name, style: AppTextStyles.bodyMedium),
-                          ],
-                        ),
-                      ),
-                    ],
+                  child: PageHeaderTitle(
+                    title: 'dashboard.title'.tr(),
+                    subtitle: business.name,
+                    icon: categoryIcon(business.category),
+                    accent: accent,
+                    // Subtitle here is the business's own (variable-length)
+                    // name — a smaller badge leaves it real room instead
+                    // of ellipsizing a name that isn't even especially long.
+                    iconBadgeSize: 32,
                   ),
                 ),
                 Expanded(
@@ -153,7 +146,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
                                 PrimaryButton(
                                   label: 'dashboard.sendNotification'.tr(),
                                   icon: Icons.send_outlined,
-                                  onPressed: () => showModalBottomSheet(
+                                  onPressed: () => showModalBottomSheet<void>(
                                     context: context,
                                     isScrollControlled: true,
                                     builder: (_) => SendNotificationSheet(business: business),

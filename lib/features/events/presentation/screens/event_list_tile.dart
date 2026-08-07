@@ -1,12 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/entities/event_entity.dart';
 
 IconData eventCategoryIcon(String category) {
@@ -81,7 +81,12 @@ class EventListTile extends StatelessWidget {
                   child: event.imageUrl != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: Image.network(AppConstants.resolveMediaUrl(event.imageUrl)!, fit: BoxFit.cover),
+                          child: AppNetworkImage(
+                            url: AppConstants.resolveMediaUrl(event.imageUrl)!,
+                            width: 60,
+                            height: 60,
+                            backgroundColor: accent.withValues(alpha: 0.12),
+                          ),
                         )
                       : Icon(eventCategoryIcon(event.category), color: accent, size: 26),
                 ),
@@ -99,6 +104,12 @@ class EventListTile extends StatelessWidget {
                           Icon(Icons.schedule_rounded, size: 14, color: accent),
                           const SizedBox(width: 4),
                           Text(dateFmt.format(event.startTime), style: AppTextStyles.bodySmall.copyWith(color: accent, fontWeight: FontWeight.w600)),
+                          if (event.interestCount > 0) ...[
+                            const SizedBox(width: 10),
+                            const Icon(Icons.groups_outlined, size: 14, color: AppColors.textSecondary),
+                            const SizedBox(width: 4),
+                            Text('${event.interestCount}', style: AppTextStyles.bodySmall),
+                          ],
                         ],
                       ),
                     ],

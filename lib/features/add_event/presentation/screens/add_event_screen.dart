@@ -4,19 +4,21 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_network_image.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../categories/domain/category_translations.dart';
+import '../../../categories/presentation/providers/category_providers.dart';
 import '../../../events/domain/entities/event_entity.dart';
 import '../../../events/domain/usecases/event_usecases.dart';
 import '../../../events/presentation/providers/event_providers.dart';
@@ -37,7 +39,13 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
   final _descController = TextEditingController();
 
   BusinessEntity? _selectedBusiness;
-  String _category = 'General';
+  // Was a hardcoded, event-only list ('General', 'Music', ...) disconnected
+  // from the same backend categories table Add Business already used —
+  // now driven by categoryNamesProvider like everywhere else, so there's
+  // exactly one source of truth for what categories exist. No longer
+  // defaults to a guessed value, since nothing guarantees the backend's
+  // list still contains a category literally named 'General'.
+  String? _category;
   DateTime? _startDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -46,8 +54,6 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
   bool _loadingBusinesses = true;
   String? _imageUrl;
   bool _isUploadingImage = false;
-
-  static const List<String> _categories = ['General', 'Music', 'Food', 'Sports', 'Workshop', 'Community'];
 
   @override
   void initState() {
@@ -104,7 +110,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
     setState(() => _isUploadingImage = false);
 
     result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (failure) => AppToast.error(context, failure.message),
       (url) => setState(() => _imageUrl = url),
     );
   }
@@ -112,8 +118,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedBusiness == null || _startDate == null || _startTime == null || _endTime == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('addEvent.completeAllFields'.tr())));
+      AppToast.warning(context, 'addEvent.completeAllFields'.tr());
       return;
     }
 
@@ -124,13 +129,22 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
       _startDate!.year, _startDate!.month, _startDate!.day, _endTime!.hour, _endTime!.minute,
     );
 
+    // Without this check, picking an end time earlier in the day than the
+    // start time (an easy mis-tap on the time picker) silently created an
+    // event with a negative duration — nothing caught it here, and nothing
+    // downstream re-validates it either.
+    if (!endDateTime.isAfter(startDateTime)) {
+      AppToast.warning(context, 'addEvent.endBeforeStart'.tr());
+      return;
+    }
+
     final event = EventEntity(
       id: const Uuid().v4(),
       businessId: _selectedBusiness!.id,
       businessName: _selectedBusiness!.name,
       name: _nameController.text.trim(),
       description: _descController.text.trim(),
-      category: _category,
+      category: _category!,
       startTime: startDateTime,
       endTime: endDateTime,
       imageUrl: _imageUrl,
@@ -141,8 +155,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
       ref.invalidate(eventsProvider);
       Navigator.of(context).pop();
     } else if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('addEvent.failedToCreate'.tr())));
+      AppToast.error(context, 'addEvent.failedToCreate'.tr());
     }
   }
 
@@ -158,20 +171,11 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
         child: Column(
           children: [
             GradientHeader(
-              child: Row(
-                children: [
-                  IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('addEvent.title'.tr(), style: AppTextStyles.h1),
-                        Text('addEvent.subtitle'.tr(), style: AppTextStyles.bodyMedium),
-                      ],
-                    ),
-                  ),
-                ],
+              child: PageHeaderTitle(
+                title: 'addEvent.title'.tr(),
+                subtitle: 'addEvent.subtitle'.tr(),
+                icon: Icons.event_rounded,
+                accent: AppColors.secondary,
               ),
             ),
             Expanded(
@@ -201,6 +205,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _nameController,
+                                  maxLength: 30,
                                   decoration: InputDecoration(labelText: 'addEvent.eventName'.tr()),
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                                 ),
@@ -208,6 +213,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 TextFormField(
                                   controller: _descController,
                                   maxLines: 4,
+                                  maxLength: 300,
                                   decoration: InputDecoration(labelText: 'addEvent.description'.tr()),
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                                 ),
@@ -216,10 +222,11 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                   label: 'addEvent.category'.tr(),
                                   selectedValue: _category,
                                   options: [
-                                    for (final c in _categories)
+                                    for (final c in ref.watch(categoryNamesProvider))
                                       SelectionOption(value: c, label: localizedCategoryName(context, c)),
                                   ],
-                                  onChanged: (v) => setState(() => _category = v ?? 'General'),
+                                  onChanged: (v) => setState(() => _category = v),
+                                  validator: (v) => v == null ? 'addEvent.selectCategoryError'.tr() : null,
                                 ),
                                 const SizedBox(height: 20),
                                 Container(
@@ -281,7 +288,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                               ? ClipRRect(
                                                   borderRadius: BorderRadius.circular(16),
                                                   child: AppConstants.isRemoteMediaPath(_imageUrl)
-                                                      ? Image.network(AppConstants.resolveMediaUrl(_imageUrl)!, height: 100, width: double.infinity, fit: BoxFit.cover)
+                                                      ? AppNetworkImage(url: AppConstants.resolveMediaUrl(_imageUrl)!, height: 100, width: double.infinity)
                                                       : Image.file(File(_imageUrl!), height: 100, width: double.infinity, fit: BoxFit.cover),
                                                 )
                                               : Text('addEvent.addImage'.tr()),

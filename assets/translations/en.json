@@ -21,7 +21,10 @@
     "km_away": "{} km away",
     "somethingWrong": "Something went wrong. Please try again.",
     "noInternet": "No internet connection.",
-    "all": "All"
+    "all": "All",
+    "invalidPhone": "Enter a valid phone number",
+    "invalidEmail": "Enter a valid email address",
+    "cannotOpenLink": "Couldn't open this link. Please try again later."
   },
   "nav": {
     "discover": "Discover",
@@ -76,7 +79,9 @@
   },
   "filter": {
     "title": "Filter businesses",
+    "clearAll": "Clear all",
     "category": "Category",
+    "limitByDistance": "Limit by distance",
     "radius": "Radius: {} km",
     "sortBy": "Sort by",
     "distance": "Distance",
@@ -95,7 +100,9 @@
     "notFound": "Business not found",
     "failedToLoad": "Failed to load business",
     "shareText": "Check out {} on AlbMap!",
-    "kmAway": "{} km away"
+    "kmAway": "{} km away",
+    "openNow": "Open now",
+    "closedNow": "Closed"
   },
   "events": {
     "title": "Events",
@@ -108,7 +115,16 @@
     "aboutEvent": "About this event",
     "addToCalendar": "Add to calendar",
     "hostedBy": "Hosted by {}",
-    "shareText": "Join {} — hosted by {}"
+    "shareText": "Join {} — hosted by {}",
+    "interestedCount": "{} interested",
+    "interested": "Interested",
+    "imInterested": "I'm interested",
+    "filterByDate": "Filter by date",
+    "allUpcoming": "All upcoming",
+    "today": "Today",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "customRange": "Custom range"
   },
   "favorites": {
     "title": "Favorites",
@@ -119,11 +135,31 @@
     "noEvents": "No favorite events yet",
     "failedToLoad": "Failed to load favorites"
   },
+  "reviews": {
+    "title": "Reviews",
+    "writeReview": "Write a review",
+    "editYourReview": "Edit your review",
+    "updateReview": "Update review",
+    "submitReview": "Submit review",
+    "commentLabel": "Comment (optional)",
+    "commentHint": "Share details of your experience...",
+    "selectRatingError": "Please select a star rating",
+    "noReviewsYet": "No reviews yet — be the first!",
+    "failedToLoad": "Failed to load reviews",
+    "you": "You",
+    "anonymous": "Anonymous",
+    "deleteConfirmTitle": "Delete your review?",
+    "deleteConfirmBody": "This can't be undone."
+  },
   "notifications": {
     "title": "Notifications",
     "subtitle": "Stay up to date",
     "markAllRead": "Mark all read",
-    "empty": "No notifications yet"
+    "empty": "No notifications yet",
+    "clearAll": "Clear all",
+    "clearAllConfirmTitle": "Clear all notifications?",
+    "clearAllConfirmBody": "This removes every notification from your feed. This can't be undone.",
+    "deleteFailed": "Couldn't delete notification. Please try again."
   },
   "profile": {
     "browsingAsGuest": "Browsing as Guest",
@@ -142,6 +178,12 @@
     "logOut": "Log out",
     "logOutConfirmTitle": "Log out?",
     "logOutConfirmBody": "You will need to log in again to access your account.",
+    "deleteAccount": "Delete account",
+    "deleteAccountTitle": "Delete your account?",
+    "deleteAccountWarning": "This permanently deletes your account. If you own any businesses or events, their listings, reviews and data are deleted too. This can't be undone.",
+    "deleteAccountPasswordLabel": "Password",
+    "deleteAccountPasswordHelper": "Enter your password to confirm. Leave blank if you signed in with Google or Facebook.",
+    "deleteAccountConfirm": "Delete my account",
     "guest": "GUEST"
   },
   "editProfile": {
@@ -157,6 +199,7 @@
     "newPassword": "New password",
     "confirmNew": "Confirm new password",
     "mismatch": "Passwords do not match",
+    "sameAsCurrent": "New password must be different from your current password",
     "success": "Password changed successfully",
     "action": "Change password"
   },
@@ -165,9 +208,7 @@
     "language": "Language",
     "notifications": "Notifications",
     "enableNotifications": "Enable notifications",
-    "always": "Always",
-    "daily": "Daily digest",
-    "weekly": "Weekly digest",
+    "enableNotificationsDesc": "Get notified about approved offers and updates",
     "location": "Location",
     "enableLocation": "Enable location services",
     "enableLocationDesc": "Used to show distance and nearby businesses",
@@ -276,6 +317,8 @@
     "submit": "Submit event",
     "noBusinessTitle": "You need an approved business before creating events",
     "completeAllFields": "Please complete all fields",
+    "selectCategoryError": "Please select a category",
+    "endBeforeStart": "End time must be after the start time",
     "failedToCreate": "Failed to create event"
   },
   "contactUs": {
@@ -309,14 +352,15 @@
   },
   "aboutUs": {
     "title": "About Us",
-    "tagline": "Discover local businesses & events around you",
-    "missionTitle": "Our mission",
-    "missionBody": "AlbMap connects communities with the local businesses and events that make their neighborhoods vibrant — making discovery effortless for guests and giving business owners the tools to reach the people around them.",
-    "visionTitle": "Our vision",
-    "visionBody": "To become the go-to platform for local discovery — one map, every community.",
     "privacyPolicy": "Privacy Policy",
     "terms": "Terms & Conditions",
     "followUs": "Follow us"
+  },
+  "privacyPolicy": {
+    "title": "Privacy Policy"
+  },
+  "termsConditions": {
+    "title": "Terms & Conditions"
   },
   "locationPicker": {
     "title": "Set business location",

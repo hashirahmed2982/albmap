@@ -64,10 +64,10 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('locationPicker.title'.tr()),
-        backgroundColor: AppColors.surface,
-      ),
+      // No boxy AppBar here — a floating back button over the full-bleed
+      // map instead, matching Discover Map's map-first look rather than
+      // the flat default title bar this screen had before.
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           FlutterMap(
@@ -101,6 +101,50 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
               child: Padding(
                 padding: EdgeInsets.only(bottom: 40), // offsets for pin's visual tip
                 child: Icon(Icons.location_on, size: 48, color: AppColors.primary),
+              ),
+            ),
+          ),
+
+          // Floating back button + title chip, in place of a boxy AppBar.
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                child: Row(
+                  children: [
+                    Material(
+                      elevation: 2,
+                      shadowColor: Colors.black.withValues(alpha: 0.15),
+                      color: AppColors.surface,
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3)),
+                          ],
+                        ),
+                        child: Text(
+                          'locationPicker.title'.tr(),
+                          style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

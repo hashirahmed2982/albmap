@@ -33,6 +33,13 @@ import '../../features/categories/data/repositories/category_repository_impl.dar
 import '../../features/categories/domain/repositories/category_repository.dart';
 import '../../features/categories/domain/usecases/get_categories_usecase.dart';
 
+// Site content (About Us, social links, Privacy Policy, Terms & Conditions)
+import '../../features/content/data/datasources/content_remote_datasource.dart';
+import '../../features/content/data/datasources/content_mock_datasource.dart';
+import '../../features/content/data/repositories/content_repository_impl.dart';
+import '../../features/content/domain/repositories/content_repository.dart';
+import '../../features/content/domain/usecases/get_site_content_usecase.dart';
+
 // Events
 import '../../features/events/data/datasources/event_remote_datasource.dart';
 import '../../features/events/data/datasources/event_mock_datasource.dart';
@@ -61,6 +68,13 @@ import '../../features/favorites/data/datasources/favorites_remote_datasource.da
 import '../../features/favorites/data/repositories/favorites_repository_impl.dart';
 import '../../features/favorites/domain/repositories/favorites_repository.dart';
 import '../../features/favorites/domain/usecases/favorites_usecases.dart';
+
+// Reviews
+import '../../features/reviews/data/datasources/review_remote_datasource.dart';
+import '../../features/reviews/data/datasources/review_mock_datasource.dart';
+import '../../features/reviews/data/repositories/review_repository_impl.dart';
+import '../../features/reviews/domain/repositories/review_repository.dart';
+import '../../features/reviews/domain/usecases/review_usecases.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -115,6 +129,7 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteAccountUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => UploadAvatarUseCase(sl()));
 
@@ -149,6 +164,17 @@ Future<void> initServiceLocator() async {
   );
   sl.registerLazySingleton(() => GetCategoriesUseCase(sl()));
 
+  // ---------------- Site content ----------------
+  sl.registerLazySingleton<ContentDataSource>(
+    () => AppConstants.useMockData
+        ? ContentMockDataSource()
+        : ContentRemoteDataSourceImpl(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<ContentRepository>(
+    () => ContentRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetSiteContentUseCase(sl()));
+
   // ---------------- Dashboard / Analytics ----------------
   sl.registerLazySingleton<AnalyticsDataSource>(
     () => AppConstants.useMockData
@@ -173,6 +199,7 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => GetEventsUseCase(sl()));
   sl.registerLazySingleton(() => CreateEventUseCase(sl()));
   sl.registerLazySingleton(() => UploadEventImageUseCase(sl()));
+  sl.registerLazySingleton(() => ToggleEventInterestUseCase(sl()));
 
   // ---------------- Notifications (broadcast) ----------------
   sl.registerLazySingleton<NotificationRemoteDataSource>(
@@ -187,6 +214,8 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => GetNotificationFeedUseCase(sl()));
   sl.registerLazySingleton(() => MarkNotificationReadUseCase(sl()));
   sl.registerLazySingleton(() => MarkAllNotificationsReadUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteNotificationUseCase(sl()));
+  sl.registerLazySingleton(() => ClearAllNotificationsUseCase(sl()));
 
   // ---------------- Favorites ----------------
   sl.registerLazySingleton<FavoritesLocalDataSource>(
@@ -200,4 +229,17 @@ Future<void> initServiceLocator() async {
   );
   sl.registerLazySingleton(() => ToggleFavoriteUseCase(sl()));
   sl.registerLazySingleton(() => GetFavoritesUseCase(sl()));
+
+  // ---------------- Reviews ----------------
+  sl.registerLazySingleton<ReviewRemoteDataSource>(
+    () => AppConstants.useMockData
+        ? ReviewMockDataSource()
+        : ReviewRemoteDataSourceImpl(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<ReviewRepository>(
+    () => ReviewRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+  );
+  sl.registerLazySingleton(() => GetBusinessReviewsUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitReviewUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteReviewUseCase(sl()));
 }

@@ -12,8 +12,12 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_network_image.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -92,7 +96,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     setState(() => _isUploadingLogo = false);
 
     result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message))),
+      (failure) => AppToast.error(context, failure.message),
       (url) => setState(() => _logoUrl = url),
     );
   }
@@ -111,14 +115,11 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
   Future<void> _submit({bool confirmDuplicate = false}) async {
     if (!_formKey.currentState!.validate()) return;
     if (_category == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('addBusiness.selectCategoryError'.tr())));
+      AppToast.warning(context, 'addBusiness.selectCategoryError'.tr());
       return;
     }
     if (_pickedLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('addBusiness.selectLocationError'.tr())),
-      );
+      AppToast.warning(context, 'addBusiness.selectLocationError'.tr());
       return;
     }
 
@@ -154,7 +155,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     setState(() => _isSubmitting = false);
     if (!mounted) return;
 
-    result.fold(
+    await result.fold(
       (failure) async {
         // A duplicate warning is a specific, actionable case — offer
         // "submit anyway" with the conflicting business's details, rather
@@ -186,7 +187,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
           }
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message)));
+        AppToast.error(context, failure.message);
       },
       (_) {
         // Without this, "My Businesses" would keep showing whatever it
@@ -206,30 +207,47 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     if (_submitted) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(title: Text('addBusiness.title'.tr())),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 96, height: 96,
-                  decoration: BoxDecoration(color: AppColors.pending.withValues(alpha: 0.12), shape: BoxShape.circle),
-                  child: const Icon(Icons.hourglass_top_rounded, size: 48, color: AppColors.pending),
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              GradientHeader(
+                child: PageHeaderTitle(
+                  title: 'addBusiness.title'.tr(),
+                  icon: Icons.storefront_rounded,
+                  accent: AppColors.secondary,
+                  backIcon: Icons.close_rounded,
+                  iconBadgeSize: 32,
                 ),
-                const SizedBox(height: 20),
-                Text('addBusiness.submittedTitle'.tr(), style: AppTextStyles.h2, textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-                Text(
-                  'addBusiness.submittedBody'.tr(),
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium,
+              ),
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 96, height: 96,
+                          decoration: BoxDecoration(color: AppColors.pending.withValues(alpha: 0.12), shape: BoxShape.circle),
+                          child: const Icon(Icons.hourglass_top_rounded, size: 48, color: AppColors.pending),
+                        ),
+                        const SizedBox(height: 20),
+                        Text('addBusiness.submittedTitle'.tr(), style: AppTextStyles.h2, textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        Text(
+                          'addBusiness.submittedBody'.tr(),
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyMedium,
+                        ),
+                        const SizedBox(height: 24),
+                        PrimaryButton(label: 'common.done'.tr(), onPressed: () => Navigator.of(context).pop()),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
-                PrimaryButton(label: 'common.done'.tr(), onPressed: () => Navigator.of(context).pop()),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
@@ -246,20 +264,12 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GradientHeader(
-                child: Row(
-                  children: [
-                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('addBusiness.title'.tr(), style: AppTextStyles.h1),
-                          Text('addBusiness.subtitle'.tr(), style: AppTextStyles.bodyMedium),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: PageHeaderTitle(
+                  title: 'addBusiness.title'.tr(),
+                  subtitle: 'addBusiness.subtitle'.tr(),
+                  icon: Icons.storefront_rounded,
+                  accent: AppColors.secondary,
+                  iconBadgeSize: 32,
                 ),
               ),
               Padding(
@@ -286,7 +296,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
                                         child: AppConstants.isRemoteMediaPath(_logoUrl)
-                                            ? Image.network(AppConstants.resolveMediaUrl(_logoUrl)!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                                            ? AppNetworkImage(url: AppConstants.resolveMediaUrl(_logoUrl)!, height: 120, width: double.infinity)
                                             : Image.file(File(_logoUrl!), height: 120, width: double.infinity, fit: BoxFit.cover),
                                       )
                                     : Column(
@@ -303,6 +313,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _nameController,
+                        maxLength: 30,
                         decoration: InputDecoration(labelText: 'addBusiness.businessName'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -310,6 +321,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       TextFormField(
                         controller: _descController,
                         maxLines: 4,
+                        maxLength: 300,
                         decoration: InputDecoration(labelText: 'addBusiness.description'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -327,6 +339,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _streetAddressController,
+                        maxLength: 70,
                         decoration: InputDecoration(
                           labelText: 'addBusiness.streetAddress'.tr(),
                           helperText: 'addBusiness.streetAddressHelper'.tr(),
@@ -341,6 +354,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                             flex: 2,
                             child: TextFormField(
                               controller: _cityController,
+                              maxLength: 20,
                               decoration: InputDecoration(labelText: 'addBusiness.city'.tr()),
                               validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                             ),
@@ -349,6 +363,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                           Expanded(
                             child: TextFormField(
                               controller: _postalCodeController,
+                              maxLength: 10,
                               decoration: InputDecoration(labelText: 'addBusiness.postalCode'.tr()),
                               validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                             ),
@@ -358,6 +373,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _countryController,
+                        maxLength: 20,
                         decoration: InputDecoration(labelText: 'addBusiness.country'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -423,7 +439,9 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
+                        maxLength: 20,
                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
+                        validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         onChanged: (_) => setState(() {}), // refresh WhatsApp preview text below
                       ),
                       const SizedBox(height: 8),
@@ -440,7 +458,9 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                         TextFormField(
                           controller: _whatsappController,
                           keyboardType: TextInputType.phone,
+                          maxLength: 20,
                           decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
+                          validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         ),
                       ],
                       const SizedBox(height: 20),

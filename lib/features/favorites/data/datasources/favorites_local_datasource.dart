@@ -12,6 +12,7 @@ abstract class FavoritesLocalDataSource {
   Future<List<BusinessModel>> getFavoriteBusinesses();
   Future<List<EventModel>> getFavoriteEvents();
   Future<bool> isBusinessFavorite(String businessId);
+  Future<bool> isEventFavorite(String eventId);
 }
 
 class FavoritesLocalDataSourceImpl implements FavoritesLocalDataSource {
@@ -48,19 +49,7 @@ class FavoritesLocalDataSourceImpl implements FavoritesLocalDataSource {
           : (current..add(event));
       await _box.put(
         _eventKey,
-        jsonEncode(updated
-            .map((EventModel e) => <String, dynamic>{
-                  'id': e.id,
-                  'businessId': e.businessId,
-                  'businessName': e.businessName,
-                  'name': e.name,
-                  'description': e.description,
-                  'category': e.category,
-                  'startTime': e.startTime.toIso8601String(),
-                  'endTime': e.endTime.toIso8601String(),
-                  'imageUrl': e.imageUrl,
-                })
-            .toList()),
+        jsonEncode(updated.map((EventModel e) => e.toJson()).toList()),
       );
     } catch (_) {
       throw CacheException('Failed to update favorite event');
@@ -89,5 +78,11 @@ class FavoritesLocalDataSourceImpl implements FavoritesLocalDataSource {
   Future<bool> isBusinessFavorite(String businessId) async {
     final List<BusinessModel> favorites = await getFavoriteBusinesses();
     return favorites.any((BusinessModel b) => b.id == businessId);
+  }
+
+  @override
+  Future<bool> isEventFavorite(String eventId) async {
+    final List<EventModel> favorites = await getFavoriteEvents();
+    return favorites.any((EventModel e) => e.id == eventId);
   }
 }
