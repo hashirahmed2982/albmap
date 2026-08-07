@@ -147,6 +147,12 @@
     "logOut": "Abmelden",
     "logOutConfirmTitle": "Abmelden?",
     "logOutConfirmBody": "Du musst dich erneut anmelden, um auf dein Konto zuzugreifen.",
+    "deleteAccount": "Konto löschen",
+    "deleteAccountTitle": "Konto löschen?",
+    "deleteAccountWarning": "Dies löscht dein Konto dauerhaft. Falls du Unternehmen oder Veranstaltungen besitzt, werden auch deren Einträge, Bewertungen und Daten gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "deleteAccountPasswordLabel": "Passwort",
+    "deleteAccountPasswordHelper": "Gib dein Passwort zur Bestätigung ein. Lass es leer, wenn du dich mit Google oder Facebook angemeldet hast.",
+    "deleteAccountConfirm": "Mein Konto löschen",
     "guest": "GAST"
   },
   "editProfile": {

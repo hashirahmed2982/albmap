@@ -32,6 +32,13 @@ abstract class AuthRepository {
     required String newPassword,
   });
 
+  /// Permanent — deletes the account server-side (and, for a business
+  /// owner, every business/event/review that references it) and clears
+  /// all local session state on success. [password] is required for a
+  /// password-auth account, ignored (may be null) for a social-login-only
+  /// account with nothing to confirm.
+  Future<Either<Failure, void>> deleteAccount({String? password});
+
   Future<Either<Failure, UserEntity>> updateProfile({
     String? name,
     String? phone,

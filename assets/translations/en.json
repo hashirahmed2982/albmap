@@ -147,6 +147,12 @@
     "logOut": "Log out",
     "logOutConfirmTitle": "Log out?",
     "logOutConfirmBody": "You will need to log in again to access your account.",
+    "deleteAccount": "Delete account",
+    "deleteAccountTitle": "Delete your account?",
+    "deleteAccountWarning": "This permanently deletes your account. If you own any businesses or events, their listings, reviews and data are deleted too. This can't be undone.",
+    "deleteAccountPasswordLabel": "Password",
+    "deleteAccountPasswordHelper": "Enter your password to confirm. Leave blank if you signed in with Google or Facebook.",
+    "deleteAccountConfirm": "Delete my account",
     "guest": "GUEST"
   },
   "editProfile": {

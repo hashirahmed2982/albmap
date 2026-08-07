@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../auth/presentation/widgets/delete_account_sheet.dart';
 
 /// 8. Profile Screen — business user account management.
 ///
@@ -229,7 +230,24 @@ class ProfileScreen extends ConsumerWidget {
           onTap: () => _confirmLogout(context, ref),
         ),
       ]),
+      const SizedBox(height: 12),
+      _SectionCard(children: [
+        _ProfileTile(
+          icon: Icons.delete_outline,
+          label: 'profile.deleteAccount'.tr(),
+          accent: AppColors.error,
+          onTap: () => _showDeleteAccountSheet(context),
+        ),
+      ]),
     ];
+  }
+
+  void _showDeleteAccountSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const DeleteAccountSheet(),
+    );
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {

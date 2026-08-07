@@ -78,6 +78,16 @@ class ChangePasswordUseCase implements UseCase<void, ChangePasswordParams> {
   }
 }
 
+class DeleteAccountUseCase implements UseCase<void, String?> {
+  DeleteAccountUseCase(this._repository);
+  final AuthRepository _repository;
+
+  @override
+  Future<Either<Failure, void>> call(String? password) {
+    return _repository.deleteAccount(password: password);
+  }
+}
+
 class UpdateProfileParams extends Equatable {
   const UpdateProfileParams({this.name, this.phone, this.profileImageUrl});
   final String? name;

@@ -19,6 +19,7 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> loginWithFacebook();
   Future<UserModel> getCurrentUser();
   Future<void> changePassword({required String currentPassword, required String newPassword});
+  Future<void> deleteAccount({String? password});
   Future<UserModel> updateProfile({String? name, String? phone, String? profileImageUrl});
   Future<UserModel> uploadAvatar(String filePath);
 }
@@ -179,6 +180,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on DioException catch (e) {
       throw ServerException(
         e.response?.data?['message'] as String? ?? 'Failed to change password',
+        e.response?.statusCode,
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteAccount({String? password}) async {
+    try {
+      await _dio.delete<dynamic>(
+        '/auth/me',
+        data: <String, String>{if (password != null) 'password': password},
+      );
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to delete account',
         e.response?.statusCode,
       );
     }

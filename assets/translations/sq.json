@@ -147,6 +147,12 @@
     "logOut": "Dil",
     "logOutConfirmTitle": "Të dalësh?",
     "logOutConfirmBody": "Do të duhet të hysh përsëri për të hyrë në llogarinë tënde.",
+    "deleteAccount": "Fshi llogarinë",
+    "deleteAccountTitle": "Të fshihet llogaria jote?",
+    "deleteAccountWarning": "Kjo do të fshijë përgjithmonë llogarinë tënde. Nëse zotëron biznese ose evente, do të fshihen edhe listimet, vlerësimet dhe të dhënat e tyre. Ky veprim nuk mund të kthehet mbrapsht.",
+    "deleteAccountPasswordLabel": "Fjalëkalimi",
+    "deleteAccountPasswordHelper": "Vendos fjalëkalimin tënd për të konfirmuar. Lëre bosh nëse je regjistruar me Google ose Facebook.",
+    "deleteAccountConfirm": "Fshi llogarinë time",
     "guest": "VIZITOR"
   },
   "editProfile": {

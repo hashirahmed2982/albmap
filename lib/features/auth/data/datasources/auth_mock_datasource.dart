@@ -93,6 +93,16 @@ class AuthMockDataSource implements AuthRemoteDataSource {
   }
 
   @override
+  Future<void> deleteAccount({String? password}) async {
+    await _fakeDelay();
+    if (password != null && password.isEmpty) {
+      throw AuthException('Incorrect password');
+    }
+    // Mock mode has nothing real to delete — succeeds unconditionally
+    // otherwise, matching changePassword's mock philosophy above.
+  }
+
+  @override
   Future<UserModel> updateProfile({String? name, String? phone, String? profileImageUrl}) async {
     await _fakeDelay();
     return UserModel(

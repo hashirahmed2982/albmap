@@ -155,6 +155,25 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> deleteAccount({String? password}) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      await _remote.deleteAccount(password: password);
+      // Mirrors logout(): clear the cached user + secure-storage tokens
+      // so the app doesn't keep sending requests as an account that no
+      // longer exists server-side.
+      await _local.clearUser();
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on AuthException catch (e) {
+      return Left(AuthFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, UserEntity>> updateProfile({
     String? name,
     String? phone,
