@@ -61,5 +61,53 @@
 	<string>AlbMap needs access to your photo library so you can choose a logo, profile photo, or event image.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>AlbMap needs access to your camera so you can take a photo for your business logo, profile photo, or event image.</string>
+
+	<!--
+	  Facebook Login (flutter_facebook_auth) — App ID/Client Token are the
+	  same real values already committed on the Android side
+	  (android/app/src/main/res/values/strings.xml), since they identify
+	  the one Facebook app shared by both platforms, not a per-platform
+	  secret. Without FacebookAppID/ClientToken set, FacebookAuth.instance
+	  .login() throws immediately at runtime ("You must set a valid
+	  FacebookAppID"); without the fb<APP_ID> URL scheme + query schemes
+	  below, the SDK can't hand control back to the app after the user
+	  authenticates in Safari or the native Facebook app.
+	-->
+	<key>FacebookAppID</key>
+	<string>1356530733257026</string>
+	<key>FacebookClientToken</key>
+	<string>e667c98c0512b5216a5201e1cf9da321</string>
+	<key>FacebookDisplayName</key>
+	<string>AlbMap</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fbauth2</string>
+		<string>fb-messenger-share-api</string>
+		<string>fbshareextension</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb1356530733257026</string>
+			</array>
+		</dict>
+		<dict>
+			<!--
+			  Google Sign-In's redirect-back URL scheme. This MUST be the
+			  REVERSED_CLIENT_ID from ios/Runner/GoogleService-Info.plist
+			  once you've added it (see docs/FIREBASE_SOCIAL_LOGIN_SETUP.md)
+			  — it's unique per Firebase iOS app registration, so it can't
+			  ship pre-filled here. Until replaced, Google sign-in will open
+			  the picker but never return control to the app.
+			-->
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>REPLACE_WITH_REVERSED_CLIENT_ID_FROM_GOOGLESERVICE_INFO_PLIST</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

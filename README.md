@@ -14,7 +14,8 @@ expected and by design (see "Running against no backend" below).
 ## 0. Quick links
 
 - **Run without a backend** → `docs/MOCK_DATA_SETUP.md` (mock data is ON by default — just `flutter run`)
-- **Google Maps setup** → `docs/GOOGLE_MAPS_SETUP.md`
+- **Map** → `docs/GOOGLE_MAPS_SETUP.md` (short read — no API key needed, the map uses `flutter_map`/OpenStreetMap)
+- **Firebase / Google Sign-In / Facebook Login / permissions** → `docs/FIREBASE_SOCIAL_LOGIN_SETUP.md`
 
 ## 1. What's included
 
@@ -45,73 +46,57 @@ expected and by design (see "Running against no backend" below).
   scope for this Flutter deliverable.
 - Actual Poppins font files (pubspec's font block is commented out — see
   step 5).
-- Firebase project config files (`google-services.json` /
-  `GoogleService-Info.plist`) — you'll generate these yourself in step 6.
+- Firebase project **config files** (`google-services.json` /
+  `GoogleService-Info.plist`) — these are per-environment and gitignored on
+  purpose; you add your own. Everything else (native manifest/Info.plist
+  entries, Podfile, `AppDelegate.swift` wiring, Dart-side `Firebase.initializeApp()`)
+  is already done — see `docs/FIREBASE_SOCIAL_LOGIN_SETUP.md`.
 - Generated code (`*.g.dart`, `*.freezed.dart`) — none of the current models
   use `json_serializable`/`freezed` codegen (I hand-wrote `fromJson`/`toJson`
   for transparency and zero build-runner friction), but those packages are
   in `pubspec.yaml` if you want to migrate to it later.
-- Google/Facebook social login SDK wiring — the buttons exist and call
-  repository methods (`loginWithGoogle`/`loginWithFacebook`), but you must
-  add `google_sign_in` / `flutter_facebook_auth` and get the OAuth token
-  before hitting those endpoints.
-- Image picker wiring for logo/poster uploads — the UI placeholders are
-  there; hook up `image_picker` + your storage upload endpoint.
 
 ---
 
 ## 3. Prerequisites
 
 - Flutter 3.22+ (`flutter --version`)
-- A physical device or emulator with Google Play Services (for Google Maps)
-- A Google Cloud project with **Maps SDK for Android** and **Maps SDK for
-  iOS** enabled, plus an API key
-- (Optional, for push notifications) A Firebase project
+- A physical device or emulator (Android or iOS) — no Google Play Services
+  requirement, the map doesn't use Google Maps
+- (Optional, for push notifications / Google Sign-In / Facebook Login) A
+  Firebase project + Facebook app — see `docs/FIREBASE_SOCIAL_LOGIN_SETUP.md`
 
 ---
 
 ## 4. Setup steps
 
-### Step 1 — Create the platform folders
-This zip contains only `lib/`, `pubspec.yaml`, and config files — no
-`android/` or `ios/` folders (those are binary/platform-generated and don't
-belong in a hand-authored deliverable). Generate them:
+### Step 1 — Install dependencies
+The `android/` and `ios/` native folders are committed in this repo (already
+configured — permissions, Podfile, Facebook SDK wiring, etc.), so there's no
+`flutter create` step needed. Just:
 
 ```bash
 cd albmap
-flutter create --platforms=android,ios --org com.yourcompany .
-```
-
-This will NOT overwrite your existing `lib/` or `pubspec.yaml` — it only
-fills in the missing platform folders.
-
-### Step 2 — Install dependencies
-```bash
 flutter pub get
 ```
 
-### Step 3 — Add your Google Maps API key
-
-**Android** — edit `android/app/src/main/AndroidManifest.xml`, inside `<application>`:
-```xml
-<meta-data
-    android:name="com.google.android.geo.API_KEY"
-    android:value="YOUR_ANDROID_MAPS_API_KEY"/>
+On iOS, also install the native pods (needed once, and again any time a
+plugin is added/changed in `pubspec.yaml`):
+```bash
+cd ios && pod install && cd ..
 ```
-Also set `minSdkVersion 21` or higher in `android/app/build.gradle`.
 
-**iOS** — edit `ios/Runner/AppDelegate.swift`:
-```swift
-import GoogleMaps // add this import
+### Step 2 — (Optional) Firebase / Google Sign-In / Facebook Login
+The map itself needs no setup (see Step 3). Push notifications and social
+login do need your own Firebase/Google Cloud/Facebook accounts — that's a
+config-files-and-console-registration task, not a code task, so it's split
+out into its own doc: **`docs/FIREBASE_SOCIAL_LOGIN_SETUP.md`**. The app
+runs fine without it; those features just stay inactive until you do it.
 
-// inside application(_:didFinishLaunchingWithOptions:), before return:
-GMSServices.provideAPIKey("YOUR_IOS_MAPS_API_KEY")
-```
-Also add to `ios/Runner/Info.plist`:
-```xml
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>AlbMap uses your location to show nearby businesses and events.</string>
-```
+### Step 3 — Map
+No API key or setup required — the Discover Map screen uses `flutter_map`
+with OpenStreetMap tiles, not Google Maps. See `docs/GOOGLE_MAPS_SETUP.md`
+if you want the details.
 
 ### Step 4 — Point the app at your backend
 Edit `lib/core/constants/app_constants.dart`:
@@ -148,19 +133,7 @@ files (licensing). To enable it:
 Without this step the app still runs fine — Flutter silently falls back to
 the platform default font.
 
-### Step 6 — (Optional) Enable push notifications
-1. Create a Firebase project, add Android + iOS apps
-2. Download `google-services.json` → `android/app/`
-3. Download `GoogleService-Info.plist` → `ios/Runner/`
-4. In `lib/main.dart`, uncomment:
-   ```dart
-   await Firebase.initializeApp();
-   ```
-5. Follow the `firebase_messaging` setup for background handlers
-   (`onBackgroundMessage`) — wire incoming payloads into
-   `NotificationsController` (`lib/features/notifications/presentation/providers/notifications_providers.dart`).
-
-### Step 7 — Run
+### Step 6 — Run
 ```bash
 flutter run
 ```
