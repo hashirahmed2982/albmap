@@ -212,13 +212,11 @@ class ProfileScreen extends ConsumerWidget {
         _ProfileTile(
           icon: Icons.dashboard_outlined,
           label: 'profile.myBusinesses'.tr(),
-          accent: AppColors.primary,
           onTap: () => context.push(AppRoutes.myBusinesses),
         ),
         _ProfileTile(
           icon: Icons.storefront_outlined,
           label: 'profile.addBusiness'.tr(),
-          accent: AppColors.secondary,
           onTap: () => context.push(AppRoutes.addBusiness),
         ),
         _ProfileTile(icon: Icons.settings_outlined, label: 'profile.settings'.tr(), onTap: () => context.push(AppRoutes.settings)),
@@ -230,7 +228,7 @@ class ProfileScreen extends ConsumerWidget {
         _ProfileTile(
           icon: Icons.logout,
           label: 'profile.logOut'.tr(),
-          accent: AppColors.error,
+          isDestructive: true,
           onTap: () => _confirmLogout(context, ref),
         ),
       ]),
@@ -239,7 +237,7 @@ class ProfileScreen extends ConsumerWidget {
         _ProfileTile(
           icon: Icons.delete_outline,
           label: 'profile.deleteAccount'.tr(),
-          accent: AppColors.error,
+          isDestructive: true,
           onTap: () => _showDeleteAccountSheet(context),
         ),
       ]),
@@ -297,23 +295,48 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
+/// Every row in the account menu now falls into exactly one of two
+/// consistent color treatments — previously each tile passed its own
+/// arbitrary `accent` (primary red on some, secondary orange on Add
+/// Business, error red on Log Out/Delete Account), and only tiles with an
+/// accent got a colored *label* too — so two rows that were both just
+/// "normal navigation" (e.g. Edit Profile vs. My Businesses) looked
+/// visually different from each other for no reason. Now: a normal row
+/// always gets a brand-primary icon chip and a plain (uncolored) label,
+/// and only a genuinely destructive row (`isDestructive: true`) gets the
+/// error-red treatment on both the icon and the label — a deliberate
+/// two-tone system instead of an unintentional three-color mix.
 class _ProfileTile extends StatelessWidget {
-  const _ProfileTile({required this.icon, required this.label, required this.onTap, this.accent});
+  const _ProfileTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color? accent;
+  final bool isDestructive;
 
   @override
   Widget build(BuildContext context) {
-    final Color color = accent ?? AppColors.primary;
+    final Color color = isDestructive ? AppColors.error : AppColors.primary;
     return ListTile(
       leading: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, size: 20, color: color),
       ),
-      title: Text(label, style: AppTextStyles.bodyLarge.copyWith(color: accent), maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(
+        label,
+        style: AppTextStyles.bodyLarge.copyWith(
+          color: isDestructive ? color : null,
+          fontWeight: isDestructive ? FontWeight.w600 : null,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textSecondary),
       onTap: onTap,
     );

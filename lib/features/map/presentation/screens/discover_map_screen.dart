@@ -258,14 +258,11 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
             ],
             selected: {_viewMode},
             onSelectionChanged: (s) => setState(() => _viewMode = s.first),
-            style: SegmentedButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              selectedBackgroundColor: AppColors.primary,
-              selectedForegroundColor: Colors.white,
-              foregroundColor: AppColors.textPrimary,
-              side: const BorderSide(color: AppColors.divider),
-              textStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
-            ),
+            // No explicit style: the app-wide segmentedButtonTheme (see
+            // app_theme.dart) already gives every SegmentedButton this
+            // exact look — kept here before as a one-off override, now a
+            // single source of truth so this and the filter sheet's
+            // sort-by control can never drift apart.
           ),
           const SizedBox(height: 12),
           SizedBox(

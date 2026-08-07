@@ -185,6 +185,26 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         showCheckmark: false,
       ),
+      // Without this, SegmentedButton falls back to Material3's default
+      // selected-segment colors (colorScheme.secondaryContainer/
+      // onSecondaryContainer) — and since ColorScheme.light() below only
+      // overrides primary/secondary/surface/error, not secondaryContainer,
+      // that default is the stock Material baseline (an unrelated pale
+      // purple), not derived from the brand palette. Every SegmentedButton
+      // in the app (Discover Map's Map/List toggle, the filter sheet's
+      // sort-by control, etc.) now shares this one brand-consistent style
+      // instead of some being manually styled per-widget and others
+      // silently falling back to the mismatched default.
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.textPrimary,
+          selectedBackgroundColor: AppColors.primary,
+          selectedForegroundColor: Colors.white,
+          side: const BorderSide(color: AppColors.divider),
+          textStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ),
       tabBarTheme: TabBarThemeData(
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
