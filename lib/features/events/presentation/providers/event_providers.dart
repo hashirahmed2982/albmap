@@ -70,3 +70,26 @@ final createEventControllerProvider =
     StateNotifierProvider.autoDispose<CreateEventController, AsyncValue<void>>(
   (ref) => CreateEventController(),
 );
+
+/// "I'm interested" / RSVP toggle. Same null-on-success/message-on-failure
+/// contract as FavoriteToggleController — callers show a toast on a
+/// non-null return and otherwise just refresh whatever list/detail
+/// provider is showing this event, since the toggle itself doesn't carry
+/// the updated interestCount/isInterested back (the backend recomputes
+/// those from event_interests on the next read, not on the toggle call).
+class EventInterestController extends StateNotifier<AsyncValue<void>> {
+  EventInterestController() : super(const AsyncValue.data(null));
+
+  Future<String?> toggle(EventEntity event) async {
+    final useCase = sl<ToggleEventInterestUseCase>();
+    final result = await useCase(
+      ToggleEventInterestParams(eventId: event.id, isCurrentlyInterested: event.isInterested),
+    );
+    return result.fold((failure) => failure.message, (_) => null);
+  }
+}
+
+final eventInterestControllerProvider =
+    StateNotifierProvider.autoDispose<EventInterestController, AsyncValue<void>>(
+  (ref) => EventInterestController(),
+);

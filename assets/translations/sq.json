@@ -113,7 +113,10 @@
     "aboutEvent": "Rreth këtij eventi",
     "addToCalendar": "Shto në kalendar",
     "hostedBy": "Organizuar nga {}",
-    "shareText": "Bashkohu në {} — organizuar nga {}"
+    "shareText": "Bashkohu në {} — organizuar nga {}",
+    "interestedCount": "{} të interesuar",
+    "interested": "I interesuar",
+    "imInterested": "Jam i interesuar"
   },
   "favorites": {
     "title": "Të preferuara",

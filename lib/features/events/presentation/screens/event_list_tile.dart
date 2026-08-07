@@ -104,6 +104,12 @@ class EventListTile extends StatelessWidget {
                           Icon(Icons.schedule_rounded, size: 14, color: accent),
                           const SizedBox(width: 4),
                           Text(dateFmt.format(event.startTime), style: AppTextStyles.bodySmall.copyWith(color: accent, fontWeight: FontWeight.w600)),
+                          if (event.interestCount > 0) ...[
+                            const SizedBox(width: 10),
+                            const Icon(Icons.groups_outlined, size: 14, color: AppColors.textSecondary),
+                            const SizedBox(width: 4),
+                            Text('${event.interestCount}', style: AppTextStyles.bodySmall),
+                          ],
                         ],
                       ),
                     ],

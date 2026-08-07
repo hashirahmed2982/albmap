@@ -13,6 +13,11 @@ abstract class EventRemoteDataSource {
   Future<EventModel> getEventDetails(String id);
   Future<void> createEvent(EventModel event);
   Future<String> uploadEventImage(String filePath);
+
+  /// "I'm interested" / RSVP toggle — see the backend's event.routes.js
+  /// (POST/DELETE /events/:id/interest) and event_interests table.
+  Future<void> addInterest(String eventId);
+  Future<void> removeInterest(String eventId);
 }
 
 class EventRemoteDataSourceImpl implements EventRemoteDataSource {
@@ -73,6 +78,24 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       return response.data['url'] as String;
     } on DioException catch (e) {
       throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to upload event image');
+    }
+  }
+
+  @override
+  Future<void> addInterest(String eventId) async {
+    try {
+      await _dio.post<dynamic>('/events/$eventId/interest');
+    } on DioException catch (e) {
+      throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to mark interest');
+    }
+  }
+
+  @override
+  Future<void> removeInterest(String eventId) async {
+    try {
+      await _dio.delete<dynamic>('/events/$eventId/interest');
+    } on DioException catch (e) {
+      throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to remove interest');
     }
   }
 }

@@ -17,6 +17,7 @@ import '../../../categories/domain/category_translations.dart';
 import '../../../favorites/presentation/providers/favorites_providers.dart';
 import '../../domain/entities/event_entity.dart';
 import '../../domain/usecases/event_usecases.dart';
+import '../providers/event_providers.dart';
 import 'event_list_tile.dart';
 
 final _eventDetailsProvider =
@@ -142,7 +143,55 @@ class EventDetailsScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 14),
+
+                      Row(
+                        children: [
+                          const Icon(Icons.groups_outlined, size: 18, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'events.interestedCount'.tr(args: [event.interestCount.toString()]),
+                              style: AppTextStyles.bodyMedium,
+                            ),
+                          ),
+                          if (canFavorite)
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: event.isInterested ? Colors.white : accent,
+                                backgroundColor: event.isInterested ? accent : Colors.transparent,
+                                side: BorderSide(color: accent),
+                                minimumSize: const Size(0, 36),
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                              ),
+                              icon: Icon(
+                                event.isInterested ? Icons.check_circle : Icons.add_circle_outline,
+                                size: 18,
+                              ),
+                              label: Text(
+                                event.isInterested
+                                    ? 'events.interested'.tr()
+                                    : 'events.imInterested'.tr(),
+                              ),
+                              onPressed: () async {
+                                final error = await ref
+                                    .read(eventInterestControllerProvider.notifier)
+                                    .toggle(event);
+                                if (!context.mounted) return;
+                                if (error != null) {
+                                  AppToast.error(context, error);
+                                  return;
+                                }
+                                // The toggle call itself doesn't return the
+                                // updated event — refresh so the button/
+                                // count reflect the new server state.
+                                ref.invalidate(_eventDetailsProvider(eventId));
+                                ref.invalidate(eventsProvider);
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
 
                       Text('events.aboutEvent'.tr(), style: AppTextStyles.h3),
                       const SizedBox(height: 8),

@@ -113,7 +113,10 @@
     "aboutEvent": "About this event",
     "addToCalendar": "Add to calendar",
     "hostedBy": "Hosted by {}",
-    "shareText": "Join {} — hosted by {}"
+    "shareText": "Join {} — hosted by {}",
+    "interestedCount": "{} interested",
+    "interested": "Interested",
+    "imInterested": "I'm interested"
   },
   "favorites": {
     "title": "Favorites",

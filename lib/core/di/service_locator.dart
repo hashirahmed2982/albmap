@@ -174,6 +174,7 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => GetEventsUseCase(sl()));
   sl.registerLazySingleton(() => CreateEventUseCase(sl()));
   sl.registerLazySingleton(() => UploadEventImageUseCase(sl()));
+  sl.registerLazySingleton(() => ToggleEventInterestUseCase(sl()));
 
   // ---------------- Notifications (broadcast) ----------------
   sl.registerLazySingleton<NotificationRemoteDataSource>(

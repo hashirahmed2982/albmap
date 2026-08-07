@@ -49,3 +49,28 @@ class UploadEventImageUseCase implements UseCase<String, String> {
     return _repository.uploadEventImage(filePath);
   }
 }
+
+/// "I'm interested" / RSVP toggle. Takes the event id directly (unlike
+/// ToggleFavoriteUseCase, which needs the whole entity to seed the local
+/// cache) since interest has no local-only fallback — it's server state
+/// only, so nothing to construct beyond the id.
+class ToggleEventInterestUseCase implements UseCase<void, ToggleEventInterestParams> {
+  ToggleEventInterestUseCase(this._repository);
+  final EventRepository _repository;
+
+  @override
+  Future<Either<Failure, void>> call(ToggleEventInterestParams params) {
+    return params.isCurrentlyInterested
+        ? _repository.removeInterest(params.eventId)
+        : _repository.addInterest(params.eventId);
+  }
+}
+
+class ToggleEventInterestParams extends Equatable {
+  const ToggleEventInterestParams({required this.eventId, required this.isCurrentlyInterested});
+  final String eventId;
+  final bool isCurrentlyInterested;
+
+  @override
+  List<Object?> get props => [eventId, isCurrentlyInterested];
+}

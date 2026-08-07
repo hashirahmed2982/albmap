@@ -113,7 +113,10 @@
     "aboutEvent": "Über diese Veranstaltung",
     "addToCalendar": "Zum Kalender hinzufügen",
     "hostedBy": "Veranstaltet von {}",
-    "shareText": "Nimm teil an {} — veranstaltet von {}"
+    "shareText": "Nimm teil an {} — veranstaltet von {}",
+    "interestedCount": "{} interessiert",
+    "interested": "Interessiert",
+    "imInterested": "Interessiert mich"
   },
   "favorites": {
     "title": "Favoriten",
