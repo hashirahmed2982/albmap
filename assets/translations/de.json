@@ -127,6 +127,22 @@
     "noEvents": "Noch keine favorisierten Veranstaltungen",
     "failedToLoad": "Favoriten konnten nicht geladen werden"
   },
+  "reviews": {
+    "title": "Bewertungen",
+    "writeReview": "Bewertung schreiben",
+    "editYourReview": "Deine Bewertung bearbeiten",
+    "updateReview": "Bewertung aktualisieren",
+    "submitReview": "Bewertung abschicken",
+    "commentLabel": "Kommentar (optional)",
+    "commentHint": "Teile Details zu deiner Erfahrung...",
+    "selectRatingError": "Bitte wähle eine Sternebewertung",
+    "noReviewsYet": "Noch keine Bewertungen — sei die/der Erste!",
+    "failedToLoad": "Bewertungen konnten nicht geladen werden",
+    "you": "Du",
+    "anonymous": "Anonym",
+    "deleteConfirmTitle": "Deine Bewertung löschen?",
+    "deleteConfirmBody": "Dies kann nicht rückgängig gemacht werden."
+  },
   "notifications": {
     "title": "Benachrichtigungen",
     "subtitle": "Bleib auf dem Laufenden",

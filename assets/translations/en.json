@@ -127,6 +127,22 @@
     "noEvents": "No favorite events yet",
     "failedToLoad": "Failed to load favorites"
   },
+  "reviews": {
+    "title": "Reviews",
+    "writeReview": "Write a review",
+    "editYourReview": "Edit your review",
+    "updateReview": "Update review",
+    "submitReview": "Submit review",
+    "commentLabel": "Comment (optional)",
+    "commentHint": "Share details of your experience...",
+    "selectRatingError": "Please select a star rating",
+    "noReviewsYet": "No reviews yet — be the first!",
+    "failedToLoad": "Failed to load reviews",
+    "you": "You",
+    "anonymous": "Anonymous",
+    "deleteConfirmTitle": "Delete your review?",
+    "deleteConfirmBody": "This can't be undone."
+  },
   "notifications": {
     "title": "Notifications",
     "subtitle": "Stay up to date",

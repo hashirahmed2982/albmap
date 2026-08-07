@@ -21,6 +21,7 @@ class BusinessModel extends BusinessEntity {
     super.openingHours,
     super.tags,
     super.rating,
+    super.ratingCount,
     super.distanceKm,
   });
 
@@ -49,6 +50,7 @@ class BusinessModel extends BusinessEntity {
           const <String, String>{},
       tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const <String>[],
       rating: (json['rating'] as num?)?.toDouble(),
+      ratingCount: (json['ratingCount'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -60,6 +62,7 @@ class BusinessModel extends BusinessEntity {
       'longitude': longitude, 'status': status.name, 'phone': phone,
       'whatsappNumber': whatsappNumber,
       'logoUrl': logoUrl, 'openingHours': openingHours, 'tags': tags, 'rating': rating,
+      'ratingCount': ratingCount,
     };
   }
 

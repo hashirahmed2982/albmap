@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +26,10 @@ import '../../../favorites/presentation/providers/favorites_providers.dart';
 import '../../../map/domain/business_open_status.dart';
 import '../../../map/presentation/providers/business_providers.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
+import '../../../reviews/domain/entities/review_entity.dart';
+import '../../../reviews/presentation/providers/review_providers.dart';
+import '../../../reviews/presentation/widgets/review_card.dart';
+import '../../../reviews/presentation/widgets/write_review_sheet.dart';
 
 /// 4. Business Details Screen
 ///
@@ -143,6 +148,13 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                 const Icon(Icons.star_rounded, size: 18, color: AppColors.warning),
                                 const SizedBox(width: 4),
                                 Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                                if (business.ratingCount > 0) ...[
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '(${business.ratingCount})',
+                                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                                  ),
+                                ],
                               ],
                             ),
                           OpenStatusBadge(openingHours: business.openingHours),
@@ -254,6 +266,17 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                         loading: () => const LoadingIndicator(size: 20),
                         error: (_, __) => const SizedBox.shrink(),
                       ),
+                      const SizedBox(height: 24),
+
+                      _ReviewsSection(
+                        businessId: business.id,
+                        accent: accent,
+                        // Same gating as the favorite button above — any
+                        // signed-in non-guest account, not just business
+                        // owners (there's no separate "customer" role).
+                        canReview: canFavorite,
+                        currentUserId: authState.user?.id,
+                      ),
                     ],
                   ),
                 ),
@@ -304,6 +327,116 @@ class _InfoRow extends StatelessWidget {
           Expanded(child: Text(text, style: AppTextStyles.bodyMedium)),
         ],
       ),
+    );
+  }
+}
+
+/// Reviews list + "write/edit a review" entry point. A separate
+/// ConsumerWidget (rather than inlined in the build method above) so it
+/// only rebuilds off businessReviewsProvider — the parent's business
+/// details fetch doesn't need to re-run every time a review is added.
+class _ReviewsSection extends ConsumerWidget {
+  const _ReviewsSection({
+    required this.businessId,
+    required this.accent,
+    required this.canReview,
+    required this.currentUserId,
+  });
+
+  final String businessId;
+  final Color accent;
+  final bool canReview;
+  final String? currentUserId;
+
+  Future<void> _openWriteSheet(BuildContext context, WidgetRef ref, {ReviewEntity? existing}) async {
+    final bool? submitted = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => WriteReviewSheet(businessId: businessId, existingReview: existing),
+    );
+    if (submitted == true) {
+      // Refresh both this business's review list and its header rating
+      // badge (rating/ratingCount are recalculated server-side on write).
+      ref.invalidate(businessReviewsProvider(businessId));
+      ref.invalidate(businessDetailsProvider(businessId));
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('reviews.deleteConfirmTitle'.tr()),
+        content: Text('reviews.deleteConfirmBody'.tr()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('common.cancel'.tr())),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('common.delete'.tr(), style: const TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final String? error = await ref.read(reviewControllerProvider.notifier).delete(businessId);
+    if (!context.mounted) return;
+    if (error != null) {
+      AppToast.error(context, error);
+      return;
+    }
+    ref.invalidate(businessReviewsProvider(businessId));
+    ref.invalidate(businessDetailsProvider(businessId));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reviewsAsync = ref.watch(businessReviewsProvider(businessId));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('reviews.title'.tr(), style: AppTextStyles.h3)),
+            if (canReview)
+              reviewsAsync.maybeWhen(
+                data: (reviews) {
+                  final ReviewEntity? ownReview =
+                      reviews.where((r) => r.userId == currentUserId).firstOrNull;
+                  return TextButton.icon(
+                    onPressed: () => _openWriteSheet(context, ref, existing: ownReview),
+                    icon: Icon(ownReview != null ? Icons.edit_outlined : Icons.rate_review_outlined, size: 18),
+                    label: Text(ownReview != null ? 'reviews.editYourReview'.tr() : 'reviews.writeReview'.tr()),
+                  );
+                },
+                orElse: () => const SizedBox.shrink(),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        reviewsAsync.when(
+          loading: () => const LoadingIndicator(size: 20),
+          error: (_, __) => Text('reviews.failedToLoad'.tr(), style: AppTextStyles.bodySmall),
+          data: (reviews) {
+            if (reviews.isEmpty) {
+              return Text('reviews.noReviewsYet'.tr(), style: AppTextStyles.bodySmall);
+            }
+            return Column(
+              children: [
+                for (final review in reviews)
+                  ReviewCard(
+                    review: review,
+                    isOwnReview: review.userId == currentUserId,
+                    onEdit: () => _openWriteSheet(context, ref, existing: review),
+                    onDelete: () => _confirmDelete(context, ref),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }

@@ -22,6 +22,7 @@ class BusinessEntity extends Equatable {
     this.openingHours = const <String, String>{},
     this.tags = const <String>[],
     this.rating,
+    this.ratingCount = 0,
     this.distanceKm,
   });
 
@@ -43,6 +44,7 @@ class BusinessEntity extends Equatable {
   final Map<String, String> openingHours;
   final List<String> tags;
   final double? rating;
+  final int ratingCount;
   final double? distanceKm;
 
   /// Single display-friendly line — "Street, Postal Code City, Country" —
@@ -78,6 +80,7 @@ class BusinessEntity extends Equatable {
       openingHours: openingHours,
       tags: tags,
       rating: rating,
+      ratingCount: ratingCount,
       distanceKm: distanceKm ?? this.distanceKm,
     );
   }
@@ -85,6 +88,7 @@ class BusinessEntity extends Equatable {
   @override
   List<Object?> get props => <Object?>[
         id, ownerId, name, description, category, streetAddress, city, postalCode, country,
-        latitude, longitude, status, phone, whatsappNumber, logoUrl, openingHours, tags, rating, distanceKm,
+        latitude, longitude, status, phone, whatsappNumber, logoUrl, openingHours, tags, rating,
+        ratingCount, distanceKm,
       ];
 }

@@ -62,6 +62,13 @@ import '../../features/favorites/data/repositories/favorites_repository_impl.dar
 import '../../features/favorites/domain/repositories/favorites_repository.dart';
 import '../../features/favorites/domain/usecases/favorites_usecases.dart';
 
+// Reviews
+import '../../features/reviews/data/datasources/review_remote_datasource.dart';
+import '../../features/reviews/data/datasources/review_mock_datasource.dart';
+import '../../features/reviews/data/repositories/review_repository_impl.dart';
+import '../../features/reviews/domain/repositories/review_repository.dart';
+import '../../features/reviews/domain/usecases/review_usecases.dart';
+
 final GetIt sl = GetIt.instance;
 
 /// Registers every dependency exactly once at app startup.
@@ -202,4 +209,17 @@ Future<void> initServiceLocator() async {
   );
   sl.registerLazySingleton(() => ToggleFavoriteUseCase(sl()));
   sl.registerLazySingleton(() => GetFavoritesUseCase(sl()));
+
+  // ---------------- Reviews ----------------
+  sl.registerLazySingleton<ReviewRemoteDataSource>(
+    () => AppConstants.useMockData
+        ? ReviewMockDataSource()
+        : ReviewRemoteDataSourceImpl(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<ReviewRepository>(
+    () => ReviewRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+  );
+  sl.registerLazySingleton(() => GetBusinessReviewsUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitReviewUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteReviewUseCase(sl()));
 }

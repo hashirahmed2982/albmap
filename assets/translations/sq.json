@@ -127,6 +127,22 @@
     "noEvents": "Nuk ke ende evente të preferuara",
     "failedToLoad": "Dështoi ngarkimi i të preferuarave"
   },
+  "reviews": {
+    "title": "Vlerësimet",
+    "writeReview": "Shkruaj një vlerësim",
+    "editYourReview": "Ndrysho vlerësimin tënd",
+    "updateReview": "Përditëso vlerësimin",
+    "submitReview": "Dërgo vlerësimin",
+    "commentLabel": "Koment (opsionale)",
+    "commentHint": "Ndaj detaje rreth eksperiencës tënde...",
+    "selectRatingError": "Ju lutem zgjidhni një vlerësim me yje",
+    "noReviewsYet": "Ende pa vlerësime — bëhu i pari!",
+    "failedToLoad": "Dështoi ngarkimi i vlerësimeve",
+    "you": "Ti",
+    "anonymous": "Anonim",
+    "deleteConfirmTitle": "Të fshihet vlerësimi yt?",
+    "deleteConfirmBody": "Ky veprim nuk mund të kthehet mbrapsht."
+  },
   "notifications": {
     "title": "Njoftimet",
     "subtitle": "Qëndro i përditësuar",
