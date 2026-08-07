@@ -155,7 +155,11 @@
     "title": "Benachrichtigungen",
     "subtitle": "Bleib auf dem Laufenden",
     "markAllRead": "Alle als gelesen markieren",
-    "empty": "Noch keine Benachrichtigungen"
+    "empty": "Noch keine Benachrichtigungen",
+    "clearAll": "Alle löschen",
+    "clearAllConfirmTitle": "Alle Benachrichtigungen löschen?",
+    "clearAllConfirmBody": "Dadurch werden alle Benachrichtigungen aus deinem Feed entfernt. Dies kann nicht rückgängig gemacht werden.",
+    "deleteFailed": "Benachrichtigung konnte nicht gelöscht werden. Bitte versuche es erneut."
   },
   "profile": {
     "browsingAsGuest": "Als Gast unterwegs",

@@ -196,6 +196,8 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => GetNotificationFeedUseCase(sl()));
   sl.registerLazySingleton(() => MarkNotificationReadUseCase(sl()));
   sl.registerLazySingleton(() => MarkAllNotificationsReadUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteNotificationUseCase(sl()));
+  sl.registerLazySingleton(() => ClearAllNotificationsUseCase(sl()));
 
   // ---------------- Favorites ----------------
   sl.registerLazySingleton<FavoritesLocalDataSource>(

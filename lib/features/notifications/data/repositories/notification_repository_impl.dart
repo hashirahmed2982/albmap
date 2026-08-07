@@ -62,4 +62,28 @@ class NotificationRepositoryImpl implements NotificationRepository {
       return const Left(UnknownFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, void>> deleteNotification(String notificationId) async {
+    try {
+      await _remote.deleteNotification(notificationId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteAllNotifications() async {
+    try {
+      await _remote.deleteAllNotifications();
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
 }

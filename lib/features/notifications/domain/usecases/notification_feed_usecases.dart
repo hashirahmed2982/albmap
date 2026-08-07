@@ -33,3 +33,23 @@ class MarkAllNotificationsReadUseCase implements UseCase<void, NoParams> {
     return _repository.markAllAsRead();
   }
 }
+
+class DeleteNotificationUseCase implements UseCase<void, String> {
+  DeleteNotificationUseCase(this._repository);
+  final NotificationRepository _repository;
+
+  @override
+  Future<Either<Failure, void>> call(String notificationId) {
+    return _repository.deleteNotification(notificationId);
+  }
+}
+
+class ClearAllNotificationsUseCase implements UseCase<void, NoParams> {
+  ClearAllNotificationsUseCase(this._repository);
+  final NotificationRepository _repository;
+
+  @override
+  Future<Either<Failure, void>> call(NoParams params) {
+    return _repository.deleteAllNotifications();
+  }
+}

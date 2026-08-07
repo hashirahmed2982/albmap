@@ -155,7 +155,11 @@
     "title": "Notifications",
     "subtitle": "Stay up to date",
     "markAllRead": "Mark all read",
-    "empty": "No notifications yet"
+    "empty": "No notifications yet",
+    "clearAll": "Clear all",
+    "clearAllConfirmTitle": "Clear all notifications?",
+    "clearAllConfirmBody": "This removes every notification from your feed. This can't be undone.",
+    "deleteFailed": "Couldn't delete notification. Please try again."
   },
   "profile": {
     "browsingAsGuest": "Browsing as Guest",

@@ -34,6 +34,14 @@ abstract class NotificationRemoteDataSource {
 
   Future<void> markAsRead(String notificationId);
   Future<void> markAllAsRead();
+
+  /// Hides this notification from the current user's feed only (see
+  /// backend notification.service.js's deleteNotification) — the
+  /// underlying row is shared across recipients and is never touched.
+  Future<void> deleteNotification(String notificationId);
+
+  /// "Clear all" — hides every notification currently visible to this user.
+  Future<void> deleteAllNotifications();
 }
 
 class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
@@ -93,6 +101,30 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
       await _dio.post<dynamic>('/notifications/read-all');
     } on DioException catch (e) {
       throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to mark all as read');
+    }
+  }
+
+  @override
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      await _dio.delete<dynamic>('/notifications/$notificationId');
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to delete notification',
+        e.response?.statusCode,
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteAllNotifications() async {
+    try {
+      await _dio.delete<dynamic>('/notifications');
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to clear notifications',
+        e.response?.statusCode,
+      );
     }
   }
 }

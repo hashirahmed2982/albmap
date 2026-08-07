@@ -155,7 +155,11 @@
     "title": "Njoftimet",
     "subtitle": "Qëndro i përditësuar",
     "markAllRead": "Shëno të gjitha si të lexuara",
-    "empty": "Ende pa njoftime"
+    "empty": "Ende pa njoftime",
+    "clearAll": "Pastro të gjitha",
+    "clearAllConfirmTitle": "Të pastrohen të gjitha njoftimet?",
+    "clearAllConfirmBody": "Kjo heq çdo njoftim nga feed-i yt. Nuk mund të zhbëhet.",
+    "deleteFailed": "Njoftimi nuk u fshi dot. Provo përsëri."
   },
   "profile": {
     "browsingAsGuest": "Duke shfletuar si Vizitor",
