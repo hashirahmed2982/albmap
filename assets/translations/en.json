@@ -80,6 +80,7 @@
   "filter": {
     "title": "Filter businesses",
     "category": "Category",
+    "limitByDistance": "Limit by distance",
     "radius": "Radius: {} km",
     "sortBy": "Sort by",
     "distance": "Distance",
@@ -116,7 +117,13 @@
     "shareText": "Join {} — hosted by {}",
     "interestedCount": "{} interested",
     "interested": "Interested",
-    "imInterested": "I'm interested"
+    "imInterested": "I'm interested",
+    "filterByDate": "Filter by date",
+    "allUpcoming": "All upcoming",
+    "today": "Today",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "customRange": "Custom range"
   },
   "favorites": {
     "title": "Favorites",

@@ -206,30 +206,49 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     if (_submitted) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(title: Text('addBusiness.title'.tr())),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 96, height: 96,
-                  decoration: BoxDecoration(color: AppColors.pending.withValues(alpha: 0.12), shape: BoxShape.circle),
-                  child: const Icon(Icons.hourglass_top_rounded, size: 48, color: AppColors.pending),
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              GradientHeader(
+                child: Row(
+                  children: [
+                    Expanded(child: Text('addBusiness.title'.tr(), style: AppTextStyles.h1)),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Text('addBusiness.submittedTitle'.tr(), style: AppTextStyles.h2, textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-                Text(
-                  'addBusiness.submittedBody'.tr(),
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium,
+              ),
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 96, height: 96,
+                          decoration: BoxDecoration(color: AppColors.pending.withValues(alpha: 0.12), shape: BoxShape.circle),
+                          child: const Icon(Icons.hourglass_top_rounded, size: 48, color: AppColors.pending),
+                        ),
+                        const SizedBox(height: 20),
+                        Text('addBusiness.submittedTitle'.tr(), style: AppTextStyles.h2, textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        Text(
+                          'addBusiness.submittedBody'.tr(),
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyMedium,
+                        ),
+                        const SizedBox(height: 24),
+                        PrimaryButton(label: 'common.done'.tr(), onPressed: () => Navigator.of(context).pop()),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
-                PrimaryButton(label: 'common.done'.tr(), onPressed: () => Navigator.of(context).pop()),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );

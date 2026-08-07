@@ -12,18 +12,22 @@ class EventFilter {
   final DateTime? toDate;
   final String query;
 
+  bool get hasDateFilter => fromDate != null || toDate != null;
+
   EventFilter copyWith({
     String? category,
     String? businessId,
     DateTime? fromDate,
     DateTime? toDate,
     String? query,
+    bool clearFromDate = false,
+    bool clearToDate = false,
   }) {
     return EventFilter(
       category: category ?? this.category,
       businessId: businessId ?? this.businessId,
-      fromDate: fromDate ?? this.fromDate,
-      toDate: toDate ?? this.toDate,
+      fromDate: clearFromDate ? null : (fromDate ?? this.fromDate),
+      toDate: clearToDate ? null : (toDate ?? this.toDate),
       query: query ?? this.query,
     );
   }
@@ -41,9 +45,20 @@ final eventsProvider = FutureProvider.autoDispose<List<EventEntity>>((ref) async
     toDate: filter.toDate,
   ));
   final events = result.fold((_) => <EventEntity>[], (list) => list);
-  if (filter.query.trim().isEmpty) return events;
-  final q = filter.query.toLowerCase();
-  return events.where((e) => e.name.toLowerCase().contains(q)).toList();
+
+  // Finished events are never useful in the general browse list — the
+  // backend's from/to params only filter by startTime (so an ongoing
+  // multi-hour event whose startTime is already in the past wouldn't be
+  // excluded by them), so this checks endTime client-side instead, and
+  // applies unconditionally regardless of any explicit date filter above.
+  final now = DateTime.now();
+  Iterable<EventEntity> visible = events.where((e) => e.endTime.isAfter(now));
+
+  if (filter.query.trim().isNotEmpty) {
+    final q = filter.query.trim().toLowerCase();
+    visible = visible.where((e) => e.name.toLowerCase().contains(q));
+  }
+  return visible.toList();
 });
 
 class CreateEventController extends StateNotifier<AsyncValue<void>> {

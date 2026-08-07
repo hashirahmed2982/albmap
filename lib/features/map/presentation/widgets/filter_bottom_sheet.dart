@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -50,12 +51,27 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
                 ),
             ],
           ),
-          const SizedBox(height: 20),
-          Text('filter.radius'.tr(args: [_draft.radiusKm.toStringAsFixed(0)]), style: AppTextStyles.bodyMedium),
-          Slider(
-            value: _draft.radiusKm, min: 1, max: 50, divisions: 49,
-            onChanged: (v) => setState(() => _draft = _draft.copyWith(radiusKm: v)),
+          const SizedBox(height: 12),
+          // Off by default (see BusinessFilter.radiusKm's doc) — discovery
+          // shows every business worldwide until this is explicitly
+          // turned on, rather than silently restricting to a distance
+          // bubble the user never asked for.
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: AppColors.primary,
+            title: Text('filter.limitByDistance'.tr(), style: AppTextStyles.bodyMedium),
+            value: _draft.radiusKm != null,
+            onChanged: (on) => setState(() {
+              _draft = _draft.copyWith(radiusKm: on ? 10 : null, clearRadius: !on);
+            }),
           ),
+          if (_draft.radiusKm != null) ...[
+            Text('filter.radius'.tr(args: [_draft.radiusKm!.toStringAsFixed(0)]), style: AppTextStyles.bodyMedium),
+            Slider(
+              value: _draft.radiusKm!, min: 1, max: 50, divisions: 49,
+              onChanged: (v) => setState(() => _draft = _draft.copyWith(radiusKm: v)),
+            ),
+          ],
           const SizedBox(height: 12),
           Text('filter.sortBy'.tr(), style: AppTextStyles.bodyMedium),
           const SizedBox(height: 8),

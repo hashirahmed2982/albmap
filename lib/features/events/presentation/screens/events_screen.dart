@@ -10,6 +10,7 @@ import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/event_providers.dart';
+import '../widgets/event_date_filter_sheet.dart';
 import 'event_list_tile.dart';
 
 /// 5. Events Screen — browse & filter upcoming events.
@@ -34,6 +35,7 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
     final eventsAsync = ref.watch(eventsProvider);
     final authState = ref.watch(authControllerProvider);
     final bool canCreate = authState.user?.isBusinessUser ?? false;
+    final bool hasDateFilter = ref.watch(eventFilterProvider.select((f) => f.hasDateFilter));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -56,25 +58,66 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
                   const SizedBox(height: 4),
                   Text('events.subtitle'.tr(), style: AppTextStyles.bodyMedium),
                   const SizedBox(height: 14),
-                  SizedBox(
-                    height: 52,
-                    child: Material(
-                      elevation: 2,
-                      shadowColor: Colors.black.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(16),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (v) => ref.read(eventFilterProvider.notifier).update(
-                              (state) => state.copyWith(query: v),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 52,
+                          child: Material(
+                            elevation: 2,
+                            shadowColor: Colors.black.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (v) => ref.read(eventFilterProvider.notifier).update(
+                                    (state) => state.copyWith(query: v),
+                                  ),
+                              decoration: InputDecoration(
+                                hintText: 'events.searchHint'.tr(),
+                                prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                              ),
                             ),
-                        decoration: InputDecoration(
-                          hintText: 'events.searchHint'.tr(),
-                          prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        height: 52,
+                        width: 52,
+                        child: Material(
+                          elevation: 2,
+                          shadowColor: Colors.black.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(16),
+                          color: AppColors.surface,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
+                                onPressed: () => showModalBottomSheet<void>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  builder: (_) => const EventDateFilterSheet(),
+                                ),
+                              ),
+                              if (hasDateFilter)
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

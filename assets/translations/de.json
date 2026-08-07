@@ -80,6 +80,7 @@
   "filter": {
     "title": "Unternehmen filtern",
     "category": "Kategorie",
+    "limitByDistance": "Nach Entfernung begrenzen",
     "radius": "Umkreis: {} km",
     "sortBy": "Sortieren nach",
     "distance": "Entfernung",
@@ -116,7 +117,13 @@
     "shareText": "Nimm teil an {} — veranstaltet von {}",
     "interestedCount": "{} interessiert",
     "interested": "Interessiert",
-    "imInterested": "Interessiert mich"
+    "imInterested": "Interessiert mich",
+    "filterByDate": "Nach Datum filtern",
+    "allUpcoming": "Alle kommenden",
+    "today": "Heute",
+    "thisWeek": "Diese Woche",
+    "thisMonth": "Diesen Monat",
+    "customRange": "Benutzerdefinierter Zeitraum"
   },
   "favorites": {
     "title": "Favoriten",

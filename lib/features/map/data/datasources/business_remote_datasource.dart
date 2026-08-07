@@ -41,6 +41,13 @@ class BusinessRemoteDataSourceImpl implements BusinessRemoteDataSource {
           if (userLat != null) 'lat': userLat,
           if (userLng != null) 'lng': userLng,
           'sortBy': sortBy,
+          // The backend defaults to a 20-row page when this is omitted
+          // (see business.service.js's DEFAULT_PAGE_SIZE) — fine for a
+          // radius-limited local search, but with no radius filter (the
+          // default — see BusinessFilter.radiusKm) discovery is meant to
+          // show every business worldwide, so ask for its max page size
+          // instead of silently truncating to the first 20 rows returned.
+          'limit': 100,
         },
       );
       return (response.data['data'] as List<dynamic>)

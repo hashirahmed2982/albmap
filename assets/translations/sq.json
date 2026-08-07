@@ -80,6 +80,7 @@
   "filter": {
     "title": "Filtro bizneset",
     "category": "Kategoria",
+    "limitByDistance": "Kufizo sipas distancës",
     "radius": "Rrezja: {} km",
     "sortBy": "Rendit sipas",
     "distance": "Distanca",
@@ -116,7 +117,13 @@
     "shareText": "Bashkohu në {} — organizuar nga {}",
     "interestedCount": "{} të interesuar",
     "interested": "I interesuar",
-    "imInterested": "Jam i interesuar"
+    "imInterested": "Jam i interesuar",
+    "filterByDate": "Filtro sipas datës",
+    "allUpcoming": "Të gjitha të ardhshmet",
+    "today": "Sot",
+    "thisWeek": "Këtë javë",
+    "thisMonth": "Këtë muaj",
+    "customRange": "Interval i personalizuar"
   },
   "favorites": {
     "title": "Të preferuara",

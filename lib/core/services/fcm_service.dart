@@ -1,11 +1,19 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../di/service_locator.dart';
 import '../router/app_router.dart';
 import '../utils/app_logger.dart';
 import 'fcm_token_repository.dart';
+
+/// Same SharedPreferences key SettingsController persists
+/// "Enable notifications" under (see settings_providers.dart) — read
+/// directly here rather than through Riverpod since FcmService is a
+/// plain singleton with no `ref` of its own (same reasoning as the
+/// GoRouter bridge below).
+const String _kNotificationsEnabledPrefKey = 'notif_enabled';
 
 /// Every device subscribes to this topic — matches the backend's
 /// ALL_USERS_TOPIC constant (see albmap-backend/src/modules/notifications/fcm.js).
@@ -55,10 +63,17 @@ class FcmService {
         debugPrint('FCM permission status: ${settings.authorizationStatus}');
       }
 
-      // Every device gets broadcasts — this is what makes an admin-approved
-      // notification actually reach everyone, matching the backend sending
-      // to this exact topic name on approval.
-      await messaging.subscribeToTopic(kAllUsersTopic);
+      // Every device gets broadcasts by default — this is what makes an
+      // admin-approved notification actually reach everyone, matching the
+      // backend sending to this exact topic name on approval — *unless*
+      // the user had already turned "Enable notifications" off in
+      // Settings on a previous run, in which case respect that from the
+      // very first subscribe rather than briefly subscribing them anyway.
+      final prefs = await SharedPreferences.getInstance();
+      final bool notificationsEnabled = prefs.getBool(_kNotificationsEnabledPrefKey) ?? true;
+      if (notificationsEnabled) {
+        await messaging.subscribeToTopic(kAllUsersTopic);
+      }
 
       await _registerCurrentToken();
       messaging.onTokenRefresh.listen((_) => _registerCurrentToken());
@@ -142,6 +157,27 @@ class FcmService {
       await sl<FcmTokenRepository>().registerToken(token);
     } catch (err) {
       if (kDebugMode) debugPrint('FCM token registration failed (non-fatal): $err');
+    }
+  }
+
+  /// Called from SettingsController when the user flips "Enable
+  /// notifications" — previously this toggle only wrote a SharedPreferences
+  /// value nothing else ever read, so turning it off didn't actually stop
+  /// anything. Un/subscribing this device from the broadcast topic here
+  /// means an admin-sent broadcast genuinely stops/resumes reaching this
+  /// device, live, without needing an app restart.
+  Future<void> setBroadcastNotificationsEnabled(bool enabled) async {
+    try {
+      if (enabled) {
+        await FirebaseMessaging.instance.subscribeToTopic(kAllUsersTopic);
+      } else {
+        await FirebaseMessaging.instance.unsubscribeFromTopic(kAllUsersTopic);
+      }
+    } catch (err) {
+      // Same non-fatal-degradation philosophy as initialize() — a failed
+      // (un)subscribe (offline, missing platform config) shouldn't block
+      // the Settings screen from saving the user's choice.
+      if (kDebugMode) debugPrint('FCM topic (un)subscribe failed (non-fatal): $err');
     }
   }
 }
