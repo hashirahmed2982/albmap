@@ -10,6 +10,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -288,7 +289,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                               ? ClipRRect(
                                                   borderRadius: BorderRadius.circular(16),
                                                   child: AppConstants.isRemoteMediaPath(_imageUrl)
-                                                      ? Image.network(AppConstants.resolveMediaUrl(_imageUrl)!, height: 100, width: double.infinity, fit: BoxFit.cover)
+                                                      ? AppNetworkImage(url: AppConstants.resolveMediaUrl(_imageUrl)!, height: 100, width: double.infinity)
                                                       : Image.file(File(_imageUrl!), height: 100, width: double.infinity, fit: BoxFit.cover),
                                                 )
                                               : Text('addEvent.addImage'.tr()),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -69,7 +70,16 @@ class ProfileScreen extends ConsumerWidget {
                 child: CircleAvatar(
                   radius: 48,
                   backgroundColor: AppColors.surface,
-                  backgroundImage: user?.profileImageUrl != null ? NetworkImage(user!.profileImageUrl!) : null,
+                  // Was passing user.profileImageUrl straight to
+                  // NetworkImage — the backend returns a server-relative
+                  // path ("/uploads/xxx.png"), not an absolute URL, so
+                  // this silently failed to load (NetworkImage requires a
+                  // fully-qualified URI) even when EditProfileScreen's
+                  // identical avatar — which does resolve it — showed
+                  // correctly right next to it.
+                  backgroundImage: AppConstants.resolveMediaUrl(user?.profileImageUrl) != null
+                      ? NetworkImage(AppConstants.resolveMediaUrl(user?.profileImageUrl)!)
+                      : null,
                   child: Icon(
                     isGuest ? Icons.person_outline : Icons.person,
                     size: 48,
@@ -86,7 +96,12 @@ class ProfileScreen extends ConsumerWidget {
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       icon: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                      onPressed: () {}, // wire image_picker
+                      // This used to be a dead button (onPressed: () {})
+                      // — tapping it visibly did nothing. Edit Profile
+                      // already has a working, tested avatar picker/
+                      // upload flow, so route there instead of
+                      // duplicating that logic in a second place.
+                      onPressed: () => context.push(AppRoutes.editProfile),
                     ),
                   ),
                 ),

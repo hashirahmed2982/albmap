@@ -13,6 +13,7 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
@@ -285,7 +286,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
                                         child: AppConstants.isRemoteMediaPath(_logoUrl)
-                                            ? Image.network(AppConstants.resolveMediaUrl(_logoUrl)!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                                            ? AppNetworkImage(url: AppConstants.resolveMediaUrl(_logoUrl)!, height: 120, width: double.infinity)
                                             : Image.file(File(_logoUrl!), height: 120, width: double.infinity, fit: BoxFit.cover),
                                       )
                                     : Column(

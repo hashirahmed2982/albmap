@@ -9,6 +9,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -75,7 +76,7 @@ class EventDetailsScreen extends ConsumerWidget {
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: event.imageUrl != null
-                      ? Image.network(AppConstants.resolveMediaUrl(event.imageUrl)!, fit: BoxFit.cover)
+                      ? AppNetworkImage(url: AppConstants.resolveMediaUrl(event.imageUrl)!)
                       : Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(

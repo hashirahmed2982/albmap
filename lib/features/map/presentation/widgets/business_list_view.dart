@@ -6,6 +6,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/shimmer_skeleton.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../categories/domain/category_translations.dart';
@@ -136,7 +137,12 @@ class BusinessCard extends StatelessWidget {
                   child: business.logoUrl != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: Image.network(AppConstants.resolveMediaUrl(business.logoUrl)!, fit: BoxFit.cover),
+                          child: AppNetworkImage(
+                            url: AppConstants.resolveMediaUrl(business.logoUrl)!,
+                            width: 56,
+                            height: 56,
+                            backgroundColor: accent.withValues(alpha: 0.12),
+                          ),
                         )
                       : Icon(categoryIcon(business.category), color: accent, size: 26),
                 ),

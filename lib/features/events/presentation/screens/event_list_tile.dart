@@ -6,6 +6,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/entities/event_entity.dart';
 
 IconData eventCategoryIcon(String category) {
@@ -80,7 +81,12 @@ class EventListTile extends StatelessWidget {
                   child: event.imageUrl != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: Image.network(AppConstants.resolveMediaUrl(event.imageUrl)!, fit: BoxFit.cover),
+                          child: AppNetworkImage(
+                            url: AppConstants.resolveMediaUrl(event.imageUrl)!,
+                            width: 60,
+                            height: 60,
+                            backgroundColor: accent.withValues(alpha: 0.12),
+                          ),
                         )
                       : Icon(eventCategoryIcon(event.category), color: accent, size: 26),
                 ),

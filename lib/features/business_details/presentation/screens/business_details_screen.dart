@@ -11,6 +11,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/url_launcher_helper.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
 import '../../../../core/widgets/state_widgets.dart';
@@ -93,7 +94,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: business.logoUrl != null
-                      ? Image.network(AppConstants.resolveMediaUrl(business.logoUrl)!, fit: BoxFit.cover)
+                      ? AppNetworkImage(url: AppConstants.resolveMediaUrl(business.logoUrl)!)
                       : Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
