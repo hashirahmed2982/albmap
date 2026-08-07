@@ -94,13 +94,22 @@ class FcmService {
   }
 
   /// Maps a tapped notification to the screen it's actually about.
-  /// `type`/`relatedId` mirror NotificationModel.fromJson's field names
-  /// (notification_model.dart) — the reasonable assumption, absent a
-  /// documented push-payload contract, is that the backend sends the same
-  /// shape in the FCM `data` map as it does in the REST feed. Falls back
-  /// to the Notifications screen for a type this doesn't recognize (or a
-  /// missing relatedId) rather than doing nothing, which is what every
-  /// notification tap did before this existed.
+  ///
+  /// Confirmed against the real backend (albmap-backend/src/modules/
+  /// notifications/notification.service.js) — the FCM `data` payload is
+  /// NOT the same shape as the REST feed's NotificationModel fields (an
+  /// earlier version of this guessed `relatedId`, which the backend
+  /// never actually sends): `sendToTopic` is called with
+  /// `data: { type: 'business_offer', businessId, notificationId }` for
+  /// an approved public broadcast, and `data: { type: 'business_status',
+  /// businessId }` for a personal approval/rejection notice. There is no
+  /// event-related push today (only the two call sites above exist
+  /// server-side), so `businessId` is the only id key ever actually
+  /// present right now.
+  ///
+  /// Falls back to the Notifications screen for a type this doesn't
+  /// recognize (or a missing businessId) rather than doing nothing,
+  /// which is what every notification tap did before this existed.
   void _handleNotificationTap(RemoteMessage message) {
     final router = _router;
     if (router == null) {
@@ -110,19 +119,13 @@ class FcmService {
 
     try {
       final String type = message.data['type'] as String? ?? 'general';
-      final String? relatedId = message.data['relatedId'] as String?;
+      final String? businessId = message.data['businessId'] as String?;
 
       switch (type) {
         case 'business_offer':
-        case 'business_approved':
-        case 'business_rejected':
-          if (relatedId != null && relatedId.isNotEmpty) {
-            router.push(AppRoutes.businessDetailsPath(relatedId));
-            return;
-          }
-        case 'event_reminder':
-          if (relatedId != null && relatedId.isNotEmpty) {
-            router.push(AppRoutes.eventDetailsPath(relatedId));
+        case 'business_status':
+          if (businessId != null && businessId.isNotEmpty) {
+            router.push(AppRoutes.businessDetailsPath(businessId));
             return;
           }
       }
