@@ -98,7 +98,9 @@
     "notFound": "Biznesi nuk u gjet",
     "failedToLoad": "Dështoi ngarkimi i biznesit",
     "shareText": "Shiko {} në AlbMap!",
-    "kmAway": "{} km larg"
+    "kmAway": "{} km larg",
+    "openNow": "Hapur tani",
+    "closedNow": "Mbyllur"
   },
   "events": {
     "title": "Evente",
@@ -280,6 +282,7 @@
     "submit": "Dërgo eventin",
     "noBusinessTitle": "Të duhet një biznes i aprovuar para se të krijosh evente",
     "completeAllFields": "Ju lutemi plotësoni të gjitha fushat",
+    "selectCategoryError": "Ju lutemi zgjidhni një kategori",
     "endBeforeStart": "Ora e mbarimit duhet të jetë pas orës së fillimit",
     "failedToCreate": "Dështoi krijimi i eventit"
   },

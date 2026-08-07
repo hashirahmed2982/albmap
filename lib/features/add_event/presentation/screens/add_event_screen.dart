@@ -18,6 +18,7 @@ import '../../../../core/widgets/selection_field.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../categories/domain/category_translations.dart';
+import '../../../categories/presentation/providers/category_providers.dart';
 import '../../../events/domain/entities/event_entity.dart';
 import '../../../events/domain/usecases/event_usecases.dart';
 import '../../../events/presentation/providers/event_providers.dart';
@@ -38,7 +39,13 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
   final _descController = TextEditingController();
 
   BusinessEntity? _selectedBusiness;
-  String _category = 'General';
+  // Was a hardcoded, event-only list ('General', 'Music', ...) disconnected
+  // from the same backend categories table Add Business already used —
+  // now driven by categoryNamesProvider like everywhere else, so there's
+  // exactly one source of truth for what categories exist. No longer
+  // defaults to a guessed value, since nothing guarantees the backend's
+  // list still contains a category literally named 'General'.
+  String? _category;
   DateTime? _startDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -47,8 +54,6 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
   bool _loadingBusinesses = true;
   String? _imageUrl;
   bool _isUploadingImage = false;
-
-  static const List<String> _categories = ['General', 'Music', 'Food', 'Sports', 'Workshop', 'Community'];
 
   @override
   void initState() {
@@ -139,7 +144,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
       businessName: _selectedBusiness!.name,
       name: _nameController.text.trim(),
       description: _descController.text.trim(),
-      category: _category,
+      category: _category!,
       startTime: startDateTime,
       endTime: endDateTime,
       imageUrl: _imageUrl,
@@ -224,10 +229,11 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                   label: 'addEvent.category'.tr(),
                                   selectedValue: _category,
                                   options: [
-                                    for (final c in _categories)
+                                    for (final c in ref.watch(categoryNamesProvider))
                                       SelectionOption(value: c, label: localizedCategoryName(context, c)),
                                   ],
-                                  onChanged: (v) => setState(() => _category = v ?? 'General'),
+                                  onChanged: (v) => setState(() => _category = v),
+                                  validator: (v) => v == null ? 'addEvent.selectCategoryError'.tr() : null,
                                 ),
                                 const SizedBox(height: 20),
                                 Container(

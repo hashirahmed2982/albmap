@@ -10,45 +10,17 @@ import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/shimmer_skeleton.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../categories/domain/category_translations.dart';
+import '../../../categories/domain/category_visuals.dart';
+import '../../domain/business_open_status.dart';
 import '../../domain/entities/business_entity.dart';
 
-IconData categoryIcon(String category) {
-  switch (category) {
-    case 'Restaurants':
-      return Icons.restaurant_outlined;
-    case 'Cafes':
-      return Icons.coffee_outlined;
-    case 'Shops':
-      return Icons.storefront_outlined;
-    case 'Services':
-      return Icons.build_outlined;
-    case 'Health':
-      return Icons.fitness_center_outlined;
-    case 'Entertainment':
-      return Icons.local_movies_outlined;
-    default:
-      return Icons.category_outlined;
-  }
-}
+// Thin wrappers so existing call sites (map pins, dashboards, category
+// pickers) don't all need an import change — the real logic now lives in
+// CategoryVisuals, driven by the backend's category list instead of a
+// hardcoded switch over a fixed set of category names.
+IconData categoryIcon(String category) => CategoryVisuals.iconFor(category);
 
-Color categoryColor(String category) {
-  switch (category) {
-    case 'Restaurants':
-      return const Color(0xFFFF7043);
-    case 'Cafes':
-      return const Color(0xFF8D6E63);
-    case 'Shops':
-      return const Color(0xFF66BB6A);
-    case 'Services':
-      return const Color(0xFF42A5F5);
-    case 'Health':
-      return const Color(0xFFEC407A);
-    case 'Entertainment':
-      return const Color(0xFFAB47BC);
-    default:
-      return AppColors.primary;
-  }
-}
+Color categoryColor(String category) => CategoryVisuals.colorFor(category);
 
 /// Scrollable, pull-to-refresh business list — the shared "browse
 /// businesses" visual language used by Discover's List view and Favorites.
@@ -153,18 +125,26 @@ class BusinessCard extends StatelessWidget {
                     children: [
                       Text(business.name, style: AppTextStyles.h3, maxLines: 1, overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          localizedCategoryName(context, business.category),
-                          style: AppTextStyles.caption.copyWith(color: accent, fontWeight: FontWeight.w600),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              localizedCategoryName(context, business.category),
+                              style: AppTextStyles.caption.copyWith(color: accent, fontWeight: FontWeight.w600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          OpenStatusBadge(openingHours: business.openingHours, dense: true),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       Row(

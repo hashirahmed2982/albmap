@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../categories/domain/category_translations.dart';
+import '../../domain/business_open_status.dart';
 import '../../domain/entities/business_entity.dart';
 
 /// Quick-info card shown when a map marker is tapped.
@@ -57,7 +58,15 @@ class BusinessMarkerSheet extends StatelessWidget {
                     children: [
                       Text(business.name, style: AppTextStyles.h3, maxLines: 1, overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
-                      Text(localizedCategoryName(context, business.category), style: AppTextStyles.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 2,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(localizedCategoryName(context, business.category), style: AppTextStyles.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          OpenStatusBadge(openingHours: business.openingHours, dense: true),
+                        ],
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         children: [

@@ -98,7 +98,9 @@
     "notFound": "Business not found",
     "failedToLoad": "Failed to load business",
     "shareText": "Check out {} on AlbMap!",
-    "kmAway": "{} km away"
+    "kmAway": "{} km away",
+    "openNow": "Open now",
+    "closedNow": "Closed"
   },
   "events": {
     "title": "Events",
@@ -280,6 +282,7 @@
     "submit": "Submit event",
     "noBusinessTitle": "You need an approved business before creating events",
     "completeAllFields": "Please complete all fields",
+    "selectCategoryError": "Please select a category",
     "endBeforeStart": "End time must be after the start time",
     "failedToCreate": "Failed to create event"
   },

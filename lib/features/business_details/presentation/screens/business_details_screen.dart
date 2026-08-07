@@ -22,6 +22,7 @@ import '../../../dashboard/presentation/providers/analytics_providers.dart';
 import '../../../events/presentation/providers/event_providers.dart';
 import '../../../events/presentation/screens/event_list_tile.dart';
 import '../../../favorites/presentation/providers/favorites_providers.dart';
+import '../../../map/domain/business_open_status.dart';
 import '../../../map/presentation/providers/business_providers.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
 
@@ -144,6 +145,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                 Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
                               ],
                             ),
+                          OpenStatusBadge(openingHours: business.openingHours),
                         ],
                       ),
                       const SizedBox(height: 20),
