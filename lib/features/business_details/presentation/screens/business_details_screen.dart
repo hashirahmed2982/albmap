@@ -73,6 +73,12 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
 
           final Color accent = categoryColor(business.category);
           final eventsAsync = ref.watch(eventsProvider);
+          // Was hardcoded to always show the outline heart regardless of
+          // whether this business was already favorited — toggling it
+          // worked (the sync/persistence was fine), it just never
+          // reflected the current state back visually.
+          final bool isFavorite =
+              canFavorite && ref.watch(businessIsFavoriteProvider(business.id));
 
           return CustomScrollView(
             slivers: [
@@ -83,7 +89,10 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                 actions: [
                   if (canFavorite)
                     IconButton(
-                      icon: const Icon(Icons.favorite_border, color: Colors.white),
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? AppColors.primary : Colors.white,
+                      ),
                       onPressed: () async {
                         final error = await ref
                             .read(favoriteToggleControllerProvider.notifier)

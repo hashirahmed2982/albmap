@@ -79,6 +79,7 @@
   },
   "filter": {
     "title": "Filtro bizneset",
+    "clearAll": "Pastro të gjitha",
     "category": "Kategoria",
     "limitByDistance": "Kufizo sipas distancës",
     "radius": "Rrezja: {} km",

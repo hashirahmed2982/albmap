@@ -79,6 +79,7 @@
   },
   "filter": {
     "title": "Unternehmen filtern",
+    "clearAll": "Alle löschen",
     "category": "Kategorie",
     "limitByDistance": "Nach Entfernung begrenzen",
     "radius": "Umkreis: {} km",

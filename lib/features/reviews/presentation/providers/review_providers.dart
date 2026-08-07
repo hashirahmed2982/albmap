@@ -52,7 +52,15 @@ class ReviewController extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final reviewControllerProvider =
-    StateNotifierProvider.autoDispose<ReviewController, AsyncValue<void>>(
+// Deliberately NOT autoDispose (matches favoriteToggleControllerProvider) —
+// every call site only ever does `ref.read(...).submit(...)`/`.delete(...)`,
+// never `ref.watch`s this provider, so an autoDispose version had zero
+// listeners keeping it alive and could get torn down mid-flight: the
+// controller's `state = ...` after the awaited network call would throw
+// "Tried to use ReviewController after `dispose` was called" once the
+// review had actually already been created/deleted server-side — leaving
+// the caller's `await submit(...)` never completing (so its loading
+// spinner never cleared) even though the write had succeeded.
+final reviewControllerProvider = StateNotifierProvider<ReviewController, AsyncValue<void>>(
   (ref) => ReviewController(),
 );

@@ -79,6 +79,7 @@
   },
   "filter": {
     "title": "Filter businesses",
+    "clearAll": "Clear all",
     "category": "Category",
     "limitByDistance": "Limit by distance",
     "radius": "Radius: {} km",

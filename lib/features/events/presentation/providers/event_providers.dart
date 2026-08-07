@@ -104,7 +104,10 @@ class EventInterestController extends StateNotifier<AsyncValue<void>> {
   }
 }
 
+// Not autoDispose — same reasoning as reviewControllerProvider: every call
+// site only ever `ref.read()`s this, never watches it, so an autoDispose
+// version has nothing keeping it alive during the awaited network call.
 final eventInterestControllerProvider =
-    StateNotifierProvider.autoDispose<EventInterestController, AsyncValue<void>>(
+    StateNotifierProvider<EventInterestController, AsyncValue<void>>(
   (ref) => EventInterestController(),
 );

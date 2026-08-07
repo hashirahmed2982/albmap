@@ -42,7 +42,6 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   String _localQuery = '';
-  String? _selectedCategory;
   _ViewMode _viewMode = _ViewMode.map;
   Timer? _searchDebounce;
 
@@ -112,17 +111,17 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     }
   }
 
-  List<BusinessEntity> _byCategory(List<BusinessEntity> all) {
-    if (_selectedCategory == null) return all;
-    return all.where((b) => b.category == _selectedCategory).toList();
+  List<BusinessEntity> _byCategory(List<BusinessEntity> all, String? category) {
+    if (category == null) return all;
+    return all.where((b) => b.category == category).toList();
   }
 
   /// Local, instant name filter over whatever's already loaded for the
   /// current map radius — used as-is for short queries, and as a
   /// no-flicker placeholder while the real backend search (below) is
   /// still in flight for a longer query.
-  List<BusinessEntity> _localFiltered(List<BusinessEntity> all) {
-    final Iterable<BusinessEntity> byCategory = _byCategory(all);
+  List<BusinessEntity> _localFiltered(List<BusinessEntity> all, String? category) {
+    final Iterable<BusinessEntity> byCategory = _byCategory(all, category);
     final q = _localQuery.trim().toLowerCase();
     if (q.isEmpty) return byCategory.toList();
     return byCategory.where((b) => b.name.toLowerCase().contains(q)).toList();
@@ -132,6 +131,12 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   Widget build(BuildContext context) {
     final listState = ref.watch(businessListControllerProvider);
     final String trimmedQuery = _localQuery.trim();
+    // Single source of truth for "which category is selected" — shared
+    // with FilterBottomSheet via businessFilterProvider (previously this
+    // screen's quick-category chips tracked their own separate local
+    // field, so picking a category here didn't show up when the filter
+    // sheet was opened, and vice versa).
+    final String? selectedCategory = ref.watch(businessFilterProvider).category;
 
     List<BusinessEntity> displayed;
     if (trimmedQuery.length >= _minSearchQueryLength) {
@@ -142,19 +147,19 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
       // since the search endpoint only takes a text query.
       final searchAsync = ref.watch(businessSearchResultsProvider);
       displayed = searchAsync.when(
-        data: _byCategory,
+        data: (all) => _byCategory(all, selectedCategory),
         // Keep showing the last-known local-filtered list while a new
         // debounced search is loading, rather than flashing an empty
         // "no results" state on every keystroke.
-        loading: () => _localFiltered(listState.businesses),
+        loading: () => _localFiltered(listState.businesses, selectedCategory),
         // Search failed (offline, server error) — fall back to filtering
         // what's already loaded rather than showing a dead end; this
         // mirrors the "never crash for a degraded feature" pattern used
         // for location/Firebase elsewhere in the app.
-        error: (_, __) => _localFiltered(listState.businesses),
+        error: (_, __) => _localFiltered(listState.businesses, selectedCategory),
       );
     } else {
-      displayed = _localFiltered(listState.businesses);
+      displayed = _localFiltered(listState.businesses, selectedCategory);
     }
 
     return Scaffold(
@@ -163,7 +168,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
         top: false,
         child: Column(
           children: [
-            _buildHeader(context, resultCount: displayed.length),
+            _buildHeader(context, resultCount: displayed.length, selectedCategory: selectedCategory),
             Expanded(
               child: _viewMode == _ViewMode.list
                   ? BusinessListView(
@@ -182,7 +187,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     );
   }
 
-  Widget _buildHeader(BuildContext context, {required int resultCount}) {
+  Widget _buildHeader(BuildContext context, {required int resultCount, required String? selectedCategory}) {
     final List<String> quickCategories = ref.watch(categoryNamesProvider);
     return Container(
       decoration: BoxDecoration(
@@ -277,8 +282,10 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                     label: 'common.all'.tr(),
                     color: AppColors.primary,
                     icon: Icons.apps_rounded,
-                    selected: _selectedCategory == null,
-                    onTap: () => setState(() => _selectedCategory = null),
+                    selected: selectedCategory == null,
+                    onTap: () => ref.read(businessFilterProvider.notifier).update(
+                          (f) => f.copyWith(clearCategory: true),
+                        ),
                   );
                 }
                 final category = quickCategories[i - 1];
@@ -286,8 +293,10 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                   label: localizedCategoryName(context, category),
                   color: categoryColor(category),
                   icon: categoryIcon(category),
-                  selected: _selectedCategory == category,
-                  onTap: () => setState(() => _selectedCategory = category),
+                  selected: selectedCategory == category,
+                  onTap: () => ref.read(businessFilterProvider.notifier).update(
+                        (f) => f.copyWith(category: category),
+                      ),
                 );
               },
             ),

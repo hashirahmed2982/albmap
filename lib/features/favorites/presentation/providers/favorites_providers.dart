@@ -15,6 +15,29 @@ final favoritesProvider = FutureProvider.autoDispose<FavoritesResult>((ref) asyn
   );
 });
 
+/// Whether the given business/event is currently favorited — derived from
+/// [favoritesProvider] (rather than a separate network call per item) so
+/// Business/Event Details' favorite button can show its real state
+/// (filled heart) instead of always rendering the outline icon regardless
+/// of whether it was already favorited, which is what both screens did
+/// before this existed. Recomputes automatically whenever
+/// FavoriteToggleController invalidates favoritesProvider after a toggle.
+final businessIsFavoriteProvider = Provider.autoDispose.family<bool, String>((ref, businessId) {
+  final favoritesAsync = ref.watch(favoritesProvider);
+  return favoritesAsync.maybeWhen(
+    data: (result) => result.businesses.any((b) => b.id == businessId),
+    orElse: () => false,
+  );
+});
+
+final eventIsFavoriteProvider = Provider.autoDispose.family<bool, String>((ref, eventId) {
+  final favoritesAsync = ref.watch(favoritesProvider);
+  return favoritesAsync.maybeWhen(
+    data: (result) => result.events.any((e) => e.id == eventId),
+    orElse: () => false,
+  );
+});
+
 class FavoriteToggleController extends StateNotifier<AsyncValue<void>> {
   FavoriteToggleController(this._ref) : super(const AsyncValue.data(null));
   final Ref _ref;

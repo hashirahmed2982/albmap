@@ -23,8 +23,16 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
   @override
   void initState() {
     super.initState();
+    // Seeded from businessFilterProvider — the same provider Discover
+    // Map's own quick-category chips now read/write directly, so
+    // whichever one was used last (chips or this sheet) is what shows
+    // selected here, and vice versa; they're no longer two separate,
+    // silently-out-of-sync pieces of state.
     _draft = ref.read(businessFilterProvider);
   }
+
+  bool get _hasActiveFilter =>
+      _draft.category != null || _draft.radiusKm != null || _draft.sortBy != 'distance';
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +42,27 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('filter.title'.tr(), style: AppTextStyles.h3),
-          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: Text('filter.title'.tr(), style: AppTextStyles.h3)),
+              if (_hasActiveFilter)
+                TextButton(
+                  onPressed: () => setState(() => _draft = const BusinessFilter()),
+                  child: Text('filter.clearAll'.tr()),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
           Text('filter.category'.tr(), style: AppTextStyles.bodyMedium),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8, runSpacing: 8,
             children: [
+              ChoiceChip(
+                label: Text('common.all'.tr()),
+                selected: _draft.category == null,
+                onSelected: (_) => setState(() => _draft = _draft.copyWith(clearCategory: true)),
+              ),
               for (final c in categoryNames)
                 ChoiceChip(
                   label: Text(localizedCategoryName(context, c)),

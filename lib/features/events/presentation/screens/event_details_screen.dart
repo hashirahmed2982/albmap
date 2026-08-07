@@ -51,6 +51,10 @@ class EventDetailsScreen extends ConsumerWidget {
           if (event == null) return ErrorStateWidget(message: 'events.notFound'.tr());
 
           final Color accent = eventCategoryColor(event.category);
+          // Was hardcoded to always show the outline heart regardless of
+          // whether this event was already favorited (same gap as
+          // Business Details' identical button).
+          final bool isFavorite = canFavorite && ref.watch(eventIsFavoriteProvider(event.id));
 
           return CustomScrollView(
             slivers: [
@@ -61,7 +65,10 @@ class EventDetailsScreen extends ConsumerWidget {
                 actions: [
                   if (canFavorite)
                     IconButton(
-                      icon: const Icon(Icons.favorite_border, color: Colors.white),
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? AppColors.primary : Colors.white,
+                      ),
                       onPressed: () async {
                         final error =
                             await ref.read(favoriteToggleControllerProvider.notifier).toggleEvent(event);
