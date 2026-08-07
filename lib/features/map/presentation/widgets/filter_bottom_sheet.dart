@@ -80,7 +80,7 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
           // bubble the user never asked for.
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            activeThumbColor: AppColors.primary,
+            activeTrackColor: AppColors.primary,
             title: Text('filter.limitByDistance'.tr(), style: AppTextStyles.bodyMedium),
             value: _draft.radiusKm != null,
             onChanged: (on) => setState(() {
