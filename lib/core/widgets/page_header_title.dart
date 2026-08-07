@@ -20,6 +20,7 @@ class PageHeaderTitle extends StatelessWidget {
     this.accent = AppColors.primary,
     this.showBackButton = true,
     this.backIcon = Icons.arrow_back,
+    this.iconBadgeSize = 44,
     this.onBack,
     this.trailing,
   });
@@ -29,6 +30,15 @@ class PageHeaderTitle extends StatelessWidget {
   final IconData? icon;
   final Color accent;
   final bool showBackButton;
+
+  /// Side length of the [icon] badge box (the glyph itself scales with
+  /// it, at roughly half). Defaults to 44, but a screen whose subtitle is
+  /// long/variable-length content rather than a short fixed string (e.g.
+  /// a business's own name on My Businesses/Business Dashboard/Edit
+  /// Business) should pass a smaller value — otherwise the badge + back
+  /// button can eat enough width that the title/subtitle get pushed into
+  /// an ellipsis even for a moderately long business name.
+  final double iconBadgeSize;
 
   /// Icon for the back button — defaults to a back arrow, but a screen
   /// that's a terminal/success step (e.g. "business submitted") rather
@@ -52,13 +62,13 @@ class PageHeaderTitle extends StatelessWidget {
         ],
         if (icon != null) ...[
           Container(
-            width: 44,
-            height: 44,
+            width: iconBadgeSize,
+            height: iconBadgeSize,
             decoration: BoxDecoration(
               color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(iconBadgeSize * 0.32),
             ),
-            child: Icon(icon, color: accent, size: 22),
+            child: Icon(icon, color: accent, size: iconBadgeSize * 0.5),
           ),
           const SizedBox(width: 12),
         ],

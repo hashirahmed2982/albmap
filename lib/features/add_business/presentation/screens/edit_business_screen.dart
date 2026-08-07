@@ -216,6 +216,8 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                   subtitle: _original!.name,
                   icon: categoryIcon(_original!.category),
                   accent: categoryColor(_original!.category),
+                  // Subtitle is the business's own (variable-length) name.
+                  iconBadgeSize: 32,
                 ),
               ),
               Padding(

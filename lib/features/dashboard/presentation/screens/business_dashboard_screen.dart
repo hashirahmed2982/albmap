@@ -43,6 +43,10 @@ class BusinessDashboardScreen extends ConsumerWidget {
                     subtitle: business.name,
                     icon: categoryIcon(business.category),
                     accent: accent,
+                    // Subtitle here is the business's own (variable-length)
+                    // name — a smaller badge leaves it real room instead
+                    // of ellipsizing a name that isn't even especially long.
+                    iconBadgeSize: 32,
                   ),
                 ),
                 Expanded(

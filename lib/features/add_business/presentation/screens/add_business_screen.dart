@@ -217,6 +217,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                   icon: Icons.storefront_rounded,
                   accent: AppColors.secondary,
                   backIcon: Icons.close_rounded,
+                  iconBadgeSize: 32,
                 ),
               ),
               Expanded(
@@ -268,6 +269,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                   subtitle: 'addBusiness.subtitle'.tr(),
                   icon: Icons.storefront_rounded,
                   accent: AppColors.secondary,
+                  iconBadgeSize: 32,
                 ),
               ),
               Padding(

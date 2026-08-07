@@ -80,6 +80,11 @@ class MyBusinessesScreen extends ConsumerWidget {
                 subtitle: 'myBusinesses.subtitle'.tr(),
                 icon: Icons.dashboard_rounded,
                 accent: AppColors.primary,
+                // Smaller badge on business-management screens — the
+                // default 44px badge plus the back button was eating
+                // enough width that this subtitle ellipsized even at a
+                // normal phone width.
+                iconBadgeSize: 32,
               ),
             ),
             Expanded(
