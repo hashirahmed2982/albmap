@@ -110,7 +110,12 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  // Bottom padding includes the device's safe-area inset
+                  // (home indicator / gesture bar) — this screen has no
+                  // bottom nav bar or app bar to absorb it, so without this
+                  // the last row of content sits flush against the very
+                  // edge of the screen on notched devices.
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

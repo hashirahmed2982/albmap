@@ -65,30 +65,33 @@ Future<T?> showSelectionBottomSheet<T>({
                 ),
                 const Divider(height: 1),
                 Expanded(
-                  child: ListView.separated(
-                    controller: scrollController,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: options.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 20, endIndent: 20),
-                    itemBuilder: (context, index) {
-                      final option = options[index];
-                      final bool isSelected = option.value == selectedValue;
-                      return ListTile(
-                        onTap: () => Navigator.of(context).pop(option.value),
-                        leading: option.icon != null
-                            ? Icon(option.icon, color: isSelected ? AppColors.primary : AppColors.textSecondary)
-                            : null,
-                        title: Text(
-                          option.label,
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  child: SafeArea(
+                    top: false,
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: options.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, indent: 20, endIndent: 20),
+                      itemBuilder: (context, index) {
+                        final option = options[index];
+                        final bool isSelected = option.value == selectedValue;
+                        return ListTile(
+                          onTap: () => Navigator.of(context).pop(option.value),
+                          leading: option.icon != null
+                              ? Icon(option.icon, color: isSelected ? AppColors.primary : AppColors.textSecondary)
+                              : null,
+                          title: Text(
+                            option.label,
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            ),
                           ),
-                        ),
-                        subtitle: option.subtitle != null ? Text(option.subtitle!, style: AppTextStyles.bodySmall) : null,
-                        trailing: isSelected ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20) : null,
-                      );
-                    },
+                          subtitle: option.subtitle != null ? Text(option.subtitle!, style: AppTextStyles.bodySmall) : null,
+                          trailing: isSelected ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20) : null,
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],

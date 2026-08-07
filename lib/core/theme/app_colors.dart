@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const Color primary = Color(0xFFE31320); // deep teal
-  static const Color primaryLight = Color(0xFFE31320);
-  static const Color primaryDark = Color(0xFFFF0000);
-
+  static const Color primary = Color(0xFFE31320); // brand red
+  // Real tint/shade of `primary`, not copies of it — these back the
+  // header gradients (primaryDark -> primary) and dark-mode surfaces, so
+  // they need actual luminance separation from primary to read as a
+  // gradient/depth cue instead of a flat block of identical color.
+  static const Color primaryLight = Color(0xFFEB5A63);
+  static const Color primaryDark = Color(0xFFAA0E18);
 
   static const Color secondary = Color(0xFFFF8A3D); // warm accent
   static const Color secondaryLight = Color(0xFFFFB07A);

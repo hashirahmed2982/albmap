@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../categories/domain/category_translations.dart';
 import '../../../categories/presentation/providers/category_providers.dart';
@@ -28,13 +29,8 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
   Widget build(BuildContext context) {
     final categoryNames = ref.watch(categoryNamesProvider);
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20, right: 20, top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
+    return AppBottomSheet(
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('filter.title'.tr(), style: AppTextStyles.h3),

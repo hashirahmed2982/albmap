@@ -92,7 +92,10 @@ class EventDetailsScreen extends ConsumerWidget {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  // Bottom padding includes the safe-area inset (home
+                  // indicator / gesture bar) — no bottom nav or app bar
+                  // here to absorb it otherwise.
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
