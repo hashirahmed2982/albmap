@@ -6,6 +6,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/shimmer_skeleton.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../categories/domain/category_translations.dart';
 import '../../domain/entities/business_entity.dart';
@@ -69,7 +70,7 @@ class BusinessListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading && businesses.isEmpty) {
-      return const LoadingIndicator();
+      return const BusinessListSkeleton();
     }
     if (errorMessage != null && businesses.isEmpty) {
       return ErrorStateWidget(message: errorMessage!, onRetry: onRetry);
