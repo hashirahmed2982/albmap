@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/url_launcher_helper.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 
 /// 13. About Us Screen — mission, vision, legal links, social media.
 class AboutUsScreen extends StatelessWidget {
@@ -20,12 +21,10 @@ class AboutUsScreen extends StatelessWidget {
           padding: EdgeInsets.zero,
           children: [
             GradientHeader(
-              child: Row(
-                children: [
-                  IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                  const SizedBox(width: 4),
-                  Text('aboutUs.title'.tr(), style: AppTextStyles.h1),
-                ],
+              child: PageHeaderTitle(
+                title: 'aboutUs.title'.tr(),
+                icon: Icons.info_rounded,
+                accent: AppColors.secondary,
               ),
             ),
             Padding(

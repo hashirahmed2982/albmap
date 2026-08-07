@@ -17,6 +17,7 @@ import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -211,14 +212,11 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
           child: Column(
             children: [
               GradientHeader(
-                child: Row(
-                  children: [
-                    Expanded(child: Text('addBusiness.title'.tr(), style: AppTextStyles.h1)),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
+                child: PageHeaderTitle(
+                  title: 'addBusiness.title'.tr(),
+                  icon: Icons.storefront_rounded,
+                  accent: AppColors.secondary,
+                  backIcon: Icons.close_rounded,
                 ),
               ),
               Expanded(
@@ -265,20 +263,11 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GradientHeader(
-                child: Row(
-                  children: [
-                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('addBusiness.title'.tr(), style: AppTextStyles.h1),
-                          Text('addBusiness.subtitle'.tr(), style: AppTextStyles.bodyMedium),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: PageHeaderTitle(
+                  title: 'addBusiness.title'.tr(),
+                  subtitle: 'addBusiness.subtitle'.tr(),
+                  icon: Icons.storefront_rounded,
+                  accent: AppColors.secondary,
                 ),
               ),
               Padding(

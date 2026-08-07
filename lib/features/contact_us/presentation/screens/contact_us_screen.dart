@@ -7,6 +7,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
 
@@ -66,12 +67,10 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GradientHeader(
-                child: Row(
-                  children: [
-                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                    const SizedBox(width: 4),
-                    Text('contactUs.title'.tr(), style: AppTextStyles.h1),
-                  ],
+                child: PageHeaderTitle(
+                  title: 'contactUs.title'.tr(),
+                  icon: Icons.mail_rounded,
+                  accent: AppColors.info,
                 ),
               ),
               Padding(

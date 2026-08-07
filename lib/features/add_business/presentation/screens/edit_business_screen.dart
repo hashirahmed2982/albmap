@@ -11,6 +11,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
 import '../../../../core/widgets/state_widgets.dart';
@@ -210,20 +211,11 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GradientHeader(
-                child: Row(
-                  children: [
-                    IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('editBusiness.title'.tr(), style: AppTextStyles.h1),
-                          Text(_original!.name, style: AppTextStyles.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: PageHeaderTitle(
+                  title: 'editBusiness.title'.tr(),
+                  subtitle: _original!.name,
+                  icon: categoryIcon(_original!.category),
+                  accent: categoryColor(_original!.category),
                 ),
               ),
               Padding(

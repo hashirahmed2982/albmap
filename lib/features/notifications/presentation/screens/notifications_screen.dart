@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../providers/notifications_providers.dart';
@@ -63,24 +64,17 @@ class NotificationsScreen extends ConsumerWidget {
         child: Column(
           children: [
             GradientHeader(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('notifications.title'.tr(), style: AppTextStyles.h1),
-                        const SizedBox(height: 4),
-                        Text('notifications.subtitle'.tr(), style: AppTextStyles.bodyMedium),
-                      ],
-                    ),
-                  ),
-                  if (state.unreadCount > 0)
-                    TextButton(
-                      onPressed: () => ref.read(notificationsControllerProvider.notifier).markAllAsRead(),
-                      child: Text('notifications.markAllRead'.tr()),
-                    ),
-                ],
+              child: PageHeaderTitle(
+                title: 'notifications.title'.tr(),
+                subtitle: 'notifications.subtitle'.tr(),
+                icon: Icons.notifications_rounded,
+                showBackButton: false,
+                trailing: state.unreadCount > 0
+                    ? TextButton(
+                        onPressed: () => ref.read(notificationsControllerProvider.notifier).markAllAsRead(),
+                        child: Text('notifications.markAllRead'.tr()),
+                      )
+                    : null,
               ),
             ),
             Expanded(

@@ -32,17 +32,6 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  String _freqLabel(NotificationFrequency freq) {
-    switch (freq) {
-      case NotificationFrequency.always:
-        return 'settings.always'.tr();
-      case NotificationFrequency.daily:
-        return 'settings.daily'.tr();
-      case NotificationFrequency.weekly:
-        return 'settings.weekly'.tr();
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsControllerProvider);
@@ -87,20 +76,10 @@ class SettingsScreen extends ConsumerWidget {
                 SwitchListTile(
                   activeColor: AppColors.primary,
                   title: Text('settings.enableNotifications'.tr()),
+                  subtitle: Text('settings.enableNotificationsDesc'.tr()),
                   value: settings.notificationsEnabled,
                   onChanged: controller.setNotificationsEnabled,
                 ),
-                if (settings.notificationsEnabled)
-                  for (final freq in NotificationFrequency.values)
-                    RadioListTile<NotificationFrequency>(
-                      value: freq,
-                      groupValue: settings.notificationFrequency,
-                      activeColor: AppColors.primary,
-                      title: Text(_freqLabel(freq)),
-                      onChanged: (f) {
-                        if (f != null) controller.setNotificationFrequency(f);
-                      },
-                    ),
               ],
             ),
             _SettingsSection(

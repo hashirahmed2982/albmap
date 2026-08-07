@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/fcm_service.dart';
 // Cross-feature import, and business_providers.dart imports this file
 // right back (to read locationEnabled inside LocationController.refresh)
@@ -20,25 +19,21 @@ import '../../../map/presentation/providers/business_providers.dart';
 class SettingsState {
   const SettingsState({
     this.notificationsEnabled = true,
-    this.notificationFrequency = NotificationFrequency.always,
     this.locationEnabled = true,
     this.themeMode = ThemeMode.system,
   });
 
   final bool notificationsEnabled;
-  final NotificationFrequency notificationFrequency;
   final bool locationEnabled;
   final ThemeMode themeMode;
 
   SettingsState copyWith({
     bool? notificationsEnabled,
-    NotificationFrequency? notificationFrequency,
     bool? locationEnabled,
     ThemeMode? themeMode,
   }) {
     return SettingsState(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
-      notificationFrequency: notificationFrequency ?? this.notificationFrequency,
       locationEnabled: locationEnabled ?? this.locationEnabled,
       themeMode: themeMode ?? this.themeMode,
     );
@@ -54,17 +49,12 @@ class SettingsController extends StateNotifier<SettingsState> {
   final Ref _ref;
 
   static const _kNotifEnabled = 'notif_enabled';
-  static const _kNotifFreq = 'notif_freq';
   static const _kLocationEnabled = 'location_enabled';
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     state = SettingsState(
       notificationsEnabled: prefs.getBool(_kNotifEnabled) ?? true,
-      notificationFrequency: NotificationFrequency.values.firstWhere(
-        (f) => f.name == (prefs.getString(_kNotifFreq) ?? 'always'),
-        orElse: () => NotificationFrequency.always,
-      ),
       locationEnabled: prefs.getBool(_kLocationEnabled) ?? true,
     );
   }
@@ -79,12 +69,6 @@ class SettingsController extends StateNotifier<SettingsState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kNotifEnabled, enabled);
     await FcmService.instance.setBroadcastNotificationsEnabled(enabled);
-  }
-
-  Future<void> setNotificationFrequency(NotificationFrequency freq) async {
-    state = state.copyWith(notificationFrequency: freq);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kNotifFreq, freq.name);
   }
 
   /// Previously this only wrote a SharedPreferences value LocationController

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../map/presentation/providers/business_providers.dart';
@@ -37,20 +38,11 @@ class BusinessDashboardScreen extends ConsumerWidget {
             child: Column(
               children: [
                 GradientHeader(
-                  child: Row(
-                    children: [
-                      IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('dashboard.title'.tr(), style: AppTextStyles.h1),
-                            Text(business.name, style: AppTextStyles.bodyMedium),
-                          ],
-                        ),
-                      ),
-                    ],
+                  child: PageHeaderTitle(
+                    title: 'dashboard.title'.tr(),
+                    subtitle: business.name,
+                    icon: categoryIcon(business.category),
+                    accent: accent,
                   ),
                 ),
                 Expanded(

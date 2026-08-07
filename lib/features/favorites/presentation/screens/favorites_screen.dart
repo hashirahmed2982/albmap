@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
+import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../events/presentation/screens/event_list_tile.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
@@ -50,9 +51,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('favorites.title'.tr(), style: AppTextStyles.h1),
-                  const SizedBox(height: 4),
-                  Text('favorites.subtitle'.tr(), style: AppTextStyles.bodyMedium),
+                  PageHeaderTitle(
+                    title: 'favorites.title'.tr(),
+                    subtitle: 'favorites.subtitle'.tr(),
+                    icon: Icons.favorite_rounded,
+                    accent: AppColors.error,
+                    showBackButton: false,
+                  ),
                   const SizedBox(height: 12),
                   TabBar(
                     controller: _tabController,
