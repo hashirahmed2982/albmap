@@ -47,6 +47,12 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildHeader(BuildContext context, WidgetRef ref, {required bool isGuest}) {
     final user = ref.watch(authControllerProvider).user;
+    // Was passing user.profileImageUrl straight to NetworkImage — the
+    // backend returns a server-relative path ("/uploads/xxx.png"), not an
+    // absolute URL, so this silently failed to load (NetworkImage requires
+    // a fully-qualified URI) even when EditProfileScreen's identical
+    // avatar — which does resolve it — showed correctly right next to it.
+    final String? resolvedAvatarUrl = AppConstants.resolveMediaUrl(user?.profileImageUrl);
 
     return Container(
       width: double.infinity,
@@ -71,21 +77,19 @@ class ProfileScreen extends ConsumerWidget {
                 child: CircleAvatar(
                   radius: 48,
                   backgroundColor: AppColors.surface,
-                  // Was passing user.profileImageUrl straight to
-                  // NetworkImage — the backend returns a server-relative
-                  // path ("/uploads/xxx.png"), not an absolute URL, so
-                  // this silently failed to load (NetworkImage requires a
-                  // fully-qualified URI) even when EditProfileScreen's
-                  // identical avatar — which does resolve it — showed
-                  // correctly right next to it.
-                  backgroundImage: AppConstants.resolveMediaUrl(user?.profileImageUrl) != null
-                      ? NetworkImage(AppConstants.resolveMediaUrl(user?.profileImageUrl)!)
+                  backgroundImage: resolvedAvatarUrl != null ? NetworkImage(resolvedAvatarUrl) : null,
+                  // CircleAvatar always paints `child` on top of
+                  // `backgroundImage` — this was set unconditionally
+                  // before, so the person icon covered a real profile
+                  // picture whenever one was set. Only fall back to the
+                  // icon when there's no image to show.
+                  child: resolvedAvatarUrl == null
+                      ? Icon(
+                          isGuest ? Icons.person_outline : Icons.person,
+                          size: 48,
+                          color: AppColors.primary,
+                        )
                       : null,
-                  child: Icon(
-                    isGuest ? Icons.person_outline : Icons.person,
-                    size: 48,
-                    color: AppColors.primary,
-                  ),
                 ),
               ),
               if (!isGuest)
