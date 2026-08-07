@@ -22,6 +22,7 @@ import '../../features/contact_us/presentation/screens/contact_us_screen.dart';
 import '../../features/about_us/presentation/screens/about_us_screen.dart';
 import '../../features/dashboard/presentation/screens/my_businesses_screen.dart';
 import '../../features/dashboard/presentation/screens/business_dashboard_screen.dart';
+import '../services/fcm_service.dart';
 import '../widgets/main_shell.dart';
 
 /// Route path constants — reference these instead of hardcoding strings
@@ -66,7 +67,7 @@ class _AuthRefreshNotifier extends ChangeNotifier {
 final goRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _AuthRefreshNotifier(ref);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: AppRoutes.splash,
     refreshListenable: refreshNotifier,
     redirect: (BuildContext context, GoRouterState state) {
@@ -192,4 +193,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Bridge for FcmService (a plain singleton with no BuildContext of its
+  // own) to navigate when a push notification is tapped — see
+  // FcmService._handleNotificationTap.
+  FcmService.instance.attachRouter(router);
+
+  return router;
 });

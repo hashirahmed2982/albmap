@@ -1,7 +1,10 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 
 import '../di/service_locator.dart';
+import '../router/app_router.dart';
+import '../utils/app_logger.dart';
 import 'fcm_token_repository.dart';
 
 /// Every device subscribes to this topic — matches the backend's
@@ -26,6 +29,15 @@ class FcmService {
   static final FcmService instance = FcmService._();
 
   bool _initialized = false;
+  GoRouter? _router;
+
+  /// Wired from goRouterProvider once the app's GoRouter is built — see
+  /// the comment there. FcmService is a plain singleton (reachable from
+  /// AuthController, which has no BuildContext of its own to navigate
+  /// with), not a Riverpod object, so this is the bridge between the two.
+  void attachRouter(GoRouter router) {
+    _router = router;
+  }
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -59,11 +71,64 @@ class FcmService {
       FirebaseMessaging.onMessage.listen((message) {
         if (kDebugMode) debugPrint('FCM foreground message: ${message.notification?.title}');
       });
+
+      // Background: app was running but not foregrounded, user taps the
+      // system notification banner. Previously unhandled entirely — the
+      // tap just brought the app to whatever screen it already had open,
+      // never the business/event the notification was actually about.
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+
+      // Cold start: app was fully terminated and the tap is what launched
+      // it. Same gap as above, plus this is the case that's easy to
+      // forget entirely since onMessageOpenedApp alone never fires for it.
+      final initialMessage = await messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleNotificationTap(initialMessage);
+      }
     } catch (err, stack) {
       // Anything here — missing platform config, permission denied,
       // network failure — degrades to "push notifications don't arrive,"
       // never to a crash.
       if (kDebugMode) debugPrint('FCM initialization failed (non-fatal): $err\n$stack');
+    }
+  }
+
+  /// Maps a tapped notification to the screen it's actually about.
+  /// `type`/`relatedId` mirror NotificationModel.fromJson's field names
+  /// (notification_model.dart) — the reasonable assumption, absent a
+  /// documented push-payload contract, is that the backend sends the same
+  /// shape in the FCM `data` map as it does in the REST feed. Falls back
+  /// to the Notifications screen for a type this doesn't recognize (or a
+  /// missing relatedId) rather than doing nothing, which is what every
+  /// notification tap did before this existed.
+  void _handleNotificationTap(RemoteMessage message) {
+    final router = _router;
+    if (router == null) {
+      AppLogger.warning('Notification tapped before router was attached; dropping deep link.');
+      return;
+    }
+
+    try {
+      final String type = message.data['type'] as String? ?? 'general';
+      final String? relatedId = message.data['relatedId'] as String?;
+
+      switch (type) {
+        case 'business_offer':
+        case 'business_approved':
+        case 'business_rejected':
+          if (relatedId != null && relatedId.isNotEmpty) {
+            router.push(AppRoutes.businessDetailsPath(relatedId));
+            return;
+          }
+        case 'event_reminder':
+          if (relatedId != null && relatedId.isNotEmpty) {
+            router.push(AppRoutes.eventDetailsPath(relatedId));
+            return;
+          }
+      }
+      router.push(AppRoutes.notifications);
+    } catch (err, stack) {
+      AppLogger.warning('Failed to handle notification tap', err, stack);
     }
   }
 
