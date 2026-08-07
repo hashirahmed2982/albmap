@@ -352,14 +352,15 @@
   },
   "aboutUs": {
     "title": "About Us",
-    "tagline": "Discover local businesses & events around you",
-    "missionTitle": "Our mission",
-    "missionBody": "AlbMap connects communities with the local businesses and events that make their neighborhoods vibrant — making discovery effortless for guests and giving business owners the tools to reach the people around them.",
-    "visionTitle": "Our vision",
-    "visionBody": "To become the go-to platform for local discovery — one map, every community.",
     "privacyPolicy": "Privacy Policy",
     "terms": "Terms & Conditions",
     "followUs": "Follow us"
+  },
+  "privacyPolicy": {
+    "title": "Privacy Policy"
+  },
+  "termsConditions": {
+    "title": "Terms & Conditions"
   },
   "locationPicker": {
     "title": "Set business location",

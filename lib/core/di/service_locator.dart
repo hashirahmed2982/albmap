@@ -33,6 +33,13 @@ import '../../features/categories/data/repositories/category_repository_impl.dar
 import '../../features/categories/domain/repositories/category_repository.dart';
 import '../../features/categories/domain/usecases/get_categories_usecase.dart';
 
+// Site content (About Us, social links, Privacy Policy, Terms & Conditions)
+import '../../features/content/data/datasources/content_remote_datasource.dart';
+import '../../features/content/data/datasources/content_mock_datasource.dart';
+import '../../features/content/data/repositories/content_repository_impl.dart';
+import '../../features/content/domain/repositories/content_repository.dart';
+import '../../features/content/domain/usecases/get_site_content_usecase.dart';
+
 // Events
 import '../../features/events/data/datasources/event_remote_datasource.dart';
 import '../../features/events/data/datasources/event_mock_datasource.dart';
@@ -156,6 +163,17 @@ Future<void> initServiceLocator() async {
     () => CategoryRepositoryImpl(dataSource: sl()),
   );
   sl.registerLazySingleton(() => GetCategoriesUseCase(sl()));
+
+  // ---------------- Site content ----------------
+  sl.registerLazySingleton<ContentDataSource>(
+    () => AppConstants.useMockData
+        ? ContentMockDataSource()
+        : ContentRemoteDataSourceImpl(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<ContentRepository>(
+    () => ContentRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetSiteContentUseCase(sl()));
 
   // ---------------- Dashboard / Analytics ----------------
   sl.registerLazySingleton<AnalyticsDataSource>(

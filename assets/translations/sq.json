@@ -352,14 +352,15 @@
   },
   "aboutUs": {
     "title": "Rreth Nesh",
-    "tagline": "Zbulo biznese & evente lokale rreth teje",
-    "missionTitle": "Misioni ynë",
-    "missionBody": "AlbMap lidh komunitetet me bizneset dhe eventet lokale që i bëjnë lagjet e tyre të gjalla — duke e bërë zbulimin të lehtë për vizitorët dhe duke u dhënë pronarëve të bizneseve mjetet për të arritur njerëzit rreth tyre.",
-    "visionTitle": "Vizioni ynë",
-    "visionBody": "Të bëhemi platforma kryesore për zbulimin lokal — një hartë, çdo komunitet.",
     "privacyPolicy": "Politika e Privatësisë",
     "terms": "Kushtet & Kushtet e Përdorimit",
     "followUs": "Na ndiq"
+  },
+  "privacyPolicy": {
+    "title": "Politika e Privatësisë"
+  },
+  "termsConditions": {
+    "title": "Kushtet & Kushtet e Përdorimit"
   },
   "locationPicker": {
     "title": "Vendos vendndodhjen e biznesit",

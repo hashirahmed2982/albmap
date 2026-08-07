@@ -355,14 +355,15 @@
   },
   "aboutUs": {
     "title": "Über uns",
-    "tagline": "Entdecke lokale Unternehmen & Veranstaltungen in deiner Nähe",
-    "missionTitle": "Unsere Mission",
-    "missionBody": "AlbMap verbindet Gemeinschaften mit den lokalen Unternehmen und Veranstaltungen, die ihre Nachbarschaften lebendig machen — und macht die Entdeckung für Gäste mühelos, während Unternehmern die Werkzeuge gegeben werden, um die Menschen um sie herum zu erreichen.",
-    "visionTitle": "Unsere Vision",
-    "visionBody": "Die führende Plattform für lokale Entdeckungen zu werden — eine Karte, jede Gemeinschaft.",
     "privacyPolicy": "Datenschutzrichtlinie",
     "terms": "Allgemeine Geschäftsbedingungen",
     "followUs": "Folge uns"
+  },
+  "privacyPolicy": {
+    "title": "Datenschutzrichtlinie"
+  },
+  "termsConditions": {
+    "title": "Allgemeine Geschäftsbedingungen"
   },
   "locationPicker": {
     "title": "Unternehmensstandort festlegen",

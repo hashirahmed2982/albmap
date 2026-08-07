@@ -20,6 +20,8 @@ import '../../features/add_event/presentation/screens/add_event_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/contact_us/presentation/screens/contact_us_screen.dart';
 import '../../features/about_us/presentation/screens/about_us_screen.dart';
+import '../../features/content/presentation/screens/privacy_policy_screen.dart';
+import '../../features/content/presentation/screens/terms_conditions_screen.dart';
 import '../../features/dashboard/presentation/screens/my_businesses_screen.dart';
 import '../../features/dashboard/presentation/screens/business_dashboard_screen.dart';
 import '../services/fcm_service.dart';
@@ -44,6 +46,8 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String contactUs = '/contact-us';
   static const String aboutUs = '/about-us';
+  static const String privacyPolicy = '/privacy-policy';
+  static const String termsConditions = '/terms-conditions';
   static const String myBusinesses = '/my-businesses';
   static const String businessDashboard = '/dashboard/:id';
   static const String editProfile = '/edit-profile';
@@ -144,6 +148,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.aboutUs,
         builder: (context, state) => const AboutUsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.privacyPolicy,
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.termsConditions,
+        builder: (context, state) => const TermsConditionsScreen(),
       ),
       GoRoute(
         path: AppRoutes.myBusinesses,
