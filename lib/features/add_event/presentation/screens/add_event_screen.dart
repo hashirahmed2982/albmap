@@ -205,6 +205,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _nameController,
+                                  maxLength: 30,
                                   decoration: InputDecoration(labelText: 'addEvent.eventName'.tr()),
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                                 ),
@@ -212,6 +213,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 TextFormField(
                                   controller: _descController,
                                   maxLines: 4,
+                                  maxLength: 300,
                                   decoration: InputDecoration(labelText: 'addEvent.description'.tr()),
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                                 ),

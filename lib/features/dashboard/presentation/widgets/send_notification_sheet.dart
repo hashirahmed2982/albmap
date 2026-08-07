@@ -87,14 +87,14 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
           const SizedBox(height: 20),
           TextFormField(
             controller: _titleController,
-            maxLength: 60,
+            maxLength: 150,
             decoration: InputDecoration(labelText: 'sendNotification.titleLabel'.tr(), hintText: 'sendNotification.titleHint'.tr()),
             validator: (v) => Validators.required(v, 'common.required'.tr()),
           ),
           TextFormField(
             controller: _messageController,
             maxLines: 3,
-            maxLength: 200,
+            maxLength: 500,
             decoration: InputDecoration(labelText: 'sendNotification.message'.tr()),
             validator: (v) => Validators.required(v, 'common.required'.tr()),
           ),

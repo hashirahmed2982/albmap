@@ -161,6 +161,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         children: [
                           TextFormField(
                             controller: _nameController,
+                            maxLength: 150,
                             decoration: InputDecoration(labelText: 'editProfile.fullName'.tr()),
                             validator: (v) => Validators.required(v, 'common.required'.tr()),
                           ),
@@ -168,6 +169,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
+                            maxLength: 30,
                             decoration: InputDecoration(labelText: 'editProfile.phone'.tr()),
                             validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                           ),

@@ -140,6 +140,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                           if (_isSignUpMode) ...[
                             TextFormField(
                               controller: _nameController,
+                              maxLength: 150,
                               decoration: InputDecoration(labelText: 'auth.fullName'.tr()),
                               validator: (v) => Validators.required(v, 'auth.nameRequired'.tr()),
                             ),
@@ -148,6 +149,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            maxLength: 255,
                             decoration: InputDecoration(labelText: 'auth.email'.tr()),
                             validator: (v) => Validators.email(
                               v,
@@ -159,6 +161,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            maxLength: 72,
                             decoration: InputDecoration(
                               labelText: 'auth.password'.tr(),
                               suffixIcon: IconButton(

@@ -73,6 +73,7 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
                             borderRadius: BorderRadius.circular(16),
                             child: TextField(
                               controller: _searchController,
+                              maxLength: 100,
                               onChanged: (v) => ref.read(eventFilterProvider.notifier).update(
                                     (state) => state.copyWith(query: v),
                                   ),
@@ -80,6 +81,9 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
                                 hintText: 'events.searchHint'.tr(),
                                 prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                                 border: InputBorder.none,
+                                // Same fixed-height-pill reasoning as Discover
+                                // Map's search field — suppress the counter.
+                                counterText: '',
                                 contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                               ),
                             ),

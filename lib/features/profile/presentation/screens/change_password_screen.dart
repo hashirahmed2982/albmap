@@ -88,6 +88,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                       TextFormField(
                         controller: _currentController,
                         obscureText: _obscureCurrent,
+                        maxLength: 72,
                         decoration: InputDecoration(
                           labelText: 'changePassword.current'.tr(),
                           suffixIcon: IconButton(
@@ -101,6 +102,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                       TextFormField(
                         controller: _newController,
                         obscureText: _obscureNew,
+                        maxLength: 72,
                         decoration: InputDecoration(
                           labelText: 'changePassword.newPassword'.tr(),
                           suffixIcon: IconButton(
@@ -118,6 +120,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                       TextFormField(
                         controller: _confirmController,
                         obscureText: _obscureNew,
+                        maxLength: 72,
                         decoration: InputDecoration(labelText: 'changePassword.confirmNew'.tr()),
                         validator: (v) => Validators.confirmPassword(
                           v,

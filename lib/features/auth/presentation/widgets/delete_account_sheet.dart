@@ -88,6 +88,7 @@ class _DeleteAccountSheetState extends ConsumerState<DeleteAccountSheet> {
             controller: _passwordController,
             obscureText: _obscure,
             enabled: !_isLoading,
+            maxLength: 72,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _confirm(),
             decoration: InputDecoration(

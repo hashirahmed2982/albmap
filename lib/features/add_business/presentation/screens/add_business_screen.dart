@@ -313,6 +313,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _nameController,
+                        maxLength: 30,
                         decoration: InputDecoration(labelText: 'addBusiness.businessName'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -320,6 +321,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       TextFormField(
                         controller: _descController,
                         maxLines: 4,
+                        maxLength: 300,
                         decoration: InputDecoration(labelText: 'addBusiness.description'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -337,6 +339,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _streetAddressController,
+                        maxLength: 70,
                         decoration: InputDecoration(
                           labelText: 'addBusiness.streetAddress'.tr(),
                           helperText: 'addBusiness.streetAddressHelper'.tr(),
@@ -351,6 +354,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                             flex: 2,
                             child: TextFormField(
                               controller: _cityController,
+                              maxLength: 20,
                               decoration: InputDecoration(labelText: 'addBusiness.city'.tr()),
                               validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                             ),
@@ -359,6 +363,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                           Expanded(
                             child: TextFormField(
                               controller: _postalCodeController,
+                              maxLength: 10,
                               decoration: InputDecoration(labelText: 'addBusiness.postalCode'.tr()),
                               validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                             ),
@@ -368,6 +373,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _countryController,
+                        maxLength: 20,
                         decoration: InputDecoration(labelText: 'addBusiness.country'.tr()),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
                       ),
@@ -433,6 +439,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
+                        maxLength: 20,
                         decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
                         validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         onChanged: (_) => setState(() {}), // refresh WhatsApp preview text below
@@ -451,6 +458,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                         TextFormField(
                           controller: _whatsappController,
                           keyboardType: TextInputType.phone,
+                          maxLength: 20,
                           decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
                           validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         ),

@@ -215,6 +215,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                     child: TextField(
                       controller: _searchController,
                       onChanged: _onSearchChanged,
+                      maxLength: 100,
                       style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                       cursorColor: AppColors.primary,
                       textAlignVertical: TextAlignVertical.center,
@@ -223,6 +224,10 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                         hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
                         prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                         prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
+                        // Suppresses the default "N/100" counter row — this
+                        // field sits in a fixed-height pill (_barHeight),
+                        // and the counter's extra height would overflow it.
+                        counterText: '',
                         isDense: true,
                         filled: true,
                         fillColor: AppColors.surface,

@@ -63,6 +63,7 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                maxLength: 255,
                 decoration: InputDecoration(labelText: 'auth.email'.tr()),
                 validator: (v) => Validators.email(
                   v,

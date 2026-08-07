@@ -92,6 +92,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                           children: [
                             TextFormField(
                               controller: _nameController,
+                              maxLength: 150,
                               decoration: InputDecoration(labelText: 'contactUs.name'.tr()),
                               validator: (v) => Validators.required(v, 'common.required'.tr()),
                             ),
@@ -99,6 +100,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
+                              maxLength: 255,
                               decoration: InputDecoration(labelText: 'contactUs.email'.tr()),
                               validator: (v) => Validators.email(
                                 v,
@@ -120,6 +122,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                             TextFormField(
                               controller: _messageController,
                               maxLines: 5,
+                              maxLength: 2000,
                               decoration: InputDecoration(labelText: 'contactUs.message'.tr()),
                               validator: (v) => Validators.required(v, 'common.required'.tr()),
                             ),
