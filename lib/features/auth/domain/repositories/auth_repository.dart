@@ -9,10 +9,22 @@ abstract class AuthRepository {
     required String password,
   });
 
-  Future<Either<Failure, UserEntity>> signUpBusinessUser({
+  /// Step 1 of signup — emails a 6-digit code and does NOT create an
+  /// account or session. The email has to be proven real (by entering
+  /// that code — see [verifySignupOtp]) before it ever occupies an
+  /// account slot, so a mistyped/fake address can't block the real
+  /// owner from signing up later.
+  Future<Either<Failure, void>> requestSignupOtp({
     required String email,
     required String password,
     required String name,
+  });
+
+  /// Step 2 — the code from that email. This is what actually creates
+  /// the account and returns a session.
+  Future<Either<Failure, UserEntity>> verifySignupOtp({
+    required String email,
+    required String otp,
   });
 
   Future<Either<Failure, UserEntity>> continueAsGuest();

@@ -64,7 +64,16 @@
     "resetPasswordTitle": "Passwort zurücksetzen",
     "resetPasswordSubtitle": "Gib die mit deinem Konto verknüpfte E-Mail-Adresse ein.",
     "resetPasswordSent": "Überprüfe deine E-Mails auf den Link zum Zurücksetzen des Passworts.",
-    "sendResetLink": "Link zum Zurücksetzen senden"
+    "sendResetLink": "Link zum Zurücksetzen senden",
+    "verifyEmailTitle": "Bestätige deine E-Mail",
+    "verifyEmailSubtitle": "Wir haben einen 6-stelligen Code an {email} gesendet. Gib ihn unten ein, um dein Konto zu erstellen.",
+    "verificationCode": "Bestätigungscode",
+    "verifyButton": "Bestätigen & Konto erstellen",
+    "resendCode": "Code erneut senden",
+    "codeResent": "Ein neuer Code wurde gesendet.",
+    "useAnotherEmail": "Andere E-Mail verwenden",
+    "otpRequired": "Gib den 6-stelligen Code ein",
+    "otpInvalid": "Der Code muss 6 Ziffern haben"
   },
   "discover": {
     "searchHint": "Unternehmen suchen...",

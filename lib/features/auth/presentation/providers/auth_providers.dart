@@ -38,7 +38,8 @@ class AuthState {
 class AuthController extends StateNotifier<AuthState> {
   AuthController()
     : _loginUseCase = sl<LoginUseCase>(),
-      _signUpUseCase = sl<SignUpUseCase>(),
+      _requestSignupOtpUseCase = sl<RequestSignupOtpUseCase>(),
+      _verifySignupOtpUseCase = sl<VerifySignupOtpUseCase>(),
       _continueAsGuestUseCase = sl<ContinueAsGuestUseCase>(),
       _loginWithGoogleUseCase = sl<LoginWithGoogleUseCase>(),
       _loginWithFacebookUseCase = sl<LoginWithFacebookUseCase>(),
@@ -53,7 +54,8 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   final LoginUseCase _loginUseCase;
-  final SignUpUseCase _signUpUseCase;
+  final RequestSignupOtpUseCase _requestSignupOtpUseCase;
+  final VerifySignupOtpUseCase _verifySignupOtpUseCase;
   final ContinueAsGuestUseCase _continueAsGuestUseCase;
   final LoginWithGoogleUseCase _loginWithGoogleUseCase;
   final LoginWithFacebookUseCase _loginWithFacebookUseCase;
@@ -95,14 +97,37 @@ class AuthController extends StateNotifier<AuthState> {
     );
   }
 
-  Future<bool> signUp({
+  /// Step 1 of signup — emails a code. No account exists yet, so unlike
+  /// every other auth method here this never sets `state.user` on
+  /// success; the caller's next step is to collect the code and call
+  /// [verifySignupOtp].
+  Future<bool> requestSignup({
     required String email,
     required String password,
     required String name,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
-    final result = await _signUpUseCase(
+    final result = await _requestSignupOtpUseCase(
       SignUpParams(email: email, password: password, name: name),
+    );
+    return result.fold(
+      (failure) {
+        state = state.copyWith(isLoading: false, errorMessage: failure.message);
+        return false;
+      },
+      (_) {
+        state = state.copyWith(isLoading: false);
+        return true;
+      },
+    );
+  }
+
+  /// Step 2 — the code from that email. This is what actually creates
+  /// the account and signs the user in.
+  Future<bool> verifySignupOtp({required String email, required String otp}) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    final result = await _verifySignupOtpUseCase(
+      VerifySignupOtpParams(email: email, otp: otp),
     );
     return result.fold(
       (failure) {

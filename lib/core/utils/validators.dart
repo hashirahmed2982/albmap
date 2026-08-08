@@ -85,4 +85,12 @@ class Validators {
     if (value != original) return mismatchMessage;
     return null;
   }
+
+  /// The email-verification code shown at signup — always exactly 6 digits.
+  static String? otp(String? value, {required String requiredMessage, required String invalidMessage}) {
+    final String trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return requiredMessage;
+    if (!RegExp(r'^\d{6}$').hasMatch(trimmed)) return invalidMessage;
+    return null;
+  }
 }

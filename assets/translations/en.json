@@ -64,7 +64,16 @@
     "resetPasswordTitle": "Reset your password",
     "resetPasswordSubtitle": "Enter the email associated with your account.",
     "resetPasswordSent": "Check your email for a password reset link.",
-    "sendResetLink": "Send reset link"
+    "sendResetLink": "Send reset link",
+    "verifyEmailTitle": "Verify your email",
+    "verifyEmailSubtitle": "We sent a 6-digit code to {email}. Enter it below to finish creating your account.",
+    "verificationCode": "Verification code",
+    "verifyButton": "Verify & Create Account",
+    "resendCode": "Resend code",
+    "codeResent": "A new code has been sent.",
+    "useAnotherEmail": "Use a different email",
+    "otpRequired": "Enter the 6-digit code",
+    "otpInvalid": "Code must be 6 digits"
   },
   "discover": {
     "searchHint": "Search businesses...",

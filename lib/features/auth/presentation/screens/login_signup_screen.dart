@@ -12,7 +12,14 @@ import '../widgets/forgot_password_sheet.dart';
 
 /// 2. Login / Sign Up Screen
 /// Toggles between login and sign-up modes, supports guest continuation,
-/// forgot-password, and social login entry points.
+/// forgot-password, and social login entry points. Sign-up itself is two
+/// steps — submitting the form only emails a code (see
+/// AuthController.requestSignup); [_isVerifyingOtp] switches this same
+/// screen into a third mode to collect that code, which is what actually
+/// creates the account (AuthController.verifySignupOtp). The GoRouter
+/// redirect (app_router.dart) reactively navigates away once that
+/// succeeds and authState.isAuthenticated becomes true — this screen
+/// never navigates itself, for signup or login.
 class LoginSignUpScreen extends ConsumerStatefulWidget {
   const LoginSignUpScreen({super.key});
 
@@ -25,39 +32,75 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _otpController = TextEditingController();
 
   bool _isSignUpMode = false;
+  bool _isVerifyingOtp = false;
   bool _obscurePassword = true;
   bool _acceptedTerms = false;
+  bool _isResending = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_isSignUpMode && !_acceptedTerms) {
+    if (_isSignUpMode && !_isVerifyingOtp && !_acceptedTerms) {
       AppToast.warning(context, 'auth.pleaseAcceptTerms'.tr());
       return;
     }
 
     final auth = ref.read(authControllerProvider.notifier);
-    final bool success = _isSignUpMode
-        ? await auth.signUp(
+    final bool success;
+    if (_isVerifyingOtp) {
+      success = await auth.verifySignupOtp(
+        email: _emailController.text.trim(),
+        otp: _otpController.text.trim(),
+      );
+    } else if (_isSignUpMode) {
+      success = await auth.requestSignup(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        name: _nameController.text.trim(),
+      );
+      if (success && mounted) {
+        setState(() {
+          _isVerifyingOtp = true;
+          _otpController.clear();
+        });
+      }
+    } else {
+      success = await auth.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+    }
+
+    if (!success && mounted) {
+      final error = ref.read(authControllerProvider).errorMessage;
+      AppToast.error(context, error ?? 'common.somethingWrong'.tr());
+    }
+  }
+
+  Future<void> _resendCode() async {
+    setState(() => _isResending = true);
+    final auth = ref.read(authControllerProvider.notifier);
+    final bool success = await auth.requestSignup(
       email: _emailController.text.trim(),
       password: _passwordController.text,
       name: _nameController.text.trim(),
-    )
-        : await auth.login(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
     );
-
-    if (!success && mounted) {
+    if (!mounted) return;
+    setState(() => _isResending = false);
+    if (success) {
+      AppToast.success(context, 'auth.codeResent'.tr());
+    } else {
       final error = ref.read(authControllerProvider).errorMessage;
       AppToast.error(context, error ?? 'common.somethingWrong'.tr());
     }
@@ -115,12 +158,20 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _isSignUpMode ? 'auth.createAccount'.tr() : 'auth.welcomeBack'.tr(),
+                    _isVerifyingOtp
+                        ? 'auth.verifyEmailTitle'.tr()
+                        : _isSignUpMode
+                            ? 'auth.createAccount'.tr()
+                            : 'auth.welcomeBack'.tr(),
                     style: AppTextStyles.h1.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _isSignUpMode ? 'auth.signupSubtitle'.tr() : 'auth.loginSubtitle'.tr(),
+                    _isVerifyingOtp
+                        ? 'auth.verifyEmailSubtitle'.tr(namedArgs: {'email': _emailController.text.trim()})
+                        : _isSignUpMode
+                            ? 'auth.signupSubtitle'.tr()
+                            : 'auth.loginSubtitle'.tr(),
                     style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withValues(alpha: 0.85)),
                   ),
                   const SizedBox(height: 24),
@@ -137,78 +188,98 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if (_isSignUpMode) ...[
+                          if (_isVerifyingOtp) ...[
                             TextFormField(
-                              controller: _nameController,
-                              maxLength: 150,
-                              decoration: InputDecoration(labelText: 'auth.fullName'.tr()),
-                              validator: (v) => Validators.required(v, 'auth.nameRequired'.tr()),
-                            ),
-                            const SizedBox(height: 14),
-                          ],
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            maxLength: 255,
-                            decoration: InputDecoration(labelText: 'auth.email'.tr()),
-                            validator: (v) => Validators.email(
-                              v,
-                              requiredMessage: 'auth.emailRequired'.tr(),
-                              invalidMessage: 'auth.emailInvalid'.tr(),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            maxLength: 72,
-                            decoration: InputDecoration(
-                              labelText: 'auth.password'.tr(),
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                              ),
-                            ),
-                            validator: (v) => Validators.password(
-                              v,
-                              requiredMessage: 'auth.passwordRequired'.tr(),
-                              tooShortMessage: 'auth.passwordTooShort'.tr(),
-                            ),
-                          ),
-                          if (!_isSignUpMode) ...[
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: () => showModalBottomSheet<void>(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  builder: (_) => const ForgotPasswordSheet(),
-                                ),
-                                child: Text('auth.forgotPassword'.tr()),
+                              controller: _otpController,
+                              keyboardType: TextInputType.number,
+                              maxLength: 6,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.h2.copyWith(letterSpacing: 8),
+                              decoration: InputDecoration(labelText: 'auth.verificationCode'.tr(), counterText: ''),
+                              validator: (v) => Validators.otp(
+                                v,
+                                requiredMessage: 'auth.otpRequired'.tr(),
+                                invalidMessage: 'auth.otpInvalid'.tr(),
                               ),
                             ),
                           ] else ...[
-                            const SizedBox(height: 12),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Checkbox(
-                                  value: _acceptedTerms,
-                                  activeColor: AppColors.primary,
-                                  onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
-                                ),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Text('auth.acceptTerms'.tr(), style: AppTextStyles.bodySmall),
-                                  ),
-                                ),
-                              ],
+                            if (_isSignUpMode) ...[
+                              TextFormField(
+                                controller: _nameController,
+                                maxLength: 150,
+                                decoration: InputDecoration(labelText: 'auth.fullName'.tr()),
+                                validator: (v) => Validators.required(v, 'auth.nameRequired'.tr()),
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+                            TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              maxLength: 255,
+                              decoration: InputDecoration(labelText: 'auth.email'.tr()),
+                              validator: (v) => Validators.email(
+                                v,
+                                requiredMessage: 'auth.emailRequired'.tr(),
+                                invalidMessage: 'auth.emailInvalid'.tr(),
+                              ),
                             ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              maxLength: 72,
+                              decoration: InputDecoration(
+                                labelText: 'auth.password'.tr(),
+                                suffixIcon: IconButton(
+                                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                ),
+                              ),
+                              validator: (v) => Validators.password(
+                                v,
+                                requiredMessage: 'auth.passwordRequired'.tr(),
+                                tooShortMessage: 'auth.passwordTooShort'.tr(),
+                              ),
+                            ),
+                            if (!_isSignUpMode) ...[
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () => showModalBottomSheet<void>(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    builder: (_) => const ForgotPasswordSheet(),
+                                  ),
+                                  child: Text('auth.forgotPassword'.tr()),
+                                ),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Checkbox(
+                                    value: _acceptedTerms,
+                                    activeColor: AppColors.primary,
+                                    onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
+                                  ),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 12),
+                                      child: Text('auth.acceptTerms'.tr(), style: AppTextStyles.bodySmall),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                           const SizedBox(height: 12),
                           PrimaryButton(
-                            label: _isSignUpMode ? 'auth.signUp'.tr() : 'auth.logIn'.tr(),
+                            label: _isVerifyingOtp
+                                ? 'auth.verifyButton'.tr()
+                                : _isSignUpMode
+                                    ? 'auth.signUp'.tr()
+                                    : 'auth.logIn'.tr(),
                             isLoading: authState.isLoading,
                             onPressed: _submit,
                           ),
@@ -218,51 +289,67 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  Row(children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('auth.or'.tr(), style: AppTextStyles.bodySmall),
+                  if (_isVerifyingOtp) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () => setState(() => _isVerifyingOtp = false),
+                          child: Text('auth.useAnotherEmail'.tr()),
+                        ),
+                        TextButton(
+                          onPressed: _isResending ? null : _resendCode,
+                          child: Text(_isResending ? 'common.loading'.tr() : 'auth.resendCode'.tr()),
+                        ),
+                      ],
                     ),
-                    const Expanded(child: Divider()),
-                  ]),
-                  const SizedBox(height: 16),
+                  ] else ...[
+                    Row(children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('auth.or'.tr(), style: AppTextStyles.bodySmall),
+                      ),
+                      const Expanded(child: Divider()),
+                    ]),
+                    const SizedBox(height: 16),
 
-                  PrimaryButton(
-                    label: 'auth.continueWithGoogle'.tr(),
-                    outlined: true,
-                    icon: Icons.g_mobiledata,
-                    onPressed: () => _handleSocialLogin(
-                          () => ref.read(authControllerProvider.notifier).loginWithGoogle(),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  PrimaryButton(
-                    label: 'auth.continueWithFacebook'.tr(),
-                    outlined: true,
-                    icon: Icons.facebook,
-                    onPressed: () => _handleSocialLogin(
-                          () => ref.read(authControllerProvider.notifier).loginWithFacebook(),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  PrimaryButton(
-                    label: 'auth.continueAsGuest'.tr(),
-                    outlined: true,
-                    icon: Icons.person_outline,
-                    onPressed: () => ref.read(authControllerProvider.notifier).continueAsGuest(),
-                  ),
-
-                  const SizedBox(height: 20),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => setState(() => _isSignUpMode = !_isSignUpMode),
-                      child: Text(
-                        _isSignUpMode ? 'auth.alreadyHaveAccount'.tr() : 'auth.noAccount'.tr(),
-                        textAlign: TextAlign.center,
+                    PrimaryButton(
+                      label: 'auth.continueWithGoogle'.tr(),
+                      outlined: true,
+                      icon: Icons.g_mobiledata,
+                      onPressed: () => _handleSocialLogin(
+                            () => ref.read(authControllerProvider.notifier).loginWithGoogle(),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 10),
+                    PrimaryButton(
+                      label: 'auth.continueWithFacebook'.tr(),
+                      outlined: true,
+                      icon: Icons.facebook,
+                      onPressed: () => _handleSocialLogin(
+                            () => ref.read(authControllerProvider.notifier).loginWithFacebook(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    PrimaryButton(
+                      label: 'auth.continueAsGuest'.tr(),
+                      outlined: true,
+                      icon: Icons.person_outline,
+                      onPressed: () => ref.read(authControllerProvider.notifier).continueAsGuest(),
+                    ),
+
+                    const SizedBox(height: 20),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => setState(() => _isSignUpMode = !_isSignUpMode),
+                        child: Text(
+                          _isSignUpMode ? 'auth.alreadyHaveAccount'.tr() : 'auth.noAccount'.tr(),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                 ],
               ),
