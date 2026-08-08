@@ -64,7 +64,16 @@
     "resetPasswordTitle": "Rivendos fjalëkalimin",
     "resetPasswordSubtitle": "Shkruaj email-in e lidhur me llogarinë tënde.",
     "resetPasswordSent": "Kontrollo email-in për lidhjen e rivendosjes së fjalëkalimit.",
-    "sendResetLink": "Dërgo lidhjen e rivendosjes"
+    "sendResetLink": "Dërgo lidhjen e rivendosjes",
+    "verifyEmailTitle": "Verifiko email-in tënd",
+    "verifyEmailSubtitle": "Dërguam një kod 6-shifror te {email}. Vendose më poshtë për të përfunduar krijimin e llogarisë.",
+    "verificationCode": "Kodi i verifikimit",
+    "verifyButton": "Verifiko dhe Krijo Llogarinë",
+    "resendCode": "Dërgo kodin përsëri",
+    "codeResent": "U dërgua një kod i ri.",
+    "useAnotherEmail": "Përdor një email tjetër",
+    "otpRequired": "Shkruaj kodin 6-shifror",
+    "otpInvalid": "Kodi duhet të ketë 6 shifra"
   },
   "discover": {
     "searchHint": "Kërko biznese...",

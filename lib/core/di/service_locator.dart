@@ -122,7 +122,8 @@ Future<void> initServiceLocator() async {
     () => AuthRepositoryImpl(remoteDataSource: sl(), localDataSource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton(() => LoginUseCase(sl()));
-  sl.registerLazySingleton(() => SignUpUseCase(sl()));
+  sl.registerLazySingleton(() => RequestSignupOtpUseCase(sl()));
+  sl.registerLazySingleton(() => VerifySignupOtpUseCase(sl()));
   sl.registerLazySingleton(() => ContinueAsGuestUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithFacebookUseCase(sl()));

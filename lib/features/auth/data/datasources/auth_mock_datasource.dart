@@ -45,15 +45,40 @@ class AuthMockDataSource implements AuthRemoteDataSource {
     );
   }
 
+  // Mock signup mirrors the real two-step OTP flow so the UI can actually
+  // be exercised without a backend: requestSignupOtp "sends" a fixed
+  // code (there's no real inbox to check in mock mode) and remembers the
+  // pending name/email like the real signup_otps row does, and
+  // verifySignupOtp only succeeds for that exact code — anything else
+  // fails the same way a wrong code would against the real API.
+  static const String _mockOtp = '123456';
+  String? _pendingSignupEmail;
+  String? _pendingSignupName;
+
   @override
-  Future<UserModel> signUp({
+  Future<void> requestSignupOtp({
     required String email,
     required String password,
     required String name,
   }) async {
     await _fakeDelay();
+    _pendingSignupEmail = email;
+    _pendingSignupName = name;
+  }
+
+  @override
+  Future<UserModel> verifySignupOtp({required String email, required String otp}) async {
+    await _fakeDelay();
+    if (otp != _mockOtp || email != _pendingSignupEmail) {
+      throw AuthException('Incorrect code.');
+    }
     await _persistFakeTokens();
-    return UserModel(id: 'business-user-${DateTime.now().millisecondsSinceEpoch}', email: email, role: UserRole.business, name: name);
+    return UserModel(
+      id: 'business-user-${DateTime.now().millisecondsSinceEpoch}',
+      email: email,
+      role: UserRole.business,
+      name: _pendingSignupName ?? 'Demo Business',
+    );
   }
 
   @override

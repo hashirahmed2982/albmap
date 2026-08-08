@@ -57,14 +57,28 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, UserEntity>> signUpBusinessUser({
+  Future<Either<Failure, void>> requestSignupOtp({
     required String email,
     required String password,
     required String name,
+  }) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      await _remote.requestSignupOtp(email: email, password: password, name: name);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> verifySignupOtp({
+    required String email,
+    required String otp,
   }) {
-    return _guardedCall(
-      () => _remote.signUp(email: email, password: password, name: name),
-    );
+    return _guardedCall(() => _remote.verifySignupOtp(email: email, otp: otp));
   }
 
   @override

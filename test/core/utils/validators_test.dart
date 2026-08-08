@@ -142,4 +142,25 @@ void main() {
       );
     });
   });
+
+  group('Validators.otp', () {
+    test('rejects null/empty as required', () {
+      expect(Validators.otp(null, requiredMessage: 'required', invalidMessage: 'invalid'), 'required');
+      expect(Validators.otp('', requiredMessage: 'required', invalidMessage: 'invalid'), 'required');
+      expect(Validators.otp('   ', requiredMessage: 'required', invalidMessage: 'invalid'), 'required');
+    });
+
+    test('rejects anything that is not exactly 6 digits', () {
+      expect(Validators.otp('12345', requiredMessage: 'required', invalidMessage: 'invalid'), 'invalid');
+      expect(Validators.otp('1234567', requiredMessage: 'required', invalidMessage: 'invalid'), 'invalid');
+      expect(Validators.otp('12345a', requiredMessage: 'required', invalidMessage: 'invalid'), 'invalid');
+      expect(Validators.otp('123 456', requiredMessage: 'required', invalidMessage: 'invalid'), 'invalid');
+    });
+
+    test('accepts exactly 6 digits, trimming surrounding whitespace', () {
+      expect(Validators.otp('123456', requiredMessage: 'required', invalidMessage: 'invalid'), isNull);
+      expect(Validators.otp('  123456  ', requiredMessage: 'required', invalidMessage: 'invalid'), isNull);
+      expect(Validators.otp('000000', requiredMessage: 'required', invalidMessage: 'invalid'), isNull);
+    });
+  });
 }

@@ -9,11 +9,18 @@ import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
   Future<UserModel> login({required String email, required String password});
-  Future<UserModel> signUp({
+
+  /// Step 1 of signup — emails a code, doesn't create an account. See
+  /// [verifySignupOtp].
+  Future<void> requestSignupOtp({
     required String email,
     required String password,
     required String name,
   });
+
+  /// Step 2 — the code from that email. This is what actually creates
+  /// the account and returns a session.
+  Future<UserModel> verifySignupOtp({required String email, required String otp});
   Future<void> forgotPassword({required String email});
   Future<UserModel> loginWithGoogle();
   Future<UserModel> loginWithFacebook();
@@ -59,21 +66,36 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<UserModel> signUp({
+  Future<void> requestSignupOtp({
     required String email,
     required String password,
     required String name,
   }) async {
     try {
-      final Response<dynamic> response = await _dio.post<dynamic>(
+      await _dio.post<dynamic>(
         '/auth/signup',
         data: <String, String>{'email': email, 'password': password, 'name': name},
+      );
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Sign up failed',
+        e.response?.statusCode,
+      );
+    }
+  }
+
+  @override
+  Future<UserModel> verifySignupOtp({required String email, required String otp}) async {
+    try {
+      final Response<dynamic> response = await _dio.post<dynamic>(
+        '/auth/signup/verify',
+        data: <String, String>{'email': email, 'otp': otp},
       );
       await _persistTokens(response.data as Map<String, dynamic>);
       return UserModel.fromJson(response.data['user'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ServerException(
-        e.response?.data?['message'] as String? ?? 'Sign up failed',
+        e.response?.data?['message'] as String? ?? 'Verification failed',
         e.response?.statusCode,
       );
     }
