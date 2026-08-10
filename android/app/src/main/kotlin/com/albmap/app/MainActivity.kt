@@ -1,4 +1,4 @@
-package com.example.albmap
+package com.albmap.app
 
 import io.flutter.embedding.android.FlutterActivity
 

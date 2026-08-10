@@ -1,0 +1,15 @@
+# Copy this file to android/key.properties (that exact path, gitignored —
+# see ../.gitignore) and fill in the real values from the keystore you
+# generate with:
+#
+#   keytool -genkey -v -keystore ~/albmap-release.keystore \
+#     -alias albmap -keyalg RSA -keysize 2048 -validity 10000
+#
+# Never commit android/key.properties or the .keystore file itself —
+# losing this keystore means you can never publish an update to the same
+# Play Store listing again.
+
+storePassword=<the keystore password you set with keytool>
+keyPassword=<the key password you set with keytool>
+keyAlias=albmap
+storeFile=/absolute/path/to/albmap-release.keystore

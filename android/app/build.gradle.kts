@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -16,8 +19,24 @@ plugins {
     // can even `flutter run` the app before doing Firebase setup.
 }
 
+// Same conditional pattern as google-services.json above: key.properties is
+// gitignored (see ../../.gitignore) and never committed, so a fresh clone
+// or CI checkout won't have it until someone deploying a release build
+// creates it locally by following README's keystore-generation steps.
+// Falling back to the debug signing config when it's absent means
+// `flutter run --release`/local testing still works before that's done —
+// but a Play Store upload MUST be built with key.properties present, or
+// it silently ships debug-signed (which Play will reject on upload
+// anyway, since it can't be the app's first-ever signing key).
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+val hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace = "com.example.albmap"
+    namespace = "com.albmap.app"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -32,8 +51,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.albmap"
+        applicationId = "com.albmap.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 23
@@ -42,11 +60,24 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
