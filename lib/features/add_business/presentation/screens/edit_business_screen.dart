@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/constants/app_constants.dart';
@@ -8,6 +11,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
@@ -54,10 +58,12 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
 
   String? _category;
   LatLng? _pickedLocation;
+  String? _logoUrl;
   Map<String, String> _openingHours = {};
   BusinessEntity? _original;
   bool _isLoading = true;
   bool _isSubmitting = false;
+  bool _isUploadingLogo = false;
 
   @override
   void initState() {
@@ -84,9 +90,27 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
       _whatsappController.text = _whatsappSameAsPhone ? '' : (result.whatsappNumber ?? '');
       _category = result.category;
       _pickedLocation = LatLng(result.latitude, result.longitude);
+      _logoUrl = result.logoUrl;
       _openingHours = Map<String, String>.from(result.openingHours);
       _isLoading = false;
     });
+  }
+
+  Future<void> _pickAndUploadLogo() async {
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1024);
+    if (picked == null || !mounted) return;
+
+    setState(() => _isUploadingLogo = true);
+    final useCase = sl<UploadLogoUseCase>();
+    final result = await useCase(picked.path);
+    if (!mounted) return;
+    setState(() => _isUploadingLogo = false);
+
+    result.fold(
+      (failure) => AppToast.error(context, failure.message),
+      (url) => setState(() => _logoUrl = url),
+    );
   }
 
   @override
@@ -166,6 +190,7 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
       whatsappNumber: _whatsappSameAsPhone
           ? (_phoneController.text.trim().isEmpty ? null : _phoneController.text.trim())
           : (_whatsappController.text.trim().isEmpty ? null : _whatsappController.text.trim()),
+      logoUrl: _logoUrl,
       openingHours: _openingHours,
     ));
 
@@ -227,6 +252,38 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      GestureDetector(
+                        onTap: _isUploadingLogo ? null : _pickAndUploadLogo,
+                        child: Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.divider),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+                          ),
+                          child: Center(
+                            child: _isUploadingLogo
+                                ? const CircularProgressIndicator(color: AppColors.primary)
+                                : _logoUrl != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: AppConstants.isRemoteMediaPath(_logoUrl)
+                                            ? AppNetworkImage(url: AppConstants.resolveMediaUrl(_logoUrl)!, height: 120, width: double.infinity)
+                                            : Image.file(File(_logoUrl!), height: 120, width: double.infinity, fit: BoxFit.cover),
+                                      )
+                                    : Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
+                                          const SizedBox(height: 6),
+                                          Text('addBusiness.addLogo'.tr(), style: AppTextStyles.bodySmall),
+                                        ],
+                                      ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                       if (_original!.status == BusinessStatus.approved)
                         Container(
                           margin: const EdgeInsets.only(bottom: 16),

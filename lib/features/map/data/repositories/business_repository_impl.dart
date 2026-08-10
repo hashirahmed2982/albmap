@@ -139,6 +139,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
     double? longitude,
     String? phone,
     String? whatsappNumber,
+    String? logoUrl,
     Map<String, String>? openingHours,
   }) async {
     if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
@@ -155,6 +156,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
         if (longitude != null) 'longitude': longitude,
         if (phone != null) 'phone': phone,
         if (whatsappNumber != null) 'whatsappNumber': whatsappNumber,
+        if (logoUrl != null) 'logoUrl': logoUrl,
         if (openingHours != null) 'openingHours': openingHours,
       });
       return Right(updated);

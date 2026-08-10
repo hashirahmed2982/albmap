@@ -23,6 +23,9 @@ class BusinessModel extends BusinessEntity {
     super.rating,
     super.ratingCount,
     super.distanceKm,
+    super.isActive,
+    super.rejectionReason,
+    super.deactivationReason,
   });
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +54,12 @@ class BusinessModel extends BusinessEntity {
       tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const <String>[],
       rating: (json['rating'] as num?)?.toDouble(),
       ratingCount: (json['ratingCount'] as num?)?.toInt() ?? 0,
+      // Only present on the owner's own "my businesses" response — the
+      // public discovery feed never sends these keys at all, so `json`
+      // simply won't contain them there and these stay null.
+      isActive: json['isActive'] as bool?,
+      rejectionReason: json['rejectionReason'] as String?,
+      deactivationReason: json['deactivationReason'] as String?,
     );
   }
 
