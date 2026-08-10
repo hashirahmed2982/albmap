@@ -276,6 +276,9 @@
     "rejectedLabel": "Abgelehnt",
     "pendingExplainer": "Ein Administrator wird diesen Eintrag in Kürze prüfen. Du wirst benachrichtigt, sobald er genehmigt ist.",
     "rejectedExplainer": "Dieser Eintrag wurde abgelehnt. Bearbeite und reiche ihn erneut ein, oder kontaktiere den Support für Details.",
+    "deactivatedLabel": "Deaktiviert",
+    "deactivatedExplainer": "Ein Administrator hat diesen Eintrag deaktiviert — er ist auf der Karte und in der Suche verborgen, bis er reaktiviert wird. Kontaktiere den Support, falls du glaubst, dass dies ein Fehler war.",
+    "reasonLabel": "Grund:",
     "emptyTitle": "Du hast noch keine Unternehmen eingetragen",
     "addFirst": "Füge dein erstes Unternehmen hinzu",
     "failedToLoad": "Deine Unternehmen konnten nicht geladen werden"

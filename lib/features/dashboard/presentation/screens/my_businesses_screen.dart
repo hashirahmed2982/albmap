@@ -144,7 +144,14 @@ class _MyBusinessCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color accent = categoryColor(business.category);
-    final Color status = statusColor(business.status);
+    // isActive only ever means something once a listing is approved —
+    // pending/rejected were never live to begin with. Without this, an
+    // admin deactivating a business gave the owner literally no signal
+    // here: it still showed the same green "Approved" badge as a normal
+    // live listing, even though it had actually been pulled from the
+    // public map and search.
+    final bool isDeactivated = business.status == BusinessStatus.approved && business.isActive == false;
+    final Color status = isDeactivated ? AppColors.textSecondary : statusColor(business.status);
     final bool canOpenDashboard = business.status == BusinessStatus.approved;
 
     return Container(
@@ -204,9 +211,12 @@ class _MyBusinessCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(statusIcon(business.status), size: 16, color: status),
+                      Icon(isDeactivated ? Icons.visibility_off_rounded : statusIcon(business.status), size: 16, color: status),
                       const SizedBox(width: 6),
-                      Text(statusLabel(business.status), style: AppTextStyles.bodySmall.copyWith(color: status, fontWeight: FontWeight.w700)),
+                      Text(
+                        isDeactivated ? 'myBusinesses.deactivatedLabel'.tr() : statusLabel(business.status),
+                        style: AppTextStyles.bodySmall.copyWith(color: status, fontWeight: FontWeight.w700),
+                      ),
                     ],
                   ),
                 ),
@@ -219,8 +229,35 @@ class _MyBusinessCard extends StatelessWidget {
                 ],
                 if (business.status == BusinessStatus.rejected) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    'myBusinesses.rejectedExplainer'.tr(),
+                  // The admin's own reason is mandatory on their end (see
+                  // the admin portal's ConfirmModal) — the generic fallback
+                  // only ever applies to older rejections from before that
+                  // requirement existed.
+                  Text.rich(
+                    business.rejectionReason != null
+                        ? TextSpan(children: [
+                            TextSpan(
+                              text: '${'myBusinesses.reasonLabel'.tr()} ',
+                              style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w700, color: AppColors.rejected),
+                            ),
+                            TextSpan(text: business.rejectionReason),
+                          ])
+                        : TextSpan(text: 'myBusinesses.rejectedExplainer'.tr()),
+                    style: AppTextStyles.bodySmall,
+                  ),
+                ],
+                if (isDeactivated) ...[
+                  const SizedBox(height: 8),
+                  Text.rich(
+                    business.deactivationReason != null
+                        ? TextSpan(children: [
+                            TextSpan(
+                              text: '${'myBusinesses.reasonLabel'.tr()} ',
+                              style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            TextSpan(text: business.deactivationReason),
+                          ])
+                        : TextSpan(text: 'myBusinesses.deactivatedExplainer'.tr()),
                     style: AppTextStyles.bodySmall,
                   ),
                 ],

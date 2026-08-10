@@ -276,6 +276,9 @@
     "rejectedLabel": "Rejected",
     "pendingExplainer": "An admin will review this listing shortly. You'll be notified once it's approved.",
     "rejectedExplainer": "This submission was rejected. Edit and resubmit, or contact support for details.",
+    "deactivatedLabel": "Deactivated",
+    "deactivatedExplainer": "An admin deactivated this listing — it's hidden from the map and search until reactivated. Contact support if you believe this was a mistake.",
+    "reasonLabel": "Reason:",
     "emptyTitle": "You haven't listed any businesses yet",
     "addFirst": "Add your first business",
     "failedToLoad": "Failed to load your businesses"

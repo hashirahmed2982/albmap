@@ -94,6 +94,7 @@ class UpdateBusinessParams extends Equatable {
     this.longitude,
     this.phone,
     this.whatsappNumber,
+    this.logoUrl,
     this.openingHours,
   });
 
@@ -109,12 +110,13 @@ class UpdateBusinessParams extends Equatable {
   final double? longitude;
   final String? phone;
   final String? whatsappNumber;
+  final String? logoUrl;
   final Map<String, String>? openingHours;
 
   @override
   List<Object?> get props => [
         businessId, name, description, category, streetAddress, city, postalCode, country,
-        latitude, longitude, phone, whatsappNumber, openingHours,
+        latitude, longitude, phone, whatsappNumber, logoUrl, openingHours,
       ];
 }
 
@@ -137,6 +139,7 @@ class UpdateBusinessUseCase implements UseCase<BusinessEntity, UpdateBusinessPar
       longitude: params.longitude,
       phone: params.phone,
       whatsappNumber: params.whatsappNumber,
+      logoUrl: params.logoUrl,
       openingHours: params.openingHours,
     );
   }

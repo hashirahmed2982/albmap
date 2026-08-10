@@ -24,6 +24,9 @@ class BusinessEntity extends Equatable {
     this.rating,
     this.ratingCount = 0,
     this.distanceKm,
+    this.isActive,
+    this.rejectionReason,
+    this.deactivationReason,
   });
 
   final String id;
@@ -46,6 +49,18 @@ class BusinessEntity extends Equatable {
   final double? rating;
   final int ratingCount;
   final double? distanceKm;
+  // Only ever populated by GET /businesses?ownerId=... (My Businesses) —
+  // an owner's own view of their listings, where "approved but
+  // deactivated by an admin" needs to be visible. The public discovery
+  // feed never returns a deactivated business in the first place, so
+  // this stays null there — null, not false, is the correct "not
+  // applicable here" state, same convention as the website's Business type.
+  final bool? isActive;
+  // The admin's own written explanation for a rejection/deactivation —
+  // mandatory on their end (see the admin portal). Same owner-only scoping
+  // as isActive.
+  final String? rejectionReason;
+  final String? deactivationReason;
 
   /// Single display-friendly line — "Street, Postal Code City, Country" —
   /// for anywhere the UI wants one line rather than four separate fields
@@ -82,6 +97,9 @@ class BusinessEntity extends Equatable {
       rating: rating,
       ratingCount: ratingCount,
       distanceKm: distanceKm ?? this.distanceKm,
+      isActive: isActive,
+      rejectionReason: rejectionReason,
+      deactivationReason: deactivationReason,
     );
   }
 
@@ -89,6 +107,6 @@ class BusinessEntity extends Equatable {
   List<Object?> get props => <Object?>[
         id, ownerId, name, description, category, streetAddress, city, postalCode, country,
         latitude, longitude, status, phone, whatsappNumber, logoUrl, openingHours, tags, rating,
-        ratingCount, distanceKm,
+        ratingCount, distanceKm, isActive, rejectionReason, deactivationReason,
       ];
 }

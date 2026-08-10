@@ -276,6 +276,9 @@
     "rejectedLabel": "I refuzuar",
     "pendingExplainer": "Një administrator do ta shqyrtojë këtë listim së shpejti. Do të njoftohesh kur të aprovohet.",
     "rejectedExplainer": "Ky dorëzim u refuzua. Ndrysho dhe ridërgo, ose kontakto mbështetjen për detaje.",
+    "deactivatedLabel": "Çaktivizuar",
+    "deactivatedExplainer": "Një administrator e ka çaktivizuar këtë listim — është i fshehur nga harta dhe kërkimi derisa të riaktivizohet. Kontakto mbështetjen nëse mendon se ky ishte gabim.",
+    "reasonLabel": "Arsyeja:",
     "emptyTitle": "Ende nuk ke listuar asnjë biznes",
     "addFirst": "Shto biznesin tënd të parë",
     "failedToLoad": "Dështoi ngarkimi i bizneseve të tua"

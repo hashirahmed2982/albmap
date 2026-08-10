@@ -42,6 +42,7 @@ abstract class BusinessRepository {
     double? longitude,
     String? phone,
     String? whatsappNumber,
+    String? logoUrl,
     Map<String, String>? openingHours,
   });
 
