@@ -22,21 +22,25 @@ class AppConstants {
     'MAP_TILE_URL',
     defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   );
-  static const String mapTileUserAgentPackageName = 'com.example.albmap';
+  static const String mapTileUserAgentPackageName = 'com.albmap.app';
 
-  // API — defaults to the Android emulator's alias for the host machine's
-  // localhost (10.0.2.2), matching the most common Flutter dev workflow
-  // (albmap-backend running via `npm run dev` on your machine, app running
-  // in an Android emulator). Override for other setups:
-  //   iOS simulator / running backend on the same machine:
+  // API — defaults to the real production backend over HTTPS. Plain HTTP
+  // (the previous default, a bare IP) doesn't work in release builds at
+  // all: iOS App Transport Security blocks every cleartext request by
+  // default, and Android has blocked cleartext traffic by default since
+  // API 28 — neither platform has (or should have) an exception carved
+  // out for it, so every API call would silently fail on a real device.
+  // Override for local development against a backend running on your own
+  // machine:
+  //   Android emulator (host loopback alias):
+  //     --dart-define=BASE_URL=http://10.0.2.2:4000/v1
+  //   iOS simulator / same machine:
   //     --dart-define=BASE_URL=http://localhost:4000/v1
   //   Physical device (phone on the same Wi-Fi as your dev machine):
   //     --dart-define=BASE_URL=http://<your-machine-LAN-IP>:4000/v1
-  //   Production:
-  //     --dart-define=BASE_URL=https://your-deployed-api.com/v1
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://167.233.144.118:4000/v1',
+    defaultValue: 'https://api.albmap.app/v1',
   );
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
