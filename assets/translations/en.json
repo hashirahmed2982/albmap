@@ -181,6 +181,7 @@
     "changePassword": "Change password",
     "myBusinesses": "My Businesses",
     "addBusiness": "Add a business",
+    "myEvents": "My Events",
     "settings": "Settings",
     "aboutUs": "About Us",
     "contactUs": "Contact Us",
@@ -283,6 +284,17 @@
     "addFirst": "Add your first business",
     "failedToLoad": "Failed to load your businesses"
   },
+  "myEvents": {
+    "title": "My Events",
+    "subtitle": "Manage the events you've created",
+    "upcomingLabel": "Upcoming",
+    "ongoingLabel": "Happening now",
+    "pastLabel": "Past",
+    "historyExplainer": "This event has already finished — kept here as history.",
+    "emptyTitle": "You haven't created any events yet",
+    "addFirst": "Add your first event",
+    "failedToLoad": "Failed to load your events"
+  },
   "hours": {
     "openPlaceholder": "Open",
     "closePlaceholder": "Close",
@@ -332,6 +344,12 @@
     "selectCategoryError": "Please select a category",
     "endBeforeStart": "End time must be after the start time",
     "failedToCreate": "Failed to create event"
+  },
+  "editEvent": {
+    "title": "Edit Event",
+    "saved": "Saved",
+    "notFound": "Event not found",
+    "cannotEditPast": "This event has already finished and can no longer be edited. It's kept on My Events as history."
   },
   "contactUs": {
     "title": "Contact Us",

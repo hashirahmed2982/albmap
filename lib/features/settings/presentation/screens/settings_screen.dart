@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/app_router.dart';
@@ -119,7 +118,13 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   title: Text('settings.helpSupport'.tr()),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => launchUrl(Uri.parse('https://albmap.app/support')),
+                  // Was launching a dead external albmap.app/support URL
+                  // with no error handling at all — same bug class as the
+                  // Privacy Policy tile above, fixed the same way: route
+                  // to the real in-app Contact Us screen (a working form
+                  // backed by POST /contact) instead of an external link
+                  // that never resolved to anything.
+                  onTap: () => context.push(AppRoutes.contactUs),
                 ),
               ],
             ),

@@ -30,6 +30,26 @@ class GetEventsParams extends Equatable {
   List<Object?> get props => [category, businessId, fromDate, toDate];
 }
 
+class GetEventDetailsUseCase implements UseCase<EventEntity, String> {
+  GetEventDetailsUseCase(this._repository);
+  final EventRepository _repository;
+
+  @override
+  Future<Either<Failure, EventEntity>> call(String id) {
+    return _repository.getEventDetails(id);
+  }
+}
+
+class GetMyEventsUseCase implements UseCase<List<EventEntity>, String> {
+  GetMyEventsUseCase(this._repository);
+  final EventRepository _repository;
+
+  @override
+  Future<Either<Failure, List<EventEntity>>> call(String ownerId) {
+    return _repository.getMyEvents(ownerId);
+  }
+}
+
 class CreateEventUseCase implements UseCase<void, EventEntity> {
   CreateEventUseCase(this._repository);
   final EventRepository _repository;
@@ -37,6 +57,48 @@ class CreateEventUseCase implements UseCase<void, EventEntity> {
   @override
   Future<Either<Failure, void>> call(EventEntity event) {
     return _repository.createEvent(event);
+  }
+}
+
+class UpdateEventParams extends Equatable {
+  const UpdateEventParams({
+    required this.eventId,
+    this.name,
+    this.description,
+    this.category,
+    this.startTime,
+    this.endTime,
+    this.imageUrl,
+  });
+
+  final String eventId;
+  final String? name;
+  final String? description;
+  final String? category;
+  final DateTime? startTime;
+  final DateTime? endTime;
+  final String? imageUrl;
+
+  @override
+  List<Object?> get props =>
+      [eventId, name, description, category, startTime, endTime, imageUrl];
+}
+
+class UpdateEventUseCase implements UseCase<EventEntity, UpdateEventParams> {
+  UpdateEventUseCase(this._repository);
+  final EventRepository _repository;
+
+  @override
+  Future<Either<Failure, EventEntity>> call(UpdateEventParams params) {
+    return _repository.updateEvent(
+      params.eventId,
+      name: params.name,
+      description: params.description,
+      category: params.category,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      imageUrl: params.imageUrl,
+    );
   }
 }
 

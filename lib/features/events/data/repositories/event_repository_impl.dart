@@ -50,6 +50,46 @@ class EventRepositoryImpl implements EventRepository {
   }
 
   @override
+  Future<Either<Failure, List<EventEntity>>> getMyEvents(String ownerId) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      return Right(await _remote.getMyEvents(ownerId));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, EventEntity>> updateEvent(
+    String eventId, {
+    String? name,
+    String? description,
+    String? category,
+    DateTime? startTime,
+    DateTime? endTime,
+    String? imageUrl,
+  }) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      final updated = await _remote.updateEvent(eventId, <String, dynamic>{
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (category != null) 'category': category,
+        if (startTime != null) 'startTime': startTime.toIso8601String(),
+        if (endTime != null) 'endTime': endTime.toIso8601String(),
+        if (imageUrl != null) 'imageUrl': imageUrl,
+      });
+      return Right(updated);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> createEvent(EventEntity event) async {
     if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
     try {

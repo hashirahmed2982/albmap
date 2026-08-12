@@ -61,6 +61,17 @@ final eventsProvider = FutureProvider.autoDispose<List<EventEntity>>((ref) async
   return visible.toList();
 });
 
+/// Every event owned by [ownerId], across every business they own —
+/// backs "My Events". Not filtered by finished/upcoming (unlike
+/// [eventsProvider], the public browse list) — an owner needs to see
+/// their past events too, as history, not just what's still upcoming.
+final myEventsProvider =
+    FutureProvider.autoDispose.family<List<EventEntity>, String>((ref, ownerId) async {
+  final useCase = sl<GetMyEventsUseCase>();
+  final result = await useCase(ownerId);
+  return result.fold((_) => <EventEntity>[], (list) => list);
+});
+
 class CreateEventController extends StateNotifier<AsyncValue<void>> {
   CreateEventController() : super(const AsyncValue.data(null));
 

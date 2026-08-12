@@ -11,7 +11,15 @@ abstract class EventRemoteDataSource {
     DateTime? toDate,
   });
   Future<EventModel> getEventDetails(String id);
+
+  /// Every event across every business [ownerId] owns, regardless of
+  /// whether it's already finished — backs "My Events", same relationship
+  /// to [getEvents] as BusinessRemoteDataSource.getMyBusinesses has to
+  /// getBusinesses (see that file's comment on the ownerId query param).
+  Future<List<EventModel>> getMyEvents(String ownerId);
+
   Future<void> createEvent(EventModel event);
+  Future<EventModel> updateEvent(String eventId, Map<String, dynamic> changes);
   Future<String> uploadEventImage(String filePath);
 
   /// "I'm interested" / RSVP toggle — see the backend's event.routes.js
@@ -60,11 +68,39 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
 
   @override
+  Future<List<EventModel>> getMyEvents(String ownerId) async {
+    try {
+      final Response<dynamic> response = await _dio.get<dynamic>(
+        '/events',
+        queryParameters: <String, dynamic>{'ownerId': ownerId},
+      );
+      return (response.data['data'] as List<dynamic>)
+          .map((dynamic e) => EventModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to load your events');
+    }
+  }
+
+  @override
   Future<void> createEvent(EventModel event) async {
     try {
       await _dio.post<dynamic>('/events', data: event.toCreateJson());
     } on DioException catch (e) {
       throw ServerException(e.response?.data?['message'] as String? ?? 'Failed to create event');
+    }
+  }
+
+  @override
+  Future<EventModel> updateEvent(String eventId, Map<String, dynamic> changes) async {
+    try {
+      final Response<dynamic> response = await _dio.patch<dynamic>('/events/$eventId', data: changes);
+      return EventModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to update event',
+        e.response?.statusCode,
+      );
     }
   }
 

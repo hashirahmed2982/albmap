@@ -181,6 +181,7 @@
     "changePassword": "Passwort ändern",
     "myBusinesses": "Meine Unternehmen",
     "addBusiness": "Unternehmen hinzufügen",
+    "myEvents": "Meine Veranstaltungen",
     "settings": "Einstellungen",
     "aboutUs": "Über uns",
     "contactUs": "Kontakt",
@@ -283,6 +284,17 @@
     "addFirst": "Füge dein erstes Unternehmen hinzu",
     "failedToLoad": "Deine Unternehmen konnten nicht geladen werden"
   },
+  "myEvents": {
+    "title": "Meine Veranstaltungen",
+    "subtitle": "Verwalte die Veranstaltungen, die du erstellt hast",
+    "upcomingLabel": "Bevorstehend",
+    "ongoingLabel": "Findet gerade statt",
+    "pastLabel": "Vergangen",
+    "historyExplainer": "Diese Veranstaltung ist bereits beendet — sie bleibt hier als Verlauf erhalten.",
+    "emptyTitle": "Du hast noch keine Veranstaltungen erstellt",
+    "addFirst": "Erstelle deine erste Veranstaltung",
+    "failedToLoad": "Deine Veranstaltungen konnten nicht geladen werden"
+  },
   "hours": {
     "openPlaceholder": "Öffnet",
     "closePlaceholder": "Schließt",
@@ -335,6 +347,12 @@
     "selectCategoryError": "Bitte wähle eine Kategorie aus",
     "endBeforeStart": "Die Endzeit muss nach der Startzeit liegen",
     "failedToCreate": "Veranstaltung konnte nicht erstellt werden"
+  },
+  "editEvent": {
+    "title": "Veranstaltung bearbeiten",
+    "saved": "Gespeichert",
+    "notFound": "Veranstaltung nicht gefunden",
+    "cannotEditPast": "Diese Veranstaltung ist bereits beendet und kann nicht mehr bearbeitet werden. Sie bleibt unter Meine Veranstaltungen als Verlauf erhalten."
   },
   "contactUs": {
     "title": "Kontakt",
