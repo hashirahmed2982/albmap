@@ -181,6 +181,7 @@
     "changePassword": "Ndrysho fjalëkalimin",
     "myBusinesses": "Bizneset e Mia",
     "addBusiness": "Shto një biznes",
+    "myEvents": "Eventet e Mia",
     "settings": "Cilësimet",
     "aboutUs": "Rreth Nesh",
     "contactUs": "Na Kontakto",
@@ -283,6 +284,17 @@
     "addFirst": "Shto biznesin tënd të parë",
     "failedToLoad": "Dështoi ngarkimi i bizneseve të tua"
   },
+  "myEvents": {
+    "title": "Eventet e Mia",
+    "subtitle": "Menaxho eventet që ke krijuar",
+    "upcomingLabel": "Së shpejti",
+    "ongoingLabel": "Duke ndodhur tani",
+    "pastLabel": "Kaluar",
+    "historyExplainer": "Ky event ka përfunduar tashmë — mbahet këtu si histori.",
+    "emptyTitle": "Ende nuk ke krijuar asnjë event",
+    "addFirst": "Krijo eventin tënd të parë",
+    "failedToLoad": "Dështoi ngarkimi i eventeve të tua"
+  },
   "hours": {
     "openPlaceholder": "Hapet",
     "closePlaceholder": "Mbyllet",
@@ -332,6 +344,12 @@
     "selectCategoryError": "Ju lutemi zgjidhni një kategori",
     "endBeforeStart": "Ora e mbarimit duhet të jetë pas orës së fillimit",
     "failedToCreate": "Dështoi krijimi i eventit"
+  },
+  "editEvent": {
+    "title": "Ndrysho Eventin",
+    "saved": "U ruajt",
+    "notFound": "Eventi nuk u gjet",
+    "cannotEditPast": "Ky event ka përfunduar tashmë dhe nuk mund të ndryshohet më. Mbahet te Eventet e Mia si histori."
   },
   "contactUs": {
     "title": "Na Kontakto",

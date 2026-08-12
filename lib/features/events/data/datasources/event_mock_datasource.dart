@@ -66,10 +66,54 @@ class EventMockDataSource implements EventRemoteDataSource {
     return _events.firstWhere((e) => e.id == id, orElse: () => _events.first);
   }
 
+  /// Mock events only carry a businessId, not their own owner — same as
+  /// the real schema (ownership flows through the parent business). The
+  /// mock signed-in user is always 'business-user-001' (see
+  /// auth_mock_datasource.dart), which owns biz-1/biz-6/biz-7 in
+  /// business_mock_datasource.dart, so that's the fixed set "my events"
+  /// filters against here rather than actually cross-referencing the
+  /// other mock datasource.
+  static const _mockOwnedBusinessIds = {'biz-1', 'biz-6', 'biz-7'};
+
+  @override
+  Future<List<EventModel>> getMyEvents(String ownerId) async {
+    await _fakeDelay();
+    if (ownerId != 'business-user-001') return const [];
+    return _events.where((e) => _mockOwnedBusinessIds.contains(e.businessId)).toList();
+  }
+
   @override
   Future<void> createEvent(EventModel event) async {
     await _fakeDelay();
     _events.add(event);
+  }
+
+  @override
+  Future<EventModel> updateEvent(String eventId, Map<String, dynamic> changes) async {
+    await _fakeDelay();
+    final index = _events.indexWhere((e) => e.id == eventId);
+    if (index == -1) throw Exception('Event not found');
+    final current = _events[index];
+    final updated = EventModel(
+      id: current.id,
+      businessId: current.businessId,
+      businessName: current.businessName,
+      name: changes['name'] as String? ?? current.name,
+      description: changes['description'] as String? ?? current.description,
+      category: changes['category'] as String? ?? current.category,
+      startTime: changes['startTime'] != null
+          ? DateTime.parse(changes['startTime'] as String)
+          : current.startTime,
+      endTime: changes['endTime'] != null ? DateTime.parse(changes['endTime'] as String) : current.endTime,
+      imageUrl: changes['imageUrl'] as String? ?? current.imageUrl,
+      latitude: current.latitude,
+      longitude: current.longitude,
+      address: current.address,
+      interestCount: current.interestCount,
+      isInterested: current.isInterested,
+    );
+    _events[index] = updated;
+    return updated;
   }
 
   @override
