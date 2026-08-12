@@ -198,7 +198,10 @@ Future<void> initServiceLocator() async {
     () => EventRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton(() => GetEventsUseCase(sl()));
+  sl.registerLazySingleton(() => GetEventDetailsUseCase(sl()));
+  sl.registerLazySingleton(() => GetMyEventsUseCase(sl()));
   sl.registerLazySingleton(() => CreateEventUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateEventUseCase(sl()));
   sl.registerLazySingleton(() => UploadEventImageUseCase(sl()));
   sl.registerLazySingleton(() => ToggleEventInterestUseCase(sl()));
 

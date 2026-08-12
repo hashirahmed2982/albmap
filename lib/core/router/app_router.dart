@@ -24,6 +24,8 @@ import '../../features/content/presentation/screens/privacy_policy_screen.dart';
 import '../../features/content/presentation/screens/terms_conditions_screen.dart';
 import '../../features/dashboard/presentation/screens/my_businesses_screen.dart';
 import '../../features/dashboard/presentation/screens/business_dashboard_screen.dart';
+import '../../features/dashboard/presentation/screens/my_events_screen.dart';
+import '../../features/add_event/presentation/screens/edit_event_screen.dart';
 import '../services/fcm_service.dart';
 import '../widgets/main_shell.dart';
 
@@ -53,11 +55,14 @@ class AppRoutes {
   static const String editProfile = '/edit-profile';
   static const String changePassword = '/change-password';
   static const String editBusiness = '/edit-business/:id';
+  static const String myEvents = '/my-events';
+  static const String editEvent = '/edit-event/:id';
 
   static String businessDetailsPath(String id) => '/business/$id';
   static String eventDetailsPath(String id) => '/events/$id';
   static String businessDashboardPath(String id) => '/dashboard/$id';
   static String editBusinessPath(String id) => '/edit-business/$id';
+  static String editEventPath(String id) => '/edit-event/$id';
 }
 
 /// A [Listenable] bridge so GoRouter's `refreshListenable` can react to
@@ -97,9 +102,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         AppRoutes.addBusiness,
         AppRoutes.addEvent,
         AppRoutes.myBusinesses,
+        AppRoutes.myEvents,
         AppRoutes.editProfile,
         AppRoutes.changePassword,
         '/edit-business', // prefix match for /edit-business/:id
+        '/edit-event', // prefix match for /edit-event/:id
         '/dashboard', // prefix match for /dashboard/:id — see businessDashboard route
       ];
       if (authenticated &&
@@ -173,6 +180,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.editBusiness,
         builder: (context, state) =>
             EditBusinessScreen(businessId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: AppRoutes.myEvents,
+        builder: (context, state) => const MyEventsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.editEvent,
+        builder: (context, state) =>
+            EditEventScreen(eventId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.businessDashboard,

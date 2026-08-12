@@ -219,6 +219,11 @@ class ProfileScreen extends ConsumerWidget {
           label: 'profile.addBusiness'.tr(),
           onTap: () => context.push(AppRoutes.addBusiness),
         ),
+        _ProfileTile(
+          icon: Icons.event_outlined,
+          label: 'profile.myEvents'.tr(),
+          onTap: () => context.push(AppRoutes.myEvents),
+        ),
         _ProfileTile(icon: Icons.settings_outlined, label: 'profile.settings'.tr(), onTap: () => context.push(AppRoutes.settings)),
         _ProfileTile(icon: Icons.info_outline, label: 'profile.aboutUs'.tr(), onTap: () => context.push(AppRoutes.aboutUs)),
         _ProfileTile(icon: Icons.mail_outline, label: 'profile.contactUs'.tr(), onTap: () => context.push(AppRoutes.contactUs)),

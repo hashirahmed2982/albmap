@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,6 +25,15 @@ const String _kNotificationsEnabledPrefKey = 'notif_enabled';
 /// what makes it reach every registered device.
 const String kAllUsersTopic = 'all_users';
 
+/// One channel for every push notification this app shows locally while
+/// foregrounded — a single general-purpose channel is fine here since
+/// there's only ever one "kind" of push today (business offers/status),
+/// not e.g. separate message/reminder/promo channels that would need
+/// their own user-configurable importance levels.
+const String _kAndroidChannelId = 'albmap_default';
+const String _kAndroidChannelName = 'Notifications';
+const String _kAndroidChannelDescription = 'Business offers and updates from AlbMap.';
+
 /// Handles push notification setup: permission request, topic
 /// subscription, device token registration with the backend, and
 /// foreground/background message handling. Call [initialize] once, after
@@ -38,6 +51,7 @@ class FcmService {
 
   bool _initialized = false;
   GoRouter? _router;
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   /// Wired from goRouterProvider once the app's GoRouter is built — see
   /// the comment there. FcmService is a plain singleton (reachable from
@@ -63,6 +77,21 @@ class FcmService {
         debugPrint('FCM permission status: ${settings.authorizationStatus}');
       }
 
+      await _initLocalNotifications();
+
+      // iOS shows a system banner for a foreground push automatically —
+      // but only once told to; by default it stays silent while the app
+      // is open (the same gap Android has, just solved differently). No
+      // local-notification plugin needed on this platform for it: this
+      // one call is the whole fix.
+      if (Platform.isIOS) {
+        await messaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      }
+
       // Every device gets broadcasts by default — this is what makes an
       // admin-approved notification actually reach everyone, matching the
       // backend sending to this exact topic name on approval — *unless*
@@ -78,27 +107,31 @@ class FcmService {
       await _registerCurrentToken();
       messaging.onTokenRefresh.listen((_) => _registerCurrentToken());
 
-      // Foreground: the OS won't show a system notification banner on its
-      // own while the app is open, so this just refreshes the in-app feed
-      // — the new notification appears next time the user opens the
-      // Notifications screen (or immediately, if they're already on it
-      // and it's listening — see notifications_providers.dart).
+      // Foreground: previously this was a silent no-op — Android never
+      // shows a system notification for a foreground FCM message on its
+      // own (unlike background/terminated, where the OS renders it from
+      // the payload directly), so a push sent while the app was open
+      // simply vanished until the user happened to reopen the
+      // Notifications screen later. iOS is handled above via
+      // setForegroundNotificationPresentationOptions instead — showing a
+      // local notification for it here too would double it up.
       FirebaseMessaging.onMessage.listen((message) {
         if (kDebugMode) debugPrint('FCM foreground message: ${message.notification?.title}');
+        if (Platform.isAndroid) _showLocalNotification(message);
       });
 
       // Background: app was running but not foregrounded, user taps the
       // system notification banner. Previously unhandled entirely — the
       // tap just brought the app to whatever screen it already had open,
       // never the business/event the notification was actually about.
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+      FirebaseMessaging.onMessageOpenedApp.listen((message) => _handleNotificationTap(message.data));
 
       // Cold start: app was fully terminated and the tap is what launched
       // it. Same gap as above, plus this is the case that's easy to
       // forget entirely since onMessageOpenedApp alone never fires for it.
       final initialMessage = await messaging.getInitialMessage();
       if (initialMessage != null) {
-        _handleNotificationTap(initialMessage);
+        _handleNotificationTap(initialMessage.data);
       }
     } catch (err, stack) {
       // Anything here — missing platform config, permission denied,
@@ -125,7 +158,13 @@ class FcmService {
   /// Falls back to the Notifications screen for a type this doesn't
   /// recognize (or a missing businessId) rather than doing nothing,
   /// which is what every notification tap did before this existed.
-  void _handleNotificationTap(RemoteMessage message) {
+  ///
+  /// Takes the raw data map rather than a RemoteMessage so the same logic
+  /// serves both real FCM taps (background/cold-start) and taps on the
+  /// local notification [_showLocalNotification] shows for a foreground
+  /// Android push — the latter never has a RemoteMessage to hand back,
+  /// only whatever payload was attached when the notification was shown.
+  void _handleNotificationTap(Map<String, dynamic> data) {
     final router = _router;
     if (router == null) {
       AppLogger.warning('Notification tapped before router was attached; dropping deep link.');
@@ -133,8 +172,8 @@ class FcmService {
     }
 
     try {
-      final String type = message.data['type'] as String? ?? 'general';
-      final String? businessId = message.data['businessId'] as String?;
+      final String type = data['type'] as String? ?? 'general';
+      final String? businessId = data['businessId'] as String?;
 
       switch (type) {
         case 'business_offer':
@@ -147,6 +186,75 @@ class FcmService {
       router.push(AppRoutes.notifications);
     } catch (err, stack) {
       AppLogger.warning('Failed to handle notification tap', err, stack);
+    }
+  }
+
+  /// Sets up the Android notification channel and the tap callback for
+  /// locally-shown notifications. Safe to call even where the plugin
+  /// can't fully initialize (e.g. no platform config yet) — same
+  /// non-fatal-degradation approach as the rest of this class.
+  Future<void> _initLocalNotifications() async {
+    try {
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initSettings = InitializationSettings(android: androidSettings);
+      await _localNotifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: (response) {
+          final String? payload = response.payload;
+          if (payload == null || payload.isEmpty) return;
+          try {
+            final decoded = jsonDecode(payload) as Map<String, dynamic>;
+            _handleNotificationTap(decoded);
+          } catch (err) {
+            if (kDebugMode) debugPrint('Failed to decode local notification payload: $err');
+          }
+        },
+      );
+
+      if (Platform.isAndroid) {
+        const channel = AndroidNotificationChannel(
+          _kAndroidChannelId,
+          _kAndroidChannelName,
+          description: _kAndroidChannelDescription,
+          importance: Importance.high,
+        );
+        await _localNotifications
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(channel);
+      }
+    } catch (err) {
+      if (kDebugMode) debugPrint('Local notifications init failed (non-fatal): $err');
+    }
+  }
+
+  /// Android-only (see the onMessage listener above) — builds and shows a
+  /// real system notification for a foreground FCM message, with the same
+  /// `data` payload attached so tapping it deep-links exactly like a
+  /// background/cold-start tap would. `message.notification` is null for
+  /// a data-only message (the backend always sends `notification: {...}`
+  /// alongside `data`, per fcm.js's sendToTopic, but this guards against a
+  /// future payload shape that doesn't).
+  Future<void> _showLocalNotification(RemoteMessage message) async {
+    final notification = message.notification;
+    if (notification == null) return;
+
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        _kAndroidChannelId,
+        _kAndroidChannelName,
+        channelDescription: _kAndroidChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+      await _localNotifications.show(
+        message.hashCode,
+        notification.title,
+        notification.body,
+        const NotificationDetails(android: androidDetails),
+        payload: jsonEncode(message.data),
+      );
+    } catch (err) {
+      if (kDebugMode) debugPrint('Failed to show local notification (non-fatal): $err');
     }
   }
 
