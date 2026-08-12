@@ -105,7 +105,7 @@
 			-->
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>REPLACE_WITH_REVERSED_CLIENT_ID_FROM_GOOGLESERVICE_INFO_PLIST</string>
+				<string>1:258633190602:ios:4390f46040566620ca3833</string>
 			</array>
 		</dict>
 	</array>
