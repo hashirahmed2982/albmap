@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "258633190602",
+    "project_id": "albmap-968be",
+    "storage_bucket": "albmap-968be.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258633190602:android:53277dbcde65a767ca3833",
+        "android_client_info": {
+          "package_name": "com.albmap.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhruwb5o9vQ0akY6MN_ielyiF2jlqFX2s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258633190602:android:08ed79529b180990ca3833",
+        "android_client_info": {
+          "package_name": "com.example.albmap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhruwb5o9vQ0akY6MN_ielyiF2jlqFX2s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
