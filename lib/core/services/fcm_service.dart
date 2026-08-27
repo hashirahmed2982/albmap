@@ -79,6 +79,16 @@ class FcmService {
 
       await _initLocalNotifications();
 
+      // iOS only: FirebaseMessaging.instance.subscribeToTopic()/getToken()
+      // throw [firebase_messaging/apns-token-not-set] if called before iOS
+      // has actually handed APNs' device token to Firebase — which can
+      // still be in flight for a moment right after requestPermission()
+      // returns, especially on a fresh install. Android has no APNs
+      // token at all, so this is skipped there entirely.
+      if (Platform.isIOS) {
+        await _waitForApnsToken(messaging);
+      }
+
       // iOS shows a system banner for a foreground push automatically —
       // but only once told to; by default it stays silent while the app
       // is open (the same gap Android has, just solved differently). No
@@ -141,6 +151,25 @@ class FcmService {
     }
   }
 
+  /// Polls for the APNs token iOS hands Firebase after permission is
+  /// granted, up to a few seconds. Any FCM call that touches the backend
+  /// token registry (subscribeToTopic, getToken) throws
+  /// [firebase_messaging/apns-token-not-set] if made before this exists —
+  /// giving up silently after the timeout rather than looping forever
+  /// keeps this consistent with the rest of this class's
+  /// never-block-the-app-on-a-degraded-push-setup approach: if it's still
+  /// not set after 5 seconds, something's actually wrong (missing push
+  /// capability/entitlement, simulator, no network) and the outer
+  /// try/catch in [initialize] will catch the resulting error same as
+  /// today, just a few seconds later.
+  Future<void> _waitForApnsToken(FirebaseMessaging messaging) async {
+    for (var attempt = 0; attempt < 10; attempt++) {
+      final token = await messaging.getAPNSToken();
+      if (token != null) return;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
   /// Maps a tapped notification to the screen it's actually about.
   ///
   /// Confirmed against the real backend (albmap-backend/src/modules/
@@ -196,7 +225,20 @@ class FcmService {
   Future<void> _initLocalNotifications() async {
     try {
       const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const initSettings = InitializationSettings(android: androidSettings);
+      // Required on iOS even though this plugin is only ever used to show
+      // Android foreground notifications (see the onMessage listener
+      // above) — flutter_local_notifications throws "iOS settings must be
+      // set when targeting iOS platform" at initialize() if this is
+      // omitted, regardless of whether iOS notifications actually go
+      // through this plugin. Permission requests are all false here since
+      // FirebaseMessaging.requestPermission() above already asked (and
+      // asking twice would show a second, redundant system prompt).
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
+      const initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
       await _localNotifications.initialize(
         initSettings,
         onDidReceiveNotificationResponse: (response) {

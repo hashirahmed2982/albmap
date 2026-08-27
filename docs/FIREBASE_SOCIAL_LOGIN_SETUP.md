@@ -40,11 +40,15 @@ You don't need to touch any of this — it's done:
 ### 1. Firebase project + config files
 
 The app's Google Sign-In already points at a real Web OAuth client
-(`1011810478555-...apps.googleusercontent.com`, see
-`auth_remote_datasource.dart`) and the Facebook App ID/Client Token
-committed above are also real — so a Firebase/Google Cloud/Facebook project
-for this app already exists somewhere. Confirm with whoever set those up
-before creating a *new* one (a second project means new keys that won't
+(`258633190602-...apps.googleusercontent.com`, see
+`auth_remote_datasource.dart` — this is the `albmap-968be` Firebase
+project's Web client ID, found under Firebase Console > Authentication >
+Sign-in method > Google > Web SDK configuration, which is always the
+source of truth for this value if it's ever in doubt) and the Facebook
+App ID/Client Token committed above are also real — so a Firebase/Google
+Cloud/Facebook project for this app already exists somewhere. Confirm
+with whoever set those up before creating a *new* one (a second project
+means new keys that won't
 match the backend's `GOOGLE_CLIENT_ID`).
 
 In the [Firebase console](https://console.firebase.google.com/) for that
