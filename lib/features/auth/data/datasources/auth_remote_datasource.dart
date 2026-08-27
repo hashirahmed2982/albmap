@@ -128,7 +128,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // value as the backend's GOOGLE_CLIENT_ID), not the Android client ID
       // — the Android client ID is used implicitly via the package
       // name+SHA-1 already registered in google-services.json.
-      serverClientId: '1011810478555-1g8ndpulh2hml56sh9f83soh2gufgl34.apps.googleusercontent.com',
+      //
+      // This was previously hardcoded to a client ID from a different GCP
+      // project (1011810478555-...) than the app's actual Firebase project
+      // (albmap-968be, project number 258633190602) — confirmed against
+      // Firebase Console's Authentication > Sign-in method > Google >
+      // Web SDK configuration, which is the source of truth for this
+      // value. That mismatch is what silently broke Google sign-in.
+      serverClientId: '258633190602-g73ebpd64tj12cpb9gt8c14ptrdpgoac.apps.googleusercontent.com',
     );
     final GoogleSignInAccount? account = await googleSignIn.signIn();
     if (account == null) {
