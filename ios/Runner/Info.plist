@@ -109,5 +109,19 @@
 			</array>
 		</dict>
 	</array>
+	<!--
+	  Lets FCM/APNs wake the app in the background to deliver a push —
+	  without this, a remote notification received while the app isn't
+	  foregrounded is much less reliable (iOS may not hand it to the app
+	  at all in some states). Requires the "Push Notifications" +
+	  "Background Modes > Remote notifications" capabilities to actually
+	  be enabled on the App ID (see Runner.entitlements' aps-environment
+	  key, added alongside this) — this key alone doesn't grant the
+	  entitlement, both pieces are required together.
+	-->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
