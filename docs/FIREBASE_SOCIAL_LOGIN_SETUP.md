@@ -39,12 +39,19 @@ You don't need to touch any of this — it's done:
 
 ### 1. Firebase project + config files
 
-The app's Google Sign-In already points at a real Web OAuth client
-(`258633190602-...apps.googleusercontent.com`, see
-`auth_remote_datasource.dart` — this is the `albmap-968be` Firebase
-project's Web client ID, found under Firebase Console > Authentication >
-Sign-in method > Google > Web SDK configuration, which is always the
-source of truth for this value if it's ever in doubt) and the Facebook
+The app's Google Sign-In already points at a real Web OAuth client (see
+`serverClientId` in `auth_remote_datasource.dart`) — the value there is
+whatever it was last updated to, and it has drifted out of sync with the
+project's actual `google-services.json`/`GoogleService-Info.plist` more
+than once, silently breaking sign-in each time. If it's ever in doubt,
+don't trust the value hardcoded there from memory: the source of truth
+is Firebase Console > Authentication > Sign-in method > Google > Web SDK
+configuration **for the same Firebase project** `android/app/
+google-services.json` and `ios/Runner/GoogleService-Info.plist` actually
+belong to on disk — cross-check the project number (`project_number` in
+the JSON file, `GCM_SENDER_ID` in the plist) against whichever Firebase
+project you're looking at in the console before copying its Web client
+ID anywhere. The Facebook
 App ID/Client Token committed above are also real — so a Firebase/Google
 Cloud/Facebook project for this app already exists somewhere. Confirm
 with whoever set those up before creating a *new* one (a second project
