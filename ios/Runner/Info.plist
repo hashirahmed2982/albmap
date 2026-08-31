@@ -57,10 +57,32 @@
 	-->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>AlbMap uses your location to show nearby businesses and events and to sort results by distance.</string>
+	<!--
+	  AlbMap never requests "Always" location access — only
+	  NSLocationWhenInUseUsageDescription above is actually used. Apple's
+	  App Store Connect binary scan (ITMS-90683) flags a missing purpose
+	  string for ANY sensitive API a linked SDK references, even one this
+	  app itself never calls — one of Firebase/Google Sign-In/Facebook
+	  SDK's transitive dependencies apparently references the
+	  always-authorization API. This key is required to pass upload
+	  validation regardless of whether it's ever actually triggered at
+	  runtime.
+	-->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>AlbMap uses your location to show nearby businesses and events and to sort results by distance.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>AlbMap needs access to your photo library so you can choose a logo, profile photo, or event image.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>AlbMap needs access to your camera so you can take a photo for your business logo, profile photo, or event image.</string>
+	<!--
+	  AlbMap has no calendar feature and never reads/writes calendar data.
+	  Required anyway (ITMS-90683, blocking on this app's last submission)
+	  because a linked SDK's dependency references EventKit APIs even
+	  though this app itself never calls them — same situation as
+	  NSLocationAlwaysAndWhenInUseUsageDescription above.
+	-->
+	<key>NSCalendarsUsageDescription</key>
+	<string>AlbMap does not use calendar access. This permission is declared only because a third-party SDK this app depends on references it.</string>
 
 	<!--
 	  Facebook Login (flutter_facebook_auth) — App ID/Client Token are the
