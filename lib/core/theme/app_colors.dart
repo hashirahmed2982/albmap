@@ -32,8 +32,8 @@ class AppColors {
   static const Color secondaryLight = Color(0xFFF14D4C);
 
   // ---- Backgrounds & surfaces ----
-  static const Color background = Color(0xFF130807);
-  static const Color surface = Color(0xFF1E1311);
+  static const Color background = Color(0xFF0A0606);
+  static const Color surface = Color(0xFF110F0F);
   // The spec's "Surface (lighter)" — secondary surface, e.g. a filled
   // category chip on the map.
   static const Color surfaceLight = Color(0xFF231715);
@@ -68,7 +68,7 @@ class AppColors {
   static const Color rejected = Color(0xFFD73337);
 
   static const Color divider = Color(0xFF3C2F2D); // spec's "Border"
-  static const Color border = Color(0xFF3C2F2D);
+  static const Color border = Color(0xFF2C2C2C);
   static const Color borderStrong = Color(0xFF524441);
 
   // Ratings-only accent — do not use anywhere else per spec.

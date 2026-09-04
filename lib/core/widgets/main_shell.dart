@@ -56,7 +56,8 @@ class MainShell extends ConsumerWidget {
       body: navigationShell,
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.background,
+
           // Sharp corners + a top border instead of a shadow — "No
           // rounded corners on cards, buttons, or inputs" per the Bold
           // Editorial spec, with depth conveyed by the border color
@@ -66,7 +67,7 @@ class MainShell extends ConsumerWidget {
         clipBehavior: Clip.antiAlias,
         child: NavigationBarTheme(
           data: NavigationBarThemeData(
-            backgroundColor: AppColors.surface,
+            backgroundColor: AppColors.background,
             // No pill/background behind the selected icon, per the
             // mockup — only the icon and label change color (see
             // iconTheme/labelTextStyle below); there's no shadow or
@@ -89,7 +90,7 @@ class MainShell extends ConsumerWidget {
             }),
           ),
           child: NavigationBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: AppColors.background,
             elevation: 0,
             height: 64,
             selectedIndex: currentTabIndex,

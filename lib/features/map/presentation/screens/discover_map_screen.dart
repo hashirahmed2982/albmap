@@ -275,20 +275,20 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
             ],
           ),
           const SizedBox(height: 12),
-          SegmentedButton<_ViewMode>(
-            segments: [
-              ButtonSegment(value: _ViewMode.map, icon: const Icon(Icons.map_outlined, size: 18), label: Text('discover.map'.tr())),
-              ButtonSegment(value: _ViewMode.list, icon: const Icon(Icons.view_list_outlined, size: 18), label: Text('discover.list'.tr())),
-            ],
-            selected: {_viewMode},
-            onSelectionChanged: (s) => setState(() => _viewMode = s.first),
-            // No explicit style: the app-wide segmentedButtonTheme (see
-            // app_theme.dart) already gives every SegmentedButton this
-            // exact look — kept here before as a one-off override, now a
-            // single source of truth so this and the filter sheet's
-            // sort-by control can never drift apart.
-          ),
-          const SizedBox(height: 12),
+          // SegmentedButton<_ViewMode>(
+          //   segments: [
+          //     ButtonSegment(value: _ViewMode.map, icon: const Icon(Icons.map_outlined, size: 18), label: Text('discover.map'.tr())),
+          //     ButtonSegment(value: _ViewMode.list, icon: const Icon(Icons.view_list_outlined, size: 18), label: Text('discover.list'.tr())),
+          //   ],
+          //   selected: {_viewMode},
+          //   onSelectionChanged: (s) => setState(() => _viewMode = s.first),
+          //   // No explicit style: the app-wide segmentedButtonTheme (see
+          //   // app_theme.dart) already gives every SegmentedButton this
+          //   // exact look — kept here before as a one-off override, now a
+          //   // single source of truth so this and the filter sheet's
+          //   // sort-by control can never drift apart.
+          // ),
+          // const SizedBox(height: 12),
           SizedBox(
             height: 34,
             child: ListView.separated(
@@ -403,26 +403,44 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
         Positioned(
           bottom: selected != null ? 158 : 16,
           right: 16,
-          child: FloatingActionButton(
-            heroTag: 'refresh-businesses',
-            backgroundColor: AppColors.surface,
-            foregroundColor: AppColors.primary,
-            onPressed: () => ref.read(businessListControllerProvider.notifier).load(),
-            child: const Icon(Icons.refresh_rounded),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.border,
+                width: 1,
+              ),
+            ),
+            child: FloatingActionButton(
+              heroTag: 'refresh-businesses',
+
+              backgroundColor: AppColors.surface,
+              foregroundColor: AppColors.textPrimary,
+              onPressed: () => ref.read(businessListControllerProvider.notifier).load(),
+              child: const Icon(Icons.refresh_rounded),
+            ),
           ),
         ),
         Positioned(
           bottom: selected != null ? 96 : 16,
           right: selected != null ? 16 : 76,
-          child: FloatingActionButton(
-            heroTag: 'recenter-map',
-            backgroundColor: AppColors.surface,
-            foregroundColor: AppColors.primary,
-            onPressed: () async {
-              await ref.read(locationControllerProvider.notifier).refresh();
-              _recenterOnUser();
-            },
-            child: const Icon(Icons.my_location),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.border,
+                width: 1,
+              ),
+            ),
+            child: FloatingActionButton(
+              heroTag: 'recenter-map',
+              backgroundColor: AppColors.surface,
+              foregroundColor: AppColors.textPrimary,
+              elevation: 0,
+              onPressed: () async {
+                await ref.read(locationControllerProvider.notifier).refresh();
+                _recenterOnUser();
+              },
+              child: const Icon(Icons.my_location),
+            ),
           ),
         ),
 
@@ -436,7 +454,9 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
       ],
     );
   }
+
 }
+
 
 /// Plain outlined pill (no icon, no per-category color) matching the
 /// mockup's quick-filter chips — "Të gjitha"/"All" filled red when
