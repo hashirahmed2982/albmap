@@ -106,6 +106,10 @@ flutter:
     # variant subfolders under here are picked up automatically by
     # Flutter's asset resolver, no need to list them individually.
     - assets/markers/
+    # The flutter_launcher_icons source image (assets/icon/icon_master.png)
+    # — also reused directly as the Splash Screen's logo so both places
+    # show the exact same AlbMap mark.
+    - assets/icon/
   fonts:
     - family: IBM Plex Sans
       fonts:
