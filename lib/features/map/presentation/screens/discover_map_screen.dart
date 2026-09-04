@@ -4,33 +4,38 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../categories/domain/category_translations.dart';
 import '../../../categories/presentation/providers/category_providers.dart';
 import '../../domain/entities/business_entity.dart';
 import '../providers/business_providers.dart';
 import '../widgets/business_list_view.dart';
-import '../widgets/business_marker_sheet.dart';
 import '../widgets/filter_bottom_sheet.dart';
-import 'dart:ui' as ui;
 
 enum _ViewMode { map, list }
 
 /// 3. Discover Map Screen — main app screen. The user explicitly picks
 /// between a Map view and a List view via a segmented toggle.
 ///
-/// Uses flutter_map (OpenStreetMap-compatible, open source) instead of
-/// Google Maps — it's a pure-Dart widget with no native SDK or API key, so
-/// there's no equivalent of the "missing key crashes the whole app" failure
-/// mode Google Maps has. Tile source is configured in AppConstants —
-/// point it at MapTiler/Stadia/self-hosted tiles before shipping to
-/// production (OSM's free public server disallows production-scale
-/// traffic per its usage policy).
+/// "Bold Editorial" redesign (see AlbMap_Design_Spec_Bold_Editorial.md +
+/// DiscoverMap.png): dark map tiles (see AppConstants.mapTileUrlTemplate
+/// — CARTO Dark Matter, still OpenStreetMap-based, not Google Maps —
+/// Google Maps is a separate planned migration once the client sets up
+/// billing/API keys), a flat/bordered search bar and category chips
+/// instead of elevated pills, the new marker-business.png pin asset for
+/// every business (replacing the old per-category colored pin widget),
+/// and a persistent bottom preview card for whichever business is
+/// currently selected — replacing the previous tap-to-open-modal-sheet
+/// interaction (BusinessMarkerSheet), which the mockup doesn't show at
+/// all in favor of this persistent card.
 class DiscoverMapScreen extends ConsumerStatefulWidget {
   const DiscoverMapScreen({super.key});
 
@@ -44,6 +49,11 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   String _localQuery = '';
   _ViewMode _viewMode = _ViewMode.map;
   Timer? _searchDebounce;
+
+  // Which business's preview card is showing at the bottom of the map —
+  // null means none picked yet (falls back to the nearest one, see
+  // _selectedOrNearest below).
+  String? _selectedBusinessId;
 
   // Below this length, businessSearchResultsProvider itself short-circuits
   // to an empty list (see business_providers.dart) — no point round-
@@ -127,6 +137,26 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     return byCategory.where((b) => b.name.toLowerCase().contains(q)).toList();
   }
 
+  /// The business the bottom preview card should show — whichever was
+  /// last tapped, or (matching the mockup, which shows a business
+  /// already selected on first load) the nearest one if nothing's been
+  /// tapped yet.
+  BusinessEntity? _selectedOrNearest(List<BusinessEntity> businesses) {
+    if (businesses.isEmpty) return null;
+    if (_selectedBusinessId != null) {
+      for (final b in businesses) {
+        if (b.id == _selectedBusinessId) return b;
+      }
+    }
+    BusinessEntity nearest = businesses.first;
+    for (final b in businesses.skip(1)) {
+      if ((b.distanceKm ?? double.infinity) < (nearest.distanceKm ?? double.infinity)) {
+        nearest = b;
+      }
+    }
+    return nearest;
+  }
+
   @override
   Widget build(BuildContext context) {
     final listState = ref.watch(businessListControllerProvider);
@@ -168,7 +198,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
         top: false,
         child: Column(
           children: [
-            _buildHeader(context, resultCount: displayed.length, selectedCategory: selectedCategory),
+            _buildHeader(context, selectedCategory: selectedCategory),
             Expanded(
               child: _viewMode == _ViewMode.list
                   ? BusinessListView(
@@ -187,17 +217,9 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     );
   }
 
-  Widget _buildHeader(BuildContext context, {required int resultCount, required String? selectedCategory}) {
+  Widget _buildHeader(BuildContext context, {required String? selectedCategory}) {
     final List<String> quickCategories = ref.watch(categoryNamesProvider);
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.primary.withValues(alpha: 0.08), AppColors.background],
-        ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
+    return Padding(
       padding: EdgeInsets.fromLTRB(16, 12 + MediaQuery.of(context).padding.top, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,35 +227,30 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
           Row(
             children: [
               Expanded(
-                child: SizedBox(
+                child: Container(
                   height: _barHeight,
-                  child: Material(
-                    elevation: 2,
+                  decoration: BoxDecoration(
                     color: AppColors.surface,
-                    shadowColor: Colors.black.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      maxLength: 100,
-                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-                      cursorColor: AppColors.primary,
-                      textAlignVertical: TextAlignVertical.center,
-                      decoration: InputDecoration(
-                        hintText: 'discover.searchHint'.tr(),
-                        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-                        prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-                        prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
-                        // Suppresses the default "N/100" counter row — this
-                        // field sits in a fixed-height pill (_barHeight),
-                        // and the counter's extra height would overflow it.
-                        counterText: '',
-                        isDense: true,
-                        filled: true,
-                        fillColor: AppColors.surface,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                      ),
+                    border: Border.all(color: AppColors.border, width: 1.5),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    maxLength: 100,
+                    style: AppTextStyles.bodyMedium,
+                    cursorColor: AppColors.primary,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      hintText: 'discover.searchHint'.tr(),
+                      prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 24),
+                      // Suppresses the default "N/100" counter row — this
+                      // field sits in a fixed-height pill (_barHeight),
+                      // and the counter's extra height would overflow it.
+                      counterText: '',
+                      isDense: true,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                     ),
                   ),
                 ),
@@ -243,13 +260,10 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                 height: _barHeight,
                 width: _barHeight,
                 child: Material(
-                  elevation: 2,
-                  shadowColor: Colors.black.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                  color: AppColors.surface,
+                  color: AppColors.primary,
                   child: IconButton(
                     padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.tune, color: AppColors.primary),
+                    icon: const Icon(Icons.tune, color: Colors.white),
                     onPressed: () => showModalBottomSheet<void>(
                       context: context,
                       isScrollControlled: true,
@@ -285,8 +299,6 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                 if (i == 0) {
                   return _CategoryChip(
                     label: 'common.all'.tr(),
-                    color: AppColors.primary,
-                    icon: Icons.apps_rounded,
                     selected: selectedCategory == null,
                     onTap: () => ref.read(businessFilterProvider.notifier).update(
                           (f) => f.copyWith(clearCategory: true),
@@ -296,8 +308,6 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                 final category = quickCategories[i - 1];
                 return _CategoryChip(
                   label: localizedCategoryName(context, category),
-                  color: categoryColor(category),
-                  icon: categoryIcon(category),
                   selected: selectedCategory == category,
                   onTap: () => ref.read(businessFilterProvider.notifier).update(
                         (f) => f.copyWith(category: category),
@@ -306,13 +316,6 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
               },
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            resultCount == 1 ? 'discover.resultFound'.tr() : 'discover.resultsFound'.tr(args: ['$resultCount']),
-            style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
         ],
       ),
     );
@@ -320,6 +323,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
 
   Widget _buildMap(List<BusinessEntity> businesses, BusinessListState listState) {
     final position = ref.watch(locationControllerProvider);
+    final BusinessEntity? selected = _selectedOrNearest(businesses);
 
     return Stack(
       children: [
@@ -356,24 +360,27 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                 for (final business in businesses)
                   Marker(
                     point: LatLng(business.latitude, business.longitude),
-                    width: 42,
-                    height: 42,
+                    width: 40,
+                    height: 40,
+                    // Anchors the pin's visual tip (not its bounding box
+                    // center) to the actual coordinate — marker-business
+                    // .png is a teardrop shape with the point at the very
+                    // bottom, same convention as the old hand-drawn pin.
+                    alignment: Alignment.topCenter,
                     child: GestureDetector(
-                      onTap: () => showModalBottomSheet<void>(
-                        context: context,
-                        builder: (_) => BusinessMarkerSheet(business: business),
-                      ),
-                      child: _MapPin(color: categoryColor(business.category), icon: categoryIcon(business.category)),
+                      onTap: () => setState(() => _selectedBusinessId = business.id),
+                      child: Image.asset('assets/markers/marker-business.png', width: 40, height: 40),
                     ),
                   ),
               ],
             ),
-            // Required attribution for OpenStreetMap-derived tiles — check
-            // your specific tile provider's attribution requirements if you
-            // switch away from the default OSM URL.
+            // Required attribution — CARTO restyles OpenStreetMap's own
+            // data into these dark tiles, so both need crediting, not
+            // just one or the other.
             const RichAttributionWidget(
               attributions: [
                 TextSourceAttribution('OpenStreetMap contributors'),
+                TextSourceAttribution('CARTO'),
               ],
             ),
           ],
@@ -394,23 +401,23 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
           ),
 
         Positioned(
-          bottom: 78, right: 16,
+          bottom: selected != null ? 158 : 16,
+          right: 16,
           child: FloatingActionButton(
             heroTag: 'refresh-businesses',
             backgroundColor: AppColors.surface,
             foregroundColor: AppColors.primary,
-            elevation: 3,
             onPressed: () => ref.read(businessListControllerProvider.notifier).load(),
             child: const Icon(Icons.refresh_rounded),
           ),
         ),
         Positioned(
-          bottom: 16, right: 16,
+          bottom: selected != null ? 96 : 16,
+          right: selected != null ? 16 : 76,
           child: FloatingActionButton(
             heroTag: 'recenter-map',
             backgroundColor: AppColors.surface,
             foregroundColor: AppColors.primary,
-            elevation: 3,
             onPressed: () async {
               await ref.read(locationControllerProvider.notifier).refresh();
               _recenterOnUser();
@@ -418,71 +425,27 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
             child: const Icon(Icons.my_location),
           ),
         ),
-      ],
-    );
-  }
-}
 
-/// Teardrop-style map pin, colored per business category — flutter_map has
-/// no built-in marker icon system like Google Maps, markers are just
-/// arbitrary widgets, so this is hand-rolled but fully theme-consistent.
-class _MapPin extends StatelessWidget {
-  const _MapPin({required this.color, required this.icon});
-  final Color color;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.5),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))],
+        if (selected != null)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _BusinessPreviewCard(business: selected),
           ),
-          child: Icon(icon, color: Colors.white, size: 18),
-        ),
-        CustomPaint(size: const Size(10, 6), painter: _PinTailPainter(color: color)),
       ],
     );
   }
 }
 
-class _PinTailPainter extends CustomPainter {
-  const _PinTailPainter({required this.color});
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final ui.Path path = ui.Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-    canvas.drawPath(path, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(covariant _PinTailPainter oldDelegate) => oldDelegate.color != color;
-}
-
+/// Plain outlined pill (no icon, no per-category color) matching the
+/// mockup's quick-filter chips — "Të gjitha"/"All" filled red when
+/// selected, every other chip just an outlined dark pill with white
+/// text regardless of category.
 class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({
-    required this.label,
-    required this.color,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
+  const _CategoryChip({required this.label, required this.selected, required this.onTap});
 
   final String label;
-  final Color color;
-  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
@@ -490,28 +453,100 @@ class _CategoryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? color : color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? color : Colors.transparent),
+          color: selected ? AppColors.primary : Colors.transparent,
+          border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 140),
+          child: Text(
+            label,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: selected ? Colors.white : AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Persistent bottom card showing whichever business is currently
+/// selected on the map — replaces the old tap-to-open modal
+/// (BusinessMarkerSheet), which the DiscoverMap.png mockup doesn't use
+/// at all in favor of this always-visible card sitting above the bottom
+/// nav bar.
+class _BusinessPreviewCard extends StatelessWidget {
+  const _BusinessPreviewCard({required this.business});
+  final BusinessEntity business;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push(AppRoutes.businessDetailsPath(business.id)),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.border, width: 1.5)),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: selected ? Colors.white : color),
-            const SizedBox(width: 6),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 140),
-              child: Text(
-                label,
-                style: AppTextStyles.bodySmall.copyWith(color: selected ? Colors.white : color, fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            Container(
+              width: 48,
+              height: 48,
+              color: AppColors.primary.withValues(alpha: 0.16),
+              child: business.logoUrl != null
+                  ? AppNetworkImage(
+                      url: AppConstants.resolveMediaUrl(business.logoUrl)!,
+                      width: 48,
+                      height: 48,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.16),
+                    )
+                  : Icon(categoryIcon(business.category), color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(business.name, style: AppTextStyles.h3, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          localizedCategoryName(context, business.category),
+                          style: AppTextStyles.bodySmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (business.rating != null) ...[
+                        Text(' · ', style: AppTextStyles.bodySmall),
+                        const Icon(Icons.star_rounded, size: 14, color: AppColors.gold),
+                        Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodySmall),
+                      ],
+                      if (business.distanceKm != null) ...[
+                        Text(' · ', style: AppTextStyles.bodySmall),
+                        Text(
+                          'common.km_away'.tr(args: [business.distanceKm!.toStringAsFixed(1)]),
+                          style: AppTextStyles.bodySmall,
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ),
             ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
           ],
         ),
       ),

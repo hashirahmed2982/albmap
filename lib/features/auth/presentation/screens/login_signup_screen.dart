@@ -1,7 +1,10 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
@@ -10,16 +13,20 @@ import '../../../../core/widgets/primary_button.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/forgot_password_sheet.dart';
 
-/// 2. Login / Sign Up Screen
-/// Toggles between login and sign-up modes, supports guest continuation,
-/// forgot-password, and social login entry points. Sign-up itself is two
-/// steps — submitting the form only emails a code (see
-/// AuthController.requestSignup); [_isVerifyingOtp] switches this same
-/// screen into a third mode to collect that code, which is what actually
-/// creates the account (AuthController.verifySignupOtp). The GoRouter
-/// redirect (app_router.dart) reactively navigates away once that
-/// succeeds and authState.isAuthenticated becomes true — this screen
-/// never navigates itself, for signup or login.
+/// 2. Login / Sign Up Screen — "Bold Editorial" redesign (see
+/// AlbMap_Design_Spec_Bold_Editorial.md + Login.png mockup): dark
+/// background, serif "AlbMap" wordmark, an underline tab toggle between
+/// Hyr/Regjistrohu (replacing the old bottom "Already have an account?"
+/// link as the primary way to switch modes), sharp-cornered bordered
+/// inputs/buttons, and a persistent Terms/Privacy footer disclaimer.
+///
+/// Sign-up itself is two steps — submitting the form only emails a code
+/// (see AuthController.requestSignup); [_isVerifyingOtp] switches this
+/// same screen into a third mode to collect that code, which is what
+/// actually creates the account (AuthController.verifySignupOtp). The
+/// GoRouter redirect (app_router.dart) reactively navigates away once
+/// that succeeds and authState.isAuthenticated becomes true — this
+/// screen never navigates itself, for signup or login.
 class LoginSignUpScreen extends ConsumerStatefulWidget {
   const LoginSignUpScreen({super.key});
 
@@ -119,244 +126,403 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
     }
   }
 
+  void _switchMode(bool signUp) {
+    if (_isVerifyingOtp) return; // don't let a stray tap escape the OTP step
+    setState(() => _isSignUpMode = signUp);
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.primaryDark, AppColors.primary],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 32),
+              Center(
+                child: Text('AlbMap', style: AppTextStyles.h1.copyWith(fontSize: 36), textAlign: TextAlign.center),
               ),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
-            ),
-          ),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 24),
-                  Container(
-                    width: 72,
-                    height: 72,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6))],
-                    ),
-                    child: const Icon(Icons.map_rounded, size: 38, color: AppColors.primary),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _isVerifyingOtp
-                        ? 'auth.verifyEmailTitle'.tr()
-                        : _isSignUpMode
-                            ? 'auth.createAccount'.tr()
-                            : 'auth.welcomeBack'.tr(),
-                    style: AppTextStyles.h1.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _isVerifyingOtp
-                        ? 'auth.verifyEmailSubtitle'.tr(namedArgs: {'email': _emailController.text.trim()})
-                        : _isSignUpMode
-                            ? 'auth.signupSubtitle'.tr()
-                            : 'auth.loginSubtitle'.tr(),
-                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withValues(alpha: 0.85)),
-                  ),
-                  const SizedBox(height: 24),
+              const SizedBox(height: 6),
+              Center(
+                child: Text(
+                  'auth.tagline'.tr(),
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 28),
 
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 8))],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (_isVerifyingOtp) ...[
-                            TextFormField(
-                              controller: _otpController,
-                              keyboardType: TextInputType.number,
-                              maxLength: 6,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.h2.copyWith(letterSpacing: 8),
-                              decoration: InputDecoration(labelText: 'auth.verificationCode'.tr(), counterText: ''),
-                              validator: (v) => Validators.otp(
-                                v,
-                                requiredMessage: 'auth.otpRequired'.tr(),
-                                invalidMessage: 'auth.otpInvalid'.tr(),
-                              ),
-                            ),
-                          ] else ...[
-                            if (_isSignUpMode) ...[
-                              TextFormField(
-                                controller: _nameController,
-                                maxLength: 150,
-                                decoration: InputDecoration(labelText: 'auth.fullName'.tr()),
-                                validator: (v) => Validators.required(v, 'auth.nameRequired'.tr()),
-                              ),
-                              const SizedBox(height: 14),
-                            ],
-                            TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              maxLength: 255,
-                              decoration: InputDecoration(labelText: 'auth.email'.tr()),
-                              validator: (v) => Validators.email(
-                                v,
-                                requiredMessage: 'auth.emailRequired'.tr(),
-                                invalidMessage: 'auth.emailInvalid'.tr(),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            TextFormField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              maxLength: 72,
-                              decoration: InputDecoration(
-                                labelText: 'auth.password'.tr(),
-                                suffixIcon: IconButton(
-                                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                ),
-                              ),
-                              validator: (v) => Validators.password(
-                                v,
-                                requiredMessage: 'auth.passwordRequired'.tr(),
-                                tooShortMessage: 'auth.passwordTooShort'.tr(),
-                              ),
-                            ),
-                            if (!_isSignUpMode) ...[
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: () => showModalBottomSheet<void>(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (_) => const ForgotPasswordSheet(),
-                                  ),
-                                  child: Text('auth.forgotPassword'.tr()),
-                                ),
-                              ),
-                            ] else ...[
-                              const SizedBox(height: 12),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Checkbox(
-                                    value: _acceptedTerms,
-                                    activeColor: AppColors.primary,
-                                    onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(top: 12),
-                                      child: Text('auth.acceptTerms'.tr(), style: AppTextStyles.bodySmall),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                          const SizedBox(height: 12),
-                          PrimaryButton(
-                            label: _isVerifyingOtp
-                                ? 'auth.verifyButton'.tr()
-                                : _isSignUpMode
-                                    ? 'auth.signUp'.tr()
-                                    : 'auth.logIn'.tr(),
-                            isLoading: authState.isLoading,
-                            onPressed: _submit,
-                          ),
-                        ],
+              if (!_isVerifyingOtp) _ModeTabToggle(isSignUpMode: _isSignUpMode, onChanged: _switchMode),
+              const SizedBox(height: 24),
+
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_isVerifyingOtp) ...[
+                      Text(
+                        'auth.verifyEmailSubtitle'.tr(namedArgs: {'email': _emailController.text.trim()}),
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  if (_isVerifyingOtp) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () => setState(() => _isVerifyingOtp = false),
-                          child: Text('auth.useAnotherEmail'.tr()),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _otpController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.h2.copyWith(letterSpacing: 8),
+                        decoration: InputDecoration(labelText: 'auth.verificationCode'.tr(), counterText: ''),
+                        validator: (v) => Validators.otp(
+                          v,
+                          requiredMessage: 'auth.otpRequired'.tr(),
+                          invalidMessage: 'auth.otpInvalid'.tr(),
                         ),
-                        TextButton(
-                          onPressed: _isResending ? null : _resendCode,
-                          child: Text(_isResending ? 'common.loading'.tr() : 'auth.resendCode'.tr()),
+                      ),
+                    ] else ...[
+                      if (_isSignUpMode) ...[
+                        _FieldLabel('auth.fullName'.tr()),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _nameController,
+                          maxLength: 150,
+                          decoration: const InputDecoration(counterText: ''),
+                          validator: (v) => Validators.required(v, 'auth.nameRequired'.tr()),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      _FieldLabel('auth.email'.tr()),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        maxLength: 255,
+                        decoration: InputDecoration(
+                          hintText: 'auth.emailHint'.tr(),
+                          prefixIcon: const Icon(Icons.mail_outline, size: 20),
+                          counterText: '',
+                        ),
+                        validator: (v) => Validators.email(
+                          v,
+                          requiredMessage: 'auth.emailRequired'.tr(),
+                          invalidMessage: 'auth.emailInvalid'.tr(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _FieldLabel('auth.password'.tr()),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        maxLength: 72,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
+                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          ),
+                          counterText: '',
+                        ),
+                        validator: (v) => Validators.password(
+                          v,
+                          requiredMessage: 'auth.passwordRequired'.tr(),
+                          tooShortMessage: 'auth.passwordTooShort'.tr(),
+                        ),
+                      ),
+                      if (!_isSignUpMode) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (_) => const ForgotPasswordSheet(),
+                            ),
+                            child: Text(
+                              'auth.forgotPassword'.tr(),
+                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Checkbox(
+                              value: _acceptedTerms,
+                              onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Text('auth.acceptTerms'.tr(), style: AppTextStyles.bodySmall),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-                    ),
-                  ] else ...[
-                    Row(children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('auth.or'.tr(), style: AppTextStyles.bodySmall),
-                      ),
-                      const Expanded(child: Divider()),
-                    ]),
-                    const SizedBox(height: 16),
-
-                    PrimaryButton(
-                      label: 'auth.continueWithGoogle'.tr(),
-                      outlined: true,
-                      icon: Icons.g_mobiledata,
-                      onPressed: () => _handleSocialLogin(
-                            () => ref.read(authControllerProvider.notifier).loginWithGoogle(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    PrimaryButton(
-                      label: 'auth.continueWithFacebook'.tr(),
-                      outlined: true,
-                      icon: Icons.facebook,
-                      onPressed: () => _handleSocialLogin(
-                            () => ref.read(authControllerProvider.notifier).loginWithFacebook(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    PrimaryButton(
-                      label: 'auth.continueAsGuest'.tr(),
-                      outlined: true,
-                      icon: Icons.person_outline,
-                      onPressed: () => ref.read(authControllerProvider.notifier).continueAsGuest(),
-                    ),
-
+                    ],
                     const SizedBox(height: 20),
-                    Center(
-                      child: TextButton(
-                        onPressed: () => setState(() => _isSignUpMode = !_isSignUpMode),
-                        child: Text(
-                          _isSignUpMode ? 'auth.alreadyHaveAccount'.tr() : 'auth.noAccount'.tr(),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+                    PrimaryButton(
+                      label: _isVerifyingOtp
+                          ? 'auth.verifyButton'.tr()
+                          : _isSignUpMode
+                              ? 'auth.signUp'.tr()
+                              : 'auth.logIn'.tr(),
+                      isLoading: authState.isLoading,
+                      onPressed: _submit,
                     ),
                   ],
-                  const SizedBox(height: 20),
-                ],
+                ),
               ),
-            ),
+
+              if (_isVerifyingOtp) ...[
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => setState(() => _isVerifyingOtp = false),
+                      child: Text('auth.useAnotherEmail'.tr()),
+                    ),
+                    TextButton(
+                      onPressed: _isResending ? null : _resendCode,
+                      child: Text(_isResending ? 'common.loading'.tr() : 'auth.resendCode'.tr()),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('auth.or'.tr(), style: AppTextStyles.bodySmall),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                _SocialLoginButton(
+                  label: 'auth.continueWithGoogle'.tr(),
+                  badge: const Text('G', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                  onPressed: () => _handleSocialLogin(
+                    () => ref.read(authControllerProvider.notifier).loginWithGoogle(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _SocialLoginButton(
+                  label: 'auth.continueWithFacebook'.tr(),
+                  badge: const Icon(Icons.facebook, size: 16),
+                  onPressed: () => _handleSocialLogin(
+                    () => ref.read(authControllerProvider.notifier).loginWithFacebook(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Sign in with Apple isn't wired up yet (separate task —
+                // it needs its own Apple Developer Services ID + backend
+                // token verification, not just this button). Shown here
+                // to match the mockup visually; tapping surfaces an
+                // honest "coming soon" rather than attempting a sign-in
+                // that would silently fail.
+                _SocialLoginButton(
+                  label: 'auth.continueWithApple'.tr(),
+                  badge: const Icon(Icons.apple, size: 18),
+                  onPressed: () => AppToast.info(context, 'auth.appleSignInComingSoon'.tr()),
+                ),
+
+                const SizedBox(height: 20),
+                Center(
+                  child: GestureDetector(
+                    onTap: () => ref.read(authControllerProvider.notifier).continueAsGuest(),
+                    child: Text(
+                      'auth.continueAsGuest'.tr(),
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _TermsFooter(
+                  onTapTerms: () => context.push(AppRoutes.termsConditions),
+                  onTapPrivacy: () => context.push(AppRoutes.privacyPolicy),
+                ),
+              ],
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small uppercase field label ("EMAIL", "FJALËKALIMI") above each input —
+/// the mockup labels fields this way instead of via InputDecoration's
+/// floating label, which is why these are separate Text widgets rather
+/// than a `labelText`.
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+    );
+  }
+}
+
+/// Underline tab toggle between Login/Sign Up — replaces the old bottom
+/// "Already have an account?" text link as the primary way to switch
+/// modes, per the mockup. Tabs hug their own text width (not split
+/// evenly across the row) so the active tab's red underline sits exactly
+/// under that tab's label, matching the mockup.
+class _ModeTabToggle extends StatelessWidget {
+  const _ModeTabToggle({required this.isSignUpMode, required this.onChanged});
+  final bool isSignUpMode;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _TabLabel(text: 'auth.logIn'.tr(), selected: !isSignUpMode, onTap: () => onChanged(false)),
+        const SizedBox(width: 28),
+        _TabLabel(text: 'auth.signUp'.tr(), selected: isSignUpMode, onTap: () => onChanged(true)),
+        // Fills the remaining width so the divider still reaches the
+        // trailing edge, matching the mockup's full-width baseline rule.
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(top: 38),
+            height: 1.5,
+            color: AppColors.border,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TabLabel extends StatelessWidget {
+  const _TabLabel({required this.text, required this.selected, required this.onTap});
+  final String text;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            text,
+            style: AppTextStyles.h3.copyWith(color: selected ? AppColors.primary : AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 2.5,
+            width: selected ? null : 0,
+            color: selected ? AppColors.primary : Colors.transparent,
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Outlined social-login button with a small circular icon badge on the
+/// left, matching the mockup — deliberately a screen-local widget rather
+/// than a change to the shared PrimaryButton, which several other
+/// screens also use with `outlined: true` for buttons that don't have
+/// this badge treatment.
+class _SocialLoginButton extends StatelessWidget {
+  const _SocialLoginButton({required this.label, required this.badge, required this.onPressed});
+  final String label;
+  final Widget badge;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.borderStrong, width: 1.5),
+              ),
+              child: DefaultTextStyle(
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
+                child: IconTheme(
+                  data: const IconThemeData(color: AppColors.textPrimary),
+                  child: badge,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                label,
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "By continuing you agree to our Terms & Conditions and our Privacy
+/// Policy." with the two policy names as tappable red links — persistent
+/// under the guest/social options on both Login and Sign Up, distinct
+/// from the sign-up-only "I accept..." checkbox above (that one gates
+/// actually submitting the sign-up form; this is a general disclaimer
+/// shown regardless of mode, per the mockup).
+class _TermsFooter extends StatelessWidget {
+  const _TermsFooter({required this.onTapTerms, required this.onTapPrivacy});
+  final VoidCallback onTapTerms;
+  final VoidCallback onTapPrivacy;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseStyle = AppTextStyles.caption.copyWith(color: AppColors.textSecondary);
+    final linkStyle = baseStyle.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700);
+
+    return Text.rich(
+      TextSpan(
+        style: baseStyle,
+        children: [
+          TextSpan(text: 'auth.footerAgreementPrefix'.tr()),
+          TextSpan(text: 'aboutUs.terms'.tr(), style: linkStyle, recognizer: TapGestureRecognizer()..onTap = onTapTerms),
+          TextSpan(text: 'auth.footerAgreementMiddle'.tr()),
+          TextSpan(text: 'aboutUs.privacyPolicy'.tr(), style: linkStyle, recognizer: TapGestureRecognizer()..onTap = onTapPrivacy),
+          const TextSpan(text: '.'),
+        ],
+      ),
+      textAlign: TextAlign.center,
     );
   }
 }
