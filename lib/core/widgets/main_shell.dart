@@ -55,19 +55,20 @@ class MainShell extends ConsumerWidget {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, -2)),
-          ],
+          // Sharp corners + a top border instead of a shadow — "No
+          // rounded corners on cards, buttons, or inputs" per the Bold
+          // Editorial spec, with depth conveyed by the border color
+          // system rather than elevation/shadow everywhere else too.
+          border: Border(top: BorderSide(color: AppColors.border, width: 1.5)),
         ),
         clipBehavior: Clip.antiAlias,
         child: NavigationBarTheme(
           data: NavigationBarThemeData(
             backgroundColor: AppColors.surface,
-            indicatorColor: AppColors.primary.withValues(alpha: 0.12),
-            indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            indicatorColor: AppColors.primary.withValues(alpha: 0.16),
+            indicatorShape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             // Explicit per-state colors — without these, unselected icons/
             // labels fall back to a theme-derived color that can end up
             // invisible against this bar depending on ambient theme state.

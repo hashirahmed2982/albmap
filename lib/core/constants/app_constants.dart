@@ -17,10 +17,20 @@ class AppConstants {
   // a tile provider of your choice; OSM's public server is fine for dev
   // but its usage policy disallows production traffic at scale — swap in
   // a MapTiler/Stadia Maps/self-hosted URL (with {z}/{x}/{y} placeholders)
-  // before shipping.
+  // before shipping. Google Maps is planned as a follow-up migration once
+  // billing/API keys are set up on the client's side — until then this
+  // stays free/OSM-based.
+  //
+  // Dark Matter (CARTO) rather than plain OSM tiles — the Bold Editorial
+  // redesign's Discover Map mockup shows a near-black map, which the
+  // default bright OSM tiles can't produce; this is still a free,
+  // OpenStreetMap-data-based tile set (CARTO restyles OSM data, doesn't
+  // replace it), just with dark styling baked into the raster tiles
+  // themselves. Requires attributing both OpenStreetMap and CARTO — see
+  // the RichAttributionWidget on each map screen.
   static const String mapTileUrlTemplate = String.fromEnvironment(
     'MAP_TILE_URL',
-    defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    defaultValue: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
   );
   static const String mapTileUserAgentPackageName = 'com.albmap.app';
 
