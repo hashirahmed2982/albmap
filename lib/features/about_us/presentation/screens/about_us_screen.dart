@@ -94,7 +94,7 @@ class AboutUsScreen extends ConsumerWidget {
                               child: const Icon(Icons.map_rounded, color: Colors.white, size: 42),
                             ),
                             const SizedBox(height: 16),
-                            const Text('AlbMap', style: AppTextStyles.h1),
+                            Text('AlbMap', style: AppTextStyles.h1),
                             const SizedBox(height: 8),
                             Text(
                               about.tagline,

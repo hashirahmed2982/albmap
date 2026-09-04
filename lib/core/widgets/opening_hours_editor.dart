@@ -140,8 +140,8 @@ class _OpeningHoursEditorState extends State<OpeningHoursEditor> {
                         label: hours.openTime?.format(context) ?? 'hours.openPlaceholder'.tr(),
                         onTap: () => _pickTime(day: day, isOpenTime: true),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
                         child: Text('–', style: AppTextStyles.bodySmall),
                       ),
                       _TimeChip(

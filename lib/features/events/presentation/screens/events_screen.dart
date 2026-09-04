@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/page_header_title.dart';
 import '../../../../core/widgets/state_widgets.dart';
@@ -65,27 +66,27 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: SizedBox(
+                        child: Container(
                           height: 52,
-                          child: Material(
-                            elevation: 2,
-                            shadowColor: Colors.black.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(16),
-                            child: TextField(
-                              controller: _searchController,
-                              maxLength: 100,
-                              onChanged: (v) => ref.read(eventFilterProvider.notifier).update(
-                                    (state) => state.copyWith(query: v),
-                                  ),
-                              decoration: InputDecoration(
-                                hintText: 'events.searchHint'.tr(),
-                                prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-                                border: InputBorder.none,
-                                // Same fixed-height-pill reasoning as Discover
-                                // Map's search field — suppress the counter.
-                                counterText: '',
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                              ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            border: Border.all(color: AppColors.border, width: 1.5),
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            maxLength: 100,
+                            style: AppTextStyles.bodyMedium,
+                            onChanged: (v) => ref.read(eventFilterProvider.notifier).update(
+                                  (state) => state.copyWith(query: v),
+                                ),
+                            decoration: InputDecoration(
+                              hintText: 'events.searchHint'.tr(),
+                              prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                              border: InputBorder.none,
+                              // Same fixed-height-pill reasoning as Discover
+                              // Map's search field — suppress the counter.
+                              counterText: '',
+                              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                             ),
                           ),
                         ),
@@ -94,17 +95,17 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
                       SizedBox(
                         height: 52,
                         width: 52,
-                        child: Material(
-                          elevation: 2,
-                          shadowColor: Colors.black.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(16),
-                          color: AppColors.surface,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            border: Border.all(color: AppColors.border, width: 1.5),
+                          ),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
                               IconButton(
                                 padding: EdgeInsets.zero,
-                                icon: const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
+                                icon: const Icon(Icons.calendar_month_outlined, color: AppColors.textPrimary),
                                 onPressed: () => showModalBottomSheet<void>(
                                   context: context,
                                   isScrollControlled: true,
@@ -118,7 +119,7 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
                                   child: Container(
                                     width: 8,
                                     height: 8,
-                                    decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                                    decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
                                   ),
                                 ),
                             ],

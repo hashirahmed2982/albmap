@@ -56,14 +56,10 @@ class EventListTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4)),
-        ],
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => context.push(AppRoutes.eventDetailsPath(event.id)),
@@ -72,21 +68,15 @@ class EventListTile extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  width: 56,
+                  height: 56,
+                  color: accent.withValues(alpha: 0.16),
                   child: event.imageUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: AppNetworkImage(
-                            url: AppConstants.resolveMediaUrl(event.imageUrl)!,
-                            width: 60,
-                            height: 60,
-                            backgroundColor: accent.withValues(alpha: 0.12),
-                          ),
+                      ? AppNetworkImage(
+                          url: AppConstants.resolveMediaUrl(event.imageUrl)!,
+                          width: 56,
+                          height: 56,
+                          backgroundColor: accent.withValues(alpha: 0.16),
                         )
                       : Icon(eventCategoryIcon(event.category), color: accent, size: 26),
                 ),
@@ -101,9 +91,12 @@ class EventListTile extends StatelessWidget {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          Icon(Icons.schedule_rounded, size: 14, color: accent),
+                          const Icon(Icons.schedule_rounded, size: 14, color: AppColors.primary),
                           const SizedBox(width: 4),
-                          Text(dateFmt.format(event.startTime), style: AppTextStyles.bodySmall.copyWith(color: accent, fontWeight: FontWeight.w600)),
+                          Text(
+                            dateFmt.format(event.startTime),
+                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+                          ),
                           if (event.interestCount > 0) ...[
                             const SizedBox(width: 10),
                             const Icon(Icons.groups_outlined, size: 14, color: AppColors.textSecondary),

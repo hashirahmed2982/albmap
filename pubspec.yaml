@@ -36,6 +36,12 @@ dependencies:
   # Navigation
   go_router: ^14.2.0
 
+  # Typography — Bold Editorial design system (Instrument Serif for
+  # display/headlines, Work Sans for body/UI). Both fetched from Google
+  # Fonts and cached on-device after first load; see AppTextStyles for
+  # where each is actually applied.
+  google_fonts: ^6.2.1
+
   # Maps & Location
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
@@ -96,6 +102,10 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/translations/
+    # Discover Map's business marker — flutter-convention 2.0x/3.0x
+    # variant subfolders under here are picked up automatically by
+    # Flutter's asset resolver, no need to list them individually.
+    - assets/markers/
   fonts:
     - family: IBM Plex Sans
       fonts:
@@ -113,11 +123,21 @@ flutter:
 # in the `flutter.assets` list above — it's a build-time input, not
 # something the running app needs to bundle). Re-run after replacing
 # icon_master.png/icon_foreground.png to regenerate every size.
+#
+# icon_master.png/icon_foreground.png are now the client-provided
+# "flag-marker" design (Task 4 asset pack) — a red map-pin with the
+# Albanian double-headed eagle, transparent background, 1024x1024.
+# White was chosen for both platforms' fill-in background (below) rather
+# than the new dark theme background (#130807): the pin is itself red, so
+# a dark background risks the pin's red fill blending into it at small
+# sizes, where white keeps the pin, its white outline, and the black
+# eagle glyph all clearly separated.
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/icon_master.png"
   min_sdk_android: 23
-  adaptive_icon_background: "#E31320"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
   remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"

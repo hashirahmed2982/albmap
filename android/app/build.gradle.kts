@@ -55,6 +55,12 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 23
+        // Explicitly 36 rather than flutter.targetSdkVersion — Google Play now
+        // requires new app updates to target API 36, but the Flutter SDK's own
+        // bundled default hasn't caught up to that yet (still resolves lower on
+        // this Flutter version), so relying on it here would keep failing
+        // Play's target API level check until Flutter itself bumps its
+        // default. Bump this again whenever Play's minimum requirement moves.
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName

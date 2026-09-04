@@ -85,41 +85,58 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
               SliverAppBar(
                 pinned: true,
                 expandedHeight: 220,
-                backgroundColor: accent,
+                backgroundColor: AppColors.primary,
+                elevation: 0,
+                // Bold Editorial hero band is always solid accent red
+                // (not tinted per-category as before) with circular
+                // semi-transparent icon buttons — matching
+                // BusinessDetails.png rather than the old
+                // category-colored gradient banner.
+                leading: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: _HeroIconButton(icon: Icons.arrow_back_ios_new_rounded, onTap: () => Navigator.of(context).maybePop()),
+                ),
                 actions: [
                   if (canFavorite)
-                    IconButton(
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? AppColors.primary : Colors.white,
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _HeroIconButton(
+                        icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+                        onTap: () async {
+                          final error = await ref
+                              .read(favoriteToggleControllerProvider.notifier)
+                              .toggleBusiness(business);
+                          if (error != null && context.mounted) {
+                            AppToast.error(context, error);
+                          }
+                        },
                       ),
-                      onPressed: () async {
-                        final error = await ref
-                            .read(favoriteToggleControllerProvider.notifier)
-                            .toggleBusiness(business);
-                        if (error != null && context.mounted) {
-                          AppToast.error(context, error);
-                        }
-                      },
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.share, color: Colors.white),
-                    onPressed: () => Share.share('business.shareText'.tr(args: [business.name])),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _HeroIconButton(
+                      icon: Icons.ios_share_rounded,
+                      onTap: () => Share.share('business.shareText'.tr(args: [business.name])),
+                    ),
                   ),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: business.logoUrl != null
                       ? AppNetworkImage(url: AppConstants.resolveMediaUrl(business.logoUrl)!)
                       : Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [accent, accent.withValues(alpha: 0.7)],
-                            ),
-                          ),
+                          color: AppColors.primary,
                           child: Center(
-                            child: Icon(categoryIcon(business.category), size: 72, color: Colors.white.withValues(alpha: 0.85)),
+                            // Giant faint serif initial as a placeholder
+                            // "logo" — matches the mockup's oversized "B"
+                            // watermark for a business with no photo.
+                            child: Text(
+                              business.name.isNotEmpty ? business.name[0].toUpperCase() : '?',
+                              style: AppTextStyles.h1.copyWith(
+                                fontSize: 160,
+                                color: Colors.white.withValues(alpha: 0.18),
+                                height: 1,
+                              ),
+                            ),
                           ),
                         ),
                 ),
@@ -142,19 +159,20 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                         spacing: 10,
                         runSpacing: 6,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                            child: Text(
-                              localizedCategoryName(context, business.category),
-                              style: AppTextStyles.bodySmall.copyWith(color: accent, fontWeight: FontWeight.w600),
-                            ),
+                          // Plain small-caps label, not a colored chip —
+                          // Bold Editorial reserves color for the two
+                          // named accents (red/gold), not per-category
+                          // badges.
+                          Text(
+                            localizedCategoryName(context, business.category).toUpperCase(),
+                            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.5),
                           ),
-                          if (business.rating != null)
+                          if (business.rating != null) ...[
+                            Text('·', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.star_rounded, size: 18, color: AppColors.warning),
+                                const Icon(Icons.star_rounded, size: 18, color: AppColors.gold),
                                 const SizedBox(width: 4),
                                 Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
                                 if (business.ratingCount > 0) ...[
@@ -166,44 +184,40 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                 ],
                               ],
                             ),
+                          ],
                           OpenStatusBadge(openingHours: business.openingHours),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
-                      Text('business.about'.tr(), style: AppTextStyles.h3),
-                      const SizedBox(height: 8),
-                      Text(business.description, style: AppTextStyles.bodyMedium),
-                      const SizedBox(height: 20),
-
-                      _InfoCard(
-                        accent: accent,
-                        children: [
-                          _InfoRow(icon: Icons.location_on_outlined, text: business.formattedAddress, accent: accent),
-                          if (business.phone != null)
-                            _InfoRow(icon: Icons.phone_outlined, text: business.phone!, accent: accent),
-                          if (business.distanceKm != null)
-                            _InfoRow(
-                              icon: Icons.directions_walk,
-                              text: 'business.kmAway'.tr(args: [business.distanceKm!.toStringAsFixed(1)]),
-                              accent: accent,
-                            ),
-                        ],
+                      Text(
+                        business.description,
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
                       ),
                       const SizedBox(height: 20),
+
+                      _InfoRow(icon: Icons.location_on_outlined, text: business.formattedAddress, accent: AppColors.primary),
+                      if (business.phone != null)
+                        _InfoRow(icon: Icons.phone_outlined, text: business.phone!, accent: AppColors.primary),
+                      if (business.distanceKm != null)
+                        _InfoRow(
+                          icon: Icons.directions_walk,
+                          text: 'business.kmAway'.tr(args: [business.distanceKm!.toStringAsFixed(1)]),
+                          accent: AppColors.primary,
+                        ),
+                      const SizedBox(height: 12),
+                      const Divider(),
+                      const SizedBox(height: 12),
 
                       // Always shown (not just when non-empty) — a business
                       // with no hours entered still gets an honest "Hours
                       // not provided" row rather than the section silently
                       // vanishing, which previously made it look like the
                       // screen simply had no hours feature at all.
-                      Text('business.openingHours'.tr(), style: AppTextStyles.h3),
+                      _SectionLabel('business.openingHours'.tr()),
                       const SizedBox(height: 8),
-                      _InfoCard(
-                        accent: accent,
-                        children: [OpeningHoursDisplay(hours: business.openingHours)],
-                      ),
-                      const SizedBox(height: 20),
+                      OpeningHoursDisplay(hours: business.openingHours),
+                      const SizedBox(height: 16),
 
                       Row(
                         children: [
@@ -225,10 +239,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                               width: 48,
                               height: 48,
                               child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  side: const BorderSide(color: Color(0xFF25D366)), // WhatsApp brand green
-                                ),
+                                style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
                                 onPressed: () {
                                   recordAnalyticsEvent(business.id, AnalyticsEventType.callClick);
                                   // wa.me requires digits only (no '+', spaces, or
@@ -240,14 +251,13 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                     mode: LaunchMode.externalApplication,
                                   ));
                                 },
-                                child: const Icon(Icons.chat_outlined, color: Color(0xFF25D366)),
+                                child: const Icon(Icons.chat_outlined),
                               ),
                             ),
                           ],
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(backgroundColor: accent),
                               icon: const Icon(Icons.directions),
                               label: Text('business.directions'.tr(), overflow: TextOverflow.ellipsis),
                               onPressed: () {
@@ -260,22 +270,29 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 12),
 
-                      Text('business.upcomingEvents'.tr(), style: AppTextStyles.h3),
+                      _SectionLabel('business.upcomingEvents'.tr()),
                       const SizedBox(height: 8),
                       eventsAsync.when(
                         data: (events) {
                           final related = events.where((e) => e.businessId == business.id).toList();
                           if (related.isEmpty) {
-                            return Text('business.noUpcomingEvents'.tr(), style: AppTextStyles.bodySmall);
+                            return Text(
+                              'business.noUpcomingEvents'.tr(),
+                              style: AppTextStyles.bodySmall.copyWith(fontStyle: FontStyle.italic),
+                            );
                           }
                           return Column(children: [for (final e in related) EventListTile(event: e)]);
                         },
                         loading: () => const LoadingIndicator(size: 20),
                         error: (_, __) => const SizedBox.shrink(),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 12),
 
                       _ReviewsSection(
                         businessId: business.id,
@@ -298,22 +315,46 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.children, required this.accent});
-  final List<Widget> children;
-  final Color accent;
+/// Circular semi-transparent icon button used in the hero band's back/
+/// favorite/share actions — the mockup's SliverAppBar buttons sit
+/// directly on the red hero, so they need their own visible boundary
+/// rather than relying on IconButton's default (which reads as
+/// invisible against a solid-color background of the same brightness).
+class _HeroIconButton extends StatelessWidget {
+  const _HeroIconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+    return Material(
+      color: Colors.black.withValues(alpha: 0.18),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(9),
+          child: Icon(icon, size: 19, color: Colors.white),
+        ),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+    );
+  }
+}
+
+/// Small uppercase section label ("ORARI I PUNËS", "EVENTE TË
+/// ARDHSHME", "VLERËSIMET") — same treatment as the plain category text
+/// above, matching the mockup's understated section headers (no longer
+/// large bold h3 titles).
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.5),
     );
   }
 }
@@ -408,16 +449,21 @@ class _ReviewsSection extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text('reviews.title'.tr(), style: AppTextStyles.h3)),
+            Expanded(child: _SectionLabel('reviews.title'.tr())),
             if (canReview)
               reviewsAsync.maybeWhen(
                 data: (reviews) {
                   final ReviewEntity? ownReview =
                       reviews.where((r) => r.userId == currentUserId).firstOrNull;
-                  return TextButton.icon(
-                    onPressed: () => _openWriteSheet(context, ref, existing: ownReview),
-                    icon: Icon(ownReview != null ? Icons.edit_outlined : Icons.rate_review_outlined, size: 18),
-                    label: Text(ownReview != null ? 'reviews.editYourReview'.tr() : 'reviews.writeReview'.tr()),
+                  // Plain "Edit →"/"Write →" red text link rather than an
+                  // icon+label button — matches the mockup's understated
+                  // "Ndrysho →" treatment for this section's action.
+                  return GestureDetector(
+                    onTap: () => _openWriteSheet(context, ref, existing: ownReview),
+                    child: Text(
+                      '${ownReview != null ? 'reviews.editYourReview'.tr() : 'reviews.writeReview'.tr()} →',
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+                    ),
                   );
                 },
                 orElse: () => const SizedBox.shrink(),
