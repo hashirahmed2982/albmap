@@ -35,16 +35,25 @@ class AppColors {
   static const Color background = Color(0xFF0A0606);
   static const Color surface = Color(0xFF110F0F);
   // The spec's "Surface (lighter)" — secondary surface, e.g. a filled
-  // category chip on the map.
-  static const Color surfaceLight = Color(0xFF231715);
+  // category chip, bottom sheets, snackbars. A plain neutral gray (equal
+  // R/G/B, same approach as `border` below) one step up from `surface` —
+  // previously a warm reddish-brown (#231715) left over from the old
+  // palette, which is what was reading as a red tint on every bottom
+  // sheet/snackbar/filled chip in the app.
+  static const Color surfaceLight = Color(0xFF1C1C1C);
   static const Color surfaceDark = Color(0xFF0D0504);
   static const Color backgroundDark = Color(0xFF0D0504);
 
   // Dedicated input fill — same as `surface` in this design (inputs are
   // just surface-colored boxes with a border, not a visually distinct
   // fill), kept as its own token since ~15 files already reference it by
-  // this name.
-  static const Color inputFill = Color(0xFF1E1311);
+  // this name. Was still pointing at the old reddish-brown surface value
+  // (#1E1311) after `surface` itself moved to a more neutral tone — that
+  // mismatch is exactly what was showing up as a red tint on every form
+  // field and search bar app-wide (every TextField's fill color comes
+  // from this one token via InputDecorationTheme). Kept equal to
+  // `surface` so it never drifts out of sync again.
+  static const Color inputFill = Color(0xFF110F0F);
 
   // ---- Text ----
   static const Color textPrimary = Color(0xFFF5ECEA);
@@ -67,16 +76,27 @@ class AppColors {
   static const Color approved = Color(0xFF9B8B88);
   static const Color rejected = Color(0xFFD73337);
 
-  static const Color divider = Color(0xFF3C2F2D); // spec's "Border"
+  // `divider` and `border` are both the spec's single "Border" color —
+  // kept as two token names since both were already in use, but they
+  // must stay identical or one of them silently drifts back to a
+  // mismatched, off-palette tone (which is exactly what happened here:
+  // `divider` was still the old reddish-brown #3C2F2D after `border`
+  // moved to a neutral gray).
+  static const Color divider = Color(0xFF2C2C2C);
   static const Color border = Color(0xFF2C2C2C);
-  static const Color borderStrong = Color(0xFF524441);
+  // A neutral gray a step lighter than `border`, for emphasis (e.g.
+  // outlined-button/dialog borders) — previously a reddish-brown
+  // (#524441) left over from the old palette.
+  static const Color borderStrong = Color(0xFF4A4A4A);
 
   // Ratings-only accent — do not use anywhere else per spec.
   static const Color gold = Color(0xFFDDB049);
 
   // Shimmer placeholders need to read as "loading" against the new dark
-  // surfaces — the old light-gray pair was invisible-to-inverted against
-  // a dark background.
-  static const Color shimmerBase = Color(0xFF231715);
-  static const Color shimmerHighlight = Color(0xFF3C2F2D);
+  // surfaces. Both stops are now plain neutral grays (matching
+  // `surfaceLight`/`borderStrong`) instead of the old reddish-brown pair,
+  // which was the same red-tint leftover showing up on every loading
+  // skeleton app-wide.
+  static const Color shimmerBase = Color(0xFF1C1C1C);
+  static const Color shimmerHighlight = Color(0xFF3A3A3A);
 }
