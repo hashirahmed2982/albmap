@@ -25,55 +25,36 @@ class SplashScreen extends ConsumerWidget {
       }
     });
 
+    // Flat black, no gradient/shadow — matches the Bold Editorial rule
+    // used everywhere else in the app ("background of the whole app is
+    // black, no highlight"). The app icon itself (a red pin with the
+    // Albanian eagle) already reads as a distinct shape against black, so
+    // it's placed directly with no rounded/shadowed container behind it.
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.primaryDark, AppColors.primary],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 8)),
-                  ],
-                ),
-                child: const Icon(Icons.map_rounded, size: 52, color: AppColors.primary),
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset('assets/icon/icon_master.png', width: 120, height: 120),
+            const SizedBox(height: 20),
+            Text('AlbMap', style: AppTextStyles.h1.copyWith(fontSize: 36)),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                'splash.tagline'.tr(),
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'AlbMap',
-                style: AppTextStyles.h1.copyWith(color: Colors.white),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  'splash.tagline'.tr(),
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
-                ),
-              ),
-              const SizedBox(height: 40),
-              const SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 40),
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primary),
+            ),
+          ],
         ),
       ),
     );

@@ -384,9 +384,11 @@ class _FieldLabel extends StatelessWidget {
 
 /// Underline tab toggle between Login/Sign Up — replaces the old bottom
 /// "Already have an account?" text link as the primary way to switch
-/// modes, per the mockup. Tabs hug their own text width (not split
-/// evenly across the row) so the active tab's red underline sits exactly
-/// under that tab's label, matching the mockup.
+/// modes, per the mockup. A true two-column tab bar: each tab takes
+/// exactly half the width with a centered label, and the underline below
+/// it spans that same half — red and full-weight for the active tab, a
+/// thin muted line for the inactive one — matching the mockup exactly
+/// (not a text-hugging underline with a separate trailing divider).
 class _ModeTabToggle extends StatelessWidget {
   const _ModeTabToggle({required this.isSignUpMode, required this.onChanged});
   final bool isSignUpMode;
@@ -396,18 +398,8 @@ class _ModeTabToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _TabLabel(text: 'auth.logIn'.tr(), selected: !isSignUpMode, onTap: () => onChanged(false)),
-        const SizedBox(width: 28),
-        _TabLabel(text: 'auth.signUp'.tr(), selected: isSignUpMode, onTap: () => onChanged(true)),
-        // Fills the remaining width so the divider still reaches the
-        // trailing edge, matching the mockup's full-width baseline rule.
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(top: 38),
-            height: 1.5,
-            color: AppColors.border,
-          ),
-        ),
+        Expanded(child: _TabLabel(text: 'auth.logIn'.tr(), selected: !isSignUpMode, onTap: () => onChanged(false))),
+        Expanded(child: _TabLabel(text: 'auth.signUp'.tr(), selected: isSignUpMode, onTap: () => onChanged(true))),
       ],
     );
   }
@@ -425,18 +417,21 @@ class _TabLabel extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            text,
-            style: AppTextStyles.h3.copyWith(color: selected ? AppColors.primary : AppColors.textSecondary),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              // Active tab reads white/bold (not red) in the mockup — the
+              // red is reserved for the underline beneath it.
+              style: AppTextStyles.h3.copyWith(color: selected ? AppColors.textPrimary : AppColors.textSecondary),
+            ),
           ),
-          const SizedBox(height: 12),
           Container(
-            height: 2.5,
-            width: selected ? null : 0,
-            color: selected ? AppColors.primary : Colors.transparent,
+            height: selected ? 2.5 : 1.5,
+            color: selected ? AppColors.primary : AppColors.border,
           ),
         ],
       ),
