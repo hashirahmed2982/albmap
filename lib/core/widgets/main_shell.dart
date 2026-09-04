@@ -28,7 +28,7 @@ class MainShell extends ConsumerWidget {
     final int unread = ref.watch(unreadNotificationsCountProvider);
 
     final List<_TabDef> tabs = [
-      _TabDef(icon: Icons.map_outlined, activeIcon: Icons.map_rounded, label: 'nav.discover'.tr()),
+      _TabDef(icon: Icons.explore_outlined, activeIcon: Icons.explore, label: 'nav.discover'.tr()),
       _TabDef(icon: Icons.event_outlined, activeIcon: Icons.event_rounded, label: 'nav.events'.tr()),
       if (!isGuest)
         _TabDef(icon: Icons.favorite_outline, activeIcon: Icons.favorite_rounded, label: 'nav.favorites'.tr()),
@@ -67,8 +67,11 @@ class MainShell extends ConsumerWidget {
         child: NavigationBarTheme(
           data: NavigationBarThemeData(
             backgroundColor: AppColors.surface,
-            indicatorColor: AppColors.primary.withValues(alpha: 0.16),
-            indicatorShape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            // No pill/background behind the selected icon, per the
+            // mockup — only the icon and label change color (see
+            // iconTheme/labelTextStyle below); there's no shadow or
+            // highlight shape to draw at all.
+            indicatorColor: Colors.transparent,
             // Explicit per-state colors — without these, unselected icons/
             // labels fall back to a theme-derived color that can end up
             // invisible against this bar depending on ambient theme state.
