@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import FBSDKCoreKit
+import GoogleMaps
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,6 +9,16 @@ import FBSDKCoreKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Required by google_maps_flutter — without this the map fails to
+    // render at all on iOS (a blank view, not even a "for development
+    // purposes only" watermark the way Android shows). Must run before
+    // GeneratedPluginRegistrant.register below. REPLACE with the real
+    // Maps SDK for iOS key from Google Cloud Console, restricted to this
+    // app's bundle ID. This key is native-side config, not read from
+    // Dart — same as the Android manifest's com.google.android.geo
+    // .API_KEY meta-data.
+    GMSServices.provideAPIKey("YOUR_GOOGLE_MAPS_API_KEY")
+
     GeneratedPluginRegistrant.register(with: self)
 
     // Firebase itself does NOT need FirebaseApp.configure() here — the
