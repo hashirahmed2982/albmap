@@ -61,39 +61,64 @@ class BusinessDashboardScreen extends ConsumerWidget {
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                         children: [
-                          GridView.count(
-                            crossAxisCount: 2,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 1.5,
-                            children: [
-                              _StatCard(
-                                icon: Icons.visibility_outlined,
-                                label: 'dashboard.profileClicks'.tr(),
-                                value: analytics.profileClicks,
-                                color: AppColors.primary,
-                              ),
-                              _StatCard(
-                                icon: Icons.language_outlined,
-                                label: 'dashboard.websiteClicks'.tr(),
-                                value: analytics.websiteClicks,
-                                color: accent,
-                              ),
-                              _StatCard(
-                                icon: Icons.call_outlined,
-                                label: 'dashboard.callClicks'.tr(),
-                                value: analytics.callClicks,
-                                color: AppColors.info,
-                              ),
-                              _StatCard(
-                                icon: Icons.favorite_outline,
-                                label: 'dashboard.favorites'.tr(),
-                                value: analytics.favoriteCount,
-                                color: AppColors.error,
-                              ),
-                            ],
+                          // A fixed childAspectRatio (the old GridView.count
+                          // below) forces every tile to the same height no
+                          // matter how much room its content actually
+                          // needs — on a narrower phone, a larger system
+                          // font size, or a locale whose label text is
+                          // longer, the icon+number+label column no longer
+                          // fit and Flutter renders the classic yellow/
+                          // black "overflowed by N pixels" stripe. Two
+                          // IntrinsicHeight rows let each tile size to its
+                          // own content instead, so it can never overflow.
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: _StatCard(
+                                    icon: Icons.visibility_outlined,
+                                    label: 'dashboard.profileClicks'.tr(),
+                                    value: analytics.profileClicks,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _StatCard(
+                                    icon: Icons.language_outlined,
+                                    label: 'dashboard.websiteClicks'.tr(),
+                                    value: analytics.websiteClicks,
+                                    color: accent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: _StatCard(
+                                    icon: Icons.call_outlined,
+                                    label: 'dashboard.callClicks'.tr(),
+                                    value: analytics.callClicks,
+                                    color: AppColors.info,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _StatCard(
+                                    icon: Icons.favorite_outline,
+                                    label: 'dashboard.favorites'.tr(),
+                                    value: analytics.favoriteCount,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 20),
                           if (analytics.last7DaysProfileClicks.isNotEmpty) ...[
@@ -102,8 +127,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(18),
-                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+                                border: Border.all(color: AppColors.border, width: 1.5),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,8 +148,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: AppColors.secondary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: AppColors.secondary.withValues(alpha: 0.25)),
+                              border: Border.all(color: AppColors.secondary.withValues(alpha: 0.4), width: 1.5),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,20 +205,21 @@ class _StatCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 34, height: 34,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(9)),
+            width: 34,
+            height: 34,
+            color: color.withValues(alpha: 0.16),
             child: Icon(icon, size: 18, color: color),
           ),
-          const Spacer(),
+          const SizedBox(height: 10),
           Text('$value', style: AppTextStyles.h1.copyWith(fontSize: 24)),
-          Text(label, style: AppTextStyles.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(label, style: AppTextStyles.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

@@ -31,3 +31,8 @@ ios/Flutter/flutter_export_environment.sh
 .env
 google-services.json
 GoogleService-Info.plist
+# Catches accidental duplicate-download variants too (e.g. a browser
+# saving a second copy as "google-services (2).json") — one such file
+# was committed by mistake and had to be removed after the fact.
+google-services*.json
+GoogleService-Info*.plist

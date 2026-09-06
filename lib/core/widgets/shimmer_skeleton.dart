@@ -55,8 +55,9 @@ class ShimmerBlock extends StatelessWidget {
 }
 
 /// Skeleton matching [BusinessCard]'s layout — logo square, title line,
-/// category-pill line, meta line — so the loading state previews the
-/// shape of what's about to appear instead of a generic spinner.
+/// category line, meta line — so the loading state previews the shape of
+/// what's about to appear instead of a generic spinner. Sharp corners +
+/// bordered container, matching the real card's Bold Editorial styling.
 class BusinessCardSkeleton extends StatelessWidget {
   const BusinessCardSkeleton({super.key});
 
@@ -67,11 +68,11 @@ class BusinessCardSkeleton extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: const Row(
         children: [
-          ShimmerBlock(width: 56, height: 56, borderRadius: 14),
+          ShimmerBlock(width: 56, height: 56, borderRadius: 0),
           SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -79,7 +80,7 @@ class BusinessCardSkeleton extends StatelessWidget {
               children: [
                 ShimmerBlock(width: 140, height: 16),
                 SizedBox(height: 8),
-                ShimmerBlock(width: 90, height: 18, borderRadius: 8),
+                ShimmerBlock(width: 90, height: 12),
                 SizedBox(height: 8),
                 ShimmerBlock(width: 110, height: 12),
               ],

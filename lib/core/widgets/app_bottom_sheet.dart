@@ -34,31 +34,43 @@ class AppBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: padding.left,
-          right: padding.right,
-          top: padding.top,
-          bottom: padding.bottom + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (showHandle)
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(2),
+      // A plain (non-scrolling) Column here used to just overflow off the
+      // bottom of the screen whenever a sheet's content ended up taller
+      // than the available height — e.g. Discover Map's filter sheet once
+      // there are enough categories to fill several Wrap rows. Capping the
+      // sheet at 90% of the screen height and letting the content scroll
+      // inside that means a tall sheet scrolls instead of overflowing,
+      // while a short one (most sheets) still just sizes to its content
+      // exactly as before — SingleChildScrollView doesn't add scrolling
+      // behavior when content already fits.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            left: padding.left,
+            right: padding.right,
+            top: padding.top,
+            bottom: padding.bottom + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (showHandle)
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-            child,
-          ],
+              child,
+            ],
+          ),
         ),
       ),
     );
