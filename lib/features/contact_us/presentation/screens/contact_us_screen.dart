@@ -84,8 +84,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+                          border: Border.all(color: AppColors.border, width: 1.5),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -160,8 +159,7 @@ class _FaqTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(

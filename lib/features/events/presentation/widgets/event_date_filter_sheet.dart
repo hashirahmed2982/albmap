@@ -108,10 +108,7 @@ class _DateFilterTile extends StatelessWidget {
       leading: Container(
         width: 36,
         height: 36,
-        decoration: BoxDecoration(
-          color: (selected ? AppColors.primary : AppColors.textSecondary).withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
-        ),
+        color: (selected ? AppColors.primary : AppColors.textSecondary).withValues(alpha: 0.16),
         child: Icon(icon, size: 20, color: selected ? AppColors.primary : AppColors.textSecondary),
       ),
       title: Text(

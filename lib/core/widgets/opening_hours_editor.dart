@@ -114,8 +114,7 @@ class _OpeningHoursEditorState extends State<OpeningHoursEditor> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: hours.isOpen ? AppColors.primary.withValues(alpha: 0.04) : AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Row(
         children: [
@@ -170,13 +169,11 @@ class _TimeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
         ),
         child: Text(
           label,

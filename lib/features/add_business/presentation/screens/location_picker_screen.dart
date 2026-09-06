@@ -114,14 +114,19 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                 child: Row(
                   children: [
-                    Material(
-                      elevation: 2,
-                      shadowColor: Colors.black.withValues(alpha: 0.15),
-                      color: AppColors.surface,
-                      shape: const CircleBorder(),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                        onPressed: () => Navigator.of(context).pop(),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.border, width: 1.5),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -130,10 +135,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3)),
-                          ],
+                          border: Border.all(color: AppColors.border, width: 1.5),
                         ),
                         child: Text(
                           'locationPicker.title'.tr(),
@@ -160,10 +162,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 4)),
-                  ],
+                  border: Border.all(color: AppColors.border, width: 1.5),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

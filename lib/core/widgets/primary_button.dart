@@ -29,7 +29,7 @@ class PrimaryButton extends StatelessWidget {
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              if (icon != null) ...<Widget>[Icon(icon, size: 20), const SizedBox(width: 8)],
+              if (icon != null) ...<Widget>[Icon(icon, size: 18), const SizedBox(width: 8)],
               // Flexible + ellipsis: every button in the app uses this
               // shared widget, and a translated label (German in
               // particular tends to run noticeably longer than English)

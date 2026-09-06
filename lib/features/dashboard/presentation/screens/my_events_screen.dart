@@ -139,12 +139,10 @@ class _MyEventCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))],
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => context.push(AppRoutes.eventDetailsPath(event.id)),
@@ -157,7 +155,7 @@ class _MyEventCard extends StatelessWidget {
                   children: [
                     Container(
                       width: 48, height: 48,
-                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                      color: accent.withValues(alpha: 0.16),
                       child: Icon(categoryIcon(event.category), color: accent, size: 24),
                     ),
                     const SizedBox(width: 12),
@@ -188,7 +186,7 @@ class _MyEventCard extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                      color: statusColor.withValues(alpha: 0.16),
                       child: Text(
                         statusLabel,
                         style: AppTextStyles.bodySmall.copyWith(color: statusColor, fontWeight: FontWeight.w700),

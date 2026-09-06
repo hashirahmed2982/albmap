@@ -158,12 +158,10 @@ class _MyBusinessCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))],
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: canOpenDashboard
@@ -178,7 +176,7 @@ class _MyBusinessCard extends StatelessWidget {
                   children: [
                     Container(
                       width: 48, height: 48,
-                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                      color: accent.withValues(alpha: 0.16),
                       child: Icon(categoryIcon(business.category), color: accent, size: 24),
                     ),
                     const SizedBox(width: 12),
@@ -207,7 +205,7 @@ class _MyBusinessCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: status.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                  color: status.withValues(alpha: 0.16),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

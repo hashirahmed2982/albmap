@@ -69,7 +69,7 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
             children: [
               Container(
                 width: 40, height: 40,
-                decoration: BoxDecoration(color: AppColors.secondary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                color: AppColors.secondary.withValues(alpha: 0.16),
                 child: const Icon(Icons.campaign_outlined, color: AppColors.secondary),
               ),
               const SizedBox(width: 12),
@@ -101,7 +101,7 @@ class _SendNotificationSheetState extends ConsumerState<SendNotificationSheet> {
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
+            color: AppColors.info.withValues(alpha: 0.08),
             child: Row(
               children: [
                 const Icon(Icons.info_outline, size: 18, color: AppColors.info),

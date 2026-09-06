@@ -157,7 +157,6 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Text('editBusiness.reviewWarningTitle'.tr()),
           content: Text('editBusiness.reviewWarningBody'.tr()),
           actions: [
@@ -258,16 +257,13 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                           height: 120,
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.divider),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+                            border: Border.all(color: AppColors.border, width: 1.5),
                           ),
                           child: Center(
                             child: _isUploadingLogo
                                 ? const CircularProgressIndicator(color: AppColors.primary)
                                 : _logoUrl != null
                                     ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(16),
                                         child: AppConstants.isRemoteMediaPath(_logoUrl)
                                             ? AppNetworkImage(url: AppConstants.resolveMediaUrl(_logoUrl)!, height: 120, width: double.infinity)
                                             : Image.file(File(_logoUrl!), height: 120, width: double.infinity, fit: BoxFit.cover),
@@ -290,7 +286,6 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: AppColors.info.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,13 +366,11 @@ class _EditBusinessScreenState extends ConsumerState<EditBusinessScreen> {
                       const SizedBox(height: 14),
                       InkWell(
                         onTap: _openLocationPicker,
-                        borderRadius: BorderRadius.circular(16),
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.divider),
+                            border: Border.all(color: AppColors.border, width: 1.5),
                           ),
                           child: Row(
                             children: [

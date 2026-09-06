@@ -154,8 +154,7 @@ class _SettingsSection extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+              border: Border.all(color: AppColors.border, width: 1.5),
             ),
             clipBehavior: Clip.antiAlias,
             child: Column(children: children),

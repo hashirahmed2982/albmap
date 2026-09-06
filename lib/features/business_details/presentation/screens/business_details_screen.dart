@@ -223,7 +223,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              icon: const Icon(Icons.call_outlined),
+                              icon: const Icon(Icons.call_outlined, size: 18),
                               label: Text('business.call'.tr(), overflow: TextOverflow.ellipsis),
                               onPressed: business.phone == null
                                   ? null
@@ -236,8 +236,8 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                           if (business.whatsappNumber != null) ...[
                             const SizedBox(width: 12),
                             SizedBox(
-                              width: 48,
-                              height: 48,
+                              width: 46,
+                              height: 46,
                               child: OutlinedButton(
                                 style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
                                 onPressed: () {
@@ -251,14 +251,14 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                     mode: LaunchMode.externalApplication,
                                   ));
                                 },
-                                child: const Icon(Icons.chat_outlined),
+                                child: const Icon(Icons.chat_outlined, size: 20),
                               ),
                             ),
                           ],
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              icon: const Icon(Icons.directions),
+                              icon: const Icon(Icons.directions, size: 18),
                               label: Text('business.directions'.tr(), overflow: TextOverflow.ellipsis),
                               onPressed: () {
                                 recordAnalyticsEvent(business.id, AnalyticsEventType.websiteClick);
@@ -416,7 +416,6 @@ class _ReviewsSection extends ConsumerWidget {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text('reviews.deleteConfirmTitle'.tr()),
         content: Text('reviews.deleteConfirmBody'.tr()),
         actions: [

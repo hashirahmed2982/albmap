@@ -49,7 +49,7 @@ class AppToast {
         behavior: SnackBarBehavior.floating,
         backgroundColor: background,
         duration: const Duration(seconds: 3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: const RoundedRectangleBorder(),
         margin: const EdgeInsets.all(12),
         content: Row(
           children: [

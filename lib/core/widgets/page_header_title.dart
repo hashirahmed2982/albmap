@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
-/// Standard title row for [GradientHeader] content — a solid circular
-/// back button (not a bare icon floating directly on the soft gradient,
-/// which reads as weak/undefined against it) plus, where [icon] is given,
-/// a colored icon badge next to the title so each section has a bit of
-/// visual identity instead of just plain black text sitting in empty
-/// gradient space. Used by every pushed/tab screen except Discover Map
-/// (no static title — its header is a functional search/filter toolbar)
-/// and Settings/Profile (already have their own established header design).
+/// Standard title row for [GradientHeader] content — a bordered circular
+/// back button (not a bare icon floating directly on the flat black
+/// header, which reads as weak/undefined against it) plus, where [icon]
+/// is given, a sharp-square icon badge next to the title so each section
+/// has a bit of visual identity instead of just plain text sitting in
+/// empty header space. Used by every pushed/tab screen except Discover
+/// Map (no static title — its header is a functional search/filter
+/// toolbar) and Settings/Profile (already have their own established
+/// header design).
 class PageHeaderTitle extends StatelessWidget {
   const PageHeaderTitle({
     required this.title,
@@ -64,10 +65,7 @@ class PageHeaderTitle extends StatelessWidget {
           Container(
             width: iconBadgeSize,
             height: iconBadgeSize,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(iconBadgeSize * 0.32),
-            ),
+            color: accent.withValues(alpha: 0.16),
             child: Icon(icon, color: accent, size: iconBadgeSize * 0.5),
           ),
           const SizedBox(width: 12),
@@ -103,17 +101,27 @@ class _CircularIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      shape: const CircleBorder(),
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(icon, size: 20, color: AppColors.textPrimary),
+    // Circular is the spec's one deliberate exception to "sharp corners
+    // everywhere" (small controls like this back button) — but the
+    // elevation/drop-shadow it used to have is not; a border gives it the
+    // same depth cue as every other bordered surface in this design
+    // instead of a one-off shadow.
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(9),
+            child: Icon(icon, size: 19, color: AppColors.textPrimary),
+          ),
         ),
       ),
     );

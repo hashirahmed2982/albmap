@@ -69,10 +69,7 @@ class _DeleteAccountSheetState extends ConsumerState<DeleteAccountSheet> {
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                color: AppColors.error.withValues(alpha: 0.16),
                 child: const Icon(Icons.warning_amber_rounded, color: AppColors.error),
               ),
               const SizedBox(width: 12),

@@ -453,15 +453,15 @@ class _SocialLoginButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 46,
       child: OutlinedButton(
         onPressed: onPressed,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 26,
-              height: 26,
+              width: 22,
+              height: 22,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,

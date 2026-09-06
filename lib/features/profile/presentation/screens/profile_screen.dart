@@ -57,14 +57,9 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(20, 28 + MediaQuery.of(context).padding.top, 20, 28),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.primary.withValues(alpha: 0.10), AppColors.background],
-        ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
+      // Flat black, no gradient/rounded-bottom-corner — matches every
+      // other screen's header now instead of the old soft gradient panel.
+      color: AppColors.background,
       child: Column(
         children: [
           Stack(
@@ -72,7 +67,9 @@ class ProfileScreen extends ConsumerWidget {
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6))],
+                  // Circular is fine (the spec's one exception), but the
+                  // depth cue is a border now, not a drop shadow.
+                  border: Border.all(color: AppColors.border, width: 1.5),
                 ),
                 child: CircleAvatar(
                   radius: 48,
@@ -124,10 +121,7 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
+            color: AppColors.primary.withValues(alpha: 0.16),
             child: Text(
               isGuest ? 'profile.guest'.tr() : (user?.role.name ?? '').toUpperCase(),
               style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
@@ -146,8 +140,7 @@ class ProfileScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+            border: Border.all(color: AppColors.border, width: 1.5),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -156,7 +149,7 @@ class ProfileScreen extends ConsumerWidget {
                 children: [
                   Container(
                     width: 40, height: 40,
-                    decoration: BoxDecoration(color: AppColors.secondary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                    color: AppColors.secondary.withValues(alpha: 0.16),
                     child: const Icon(Icons.storefront_outlined, color: AppColors.secondary),
                   ),
                   const SizedBox(width: 12),
@@ -261,7 +254,6 @@ class ProfileScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text('profile.logOutConfirmTitle'.tr()),
         content: Text('profile.logOutConfirmBody'.tr()),
         actions: [
@@ -289,10 +281,7 @@ class _SectionCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3)),
-        ],
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(children: children),
@@ -330,7 +319,7 @@ class _ProfileTile extends StatelessWidget {
     return ListTile(
       leading: Container(
         width: 36, height: 36,
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+        color: color.withValues(alpha: 0.16),
         child: Icon(icon, size: 20, color: color),
       ),
       title: Text(
