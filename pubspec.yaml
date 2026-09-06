@@ -85,7 +85,11 @@ dependencies:
   flutter_svg: ^2.0.10+1
   intl: ^0.20.2
   url_launcher: ^6.3.0
-  share_plus: ^10.1.4
+  # >=11.0.0 for SharePlus.instance.share(ShareParams(...)) — the API
+  # business_details_screen.dart/event_details_screen.dart use; ^10.1.4
+  # only has the deprecated static Share.share(...) and doesn't compile
+  # against that code at all (ShareParams/SharePlus don't exist in 10.x).
+  share_plus: ^11.0.0
   table_calendar: ^3.1.2
   flutter_rating_bar: ^4.0.1
   add_2_calendar: ^3.0.1
