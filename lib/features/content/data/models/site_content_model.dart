@@ -66,6 +66,32 @@ class LegalPageModel extends LegalPageEntity {
   }
 }
 
+// Every language a localized content key can come back with — matches
+// albmap-backend's content.service.js SUPPORTED_LOCALES. Iterated rather
+// than hardcoded per-field so a locale that's genuinely missing (an old
+// row from before this shipped, not yet re-saved by an admin) is just
+// absent from the map instead of throwing.
+const _kContentLocales = ['en', 'de', 'sq'];
+
+/// Picks out the locale sub-objects from one localized content key's
+/// backend payload (`{ en: {...}, de: {...}, sq: {...}, updatedAt }`) and
+/// parses each with [fromJson], skipping `updatedAt` and any locale
+/// that's missing/malformed rather than crashing over one bad language.
+Map<String, T>? _parseLocalized<T>(
+  dynamic raw,
+  T Function(Map<String, dynamic>) fromJson,
+) {
+  if (raw is! Map<String, dynamic>) return null;
+  final result = <String, T>{};
+  for (final locale in _kContentLocales) {
+    final localeJson = raw[locale];
+    if (localeJson is Map<String, dynamic>) {
+      result[locale] = fromJson(localeJson);
+    }
+  }
+  return result.isEmpty ? null : result;
+}
+
 class SiteContentModel extends SiteContentEntity {
   const SiteContentModel({
     super.aboutUs,
@@ -76,18 +102,12 @@ class SiteContentModel extends SiteContentEntity {
 
   factory SiteContentModel.fromJson(Map<String, dynamic> json) {
     return SiteContentModel(
-      aboutUs: json['aboutUs'] != null
-          ? AboutContentModel.fromJson(json['aboutUs'] as Map<String, dynamic>)
-          : null,
+      aboutUs: _parseLocalized(json['aboutUs'], AboutContentModel.fromJson),
       socialLinks: json['socialLinks'] != null
           ? SocialLinksModel.fromJson(json['socialLinks'] as Map<String, dynamic>)
           : null,
-      privacyPolicy: json['privacyPolicy'] != null
-          ? LegalPageModel.fromJson(json['privacyPolicy'] as Map<String, dynamic>)
-          : null,
-      termsConditions: json['termsConditions'] != null
-          ? LegalPageModel.fromJson(json['termsConditions'] as Map<String, dynamic>)
-          : null,
+      privacyPolicy: _parseLocalized(json['privacyPolicy'], LegalPageModel.fromJson),
+      termsConditions: _parseLocalized(json['termsConditions'], LegalPageModel.fromJson),
     );
   }
 }

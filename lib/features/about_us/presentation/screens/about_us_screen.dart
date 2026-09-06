@@ -70,7 +70,7 @@ class AboutUsScreen extends ConsumerWidget {
                   onRetry: () => ref.invalidate(siteContentProvider),
                 ),
                 data: (content) {
-                  final AboutContentEntity? about = content?.aboutUs;
+                  final AboutContentEntity? about = content?.aboutUsFor(context.locale.languageCode);
                   if (about == null) {
                     return ErrorStateWidget(
                       message: 'common.somethingWrong'.tr(),
