@@ -30,6 +30,24 @@ final _eventDetailsProvider =
   );
 });
 
+/// Same fix as business_details_screen.dart's identical Share button:
+/// the static `Share.share(text)` call has no `sharePositionOrigin`,
+/// which share_plus requires on iPad (no anchor for the popover means
+/// the share sheet silently never opens there) — migrated to the current
+/// `SharePlus.instance.share(ShareParams(...))` API, which is what
+/// actually exposes that param, and now shares a real link to the
+/// event's website page alongside the text instead of just naming it.
+Future<void> _shareEvent(BuildContext context, EventEntity event) async {
+  final box = context.findRenderObject() as RenderBox?;
+  await SharePlus.instance.share(
+    ShareParams(
+      text: 'events.shareText'.tr(args: [event.name, event.businessName]),
+      uri: Uri.tryParse('${AppConstants.websiteUrl}/events/${event.id}'),
+      sharePositionOrigin: box != null ? (box.localToGlobal(Offset.zero) & box.size) : null,
+    ),
+  );
+}
+
 /// Event details — shown from Events list, Business details, or Favorites.
 class EventDetailsScreen extends ConsumerWidget {
   const EventDetailsScreen({required this.eventId, super.key});
@@ -79,7 +97,7 @@ class EventDetailsScreen extends ConsumerWidget {
                     ),
                   IconButton(
                     icon: const Icon(Icons.share, color: Colors.white),
-                    onPressed: () => Share.share('events.shareText'.tr(args: [event.name, event.businessName])),
+                    onPressed: () => _shareEvent(context, event),
                   ),
                 ],
                 flexibleSpace: FlexibleSpaceBar(

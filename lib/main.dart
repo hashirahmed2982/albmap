@@ -10,6 +10,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/di/service_locator.dart';
 import 'core/router/app_router.dart';
+import 'core/services/deep_link_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/app_logger.dart';
 
@@ -93,6 +94,12 @@ class AlbMapApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
+    // goRouterProvider's build already ran DeepLinkService.instance
+    // .attachRouter(router) above this line, so the router is guaranteed
+    // attached before this checks for/starts listening for an incoming
+    // link — see DeepLinkService.initialize()'s doc for why this is
+    // called here rather than in main()'s _bootstrap().
+    unawaited(DeepLinkService.instance.initialize());
 
     // Pins dark (not light/white) status bar icons — our gradient headers
     // are light-tinted at the top, so dark clock/battery icons stay

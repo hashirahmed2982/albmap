@@ -24,6 +24,7 @@ import '../../../events/presentation/providers/event_providers.dart';
 import '../../../events/presentation/screens/event_list_tile.dart';
 import '../../../favorites/presentation/providers/favorites_providers.dart';
 import '../../../map/domain/business_open_status.dart';
+import '../../../map/domain/entities/business_entity.dart';
 import '../../../map/presentation/providers/business_providers.dart';
 import '../../../map/presentation/widgets/business_list_view.dart';
 import '../../../reviews/domain/entities/review_entity.dart';
@@ -116,7 +117,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                     padding: const EdgeInsets.only(right: 12),
                     child: _HeroIconButton(
                       icon: Icons.ios_share_rounded,
-                      onTap: () => Share.share('business.shareText'.tr(args: [business.name])),
+                      onTap: () => _shareBusiness(context, business),
                     ),
                   ),
                 ],
@@ -313,6 +314,31 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
       ),
     );
   }
+}
+
+/// The Share button used to call the static `Share.share(text)` with no
+/// `sharePositionOrigin` — share_plus requires one on iPad (the share
+/// sheet is a popover there, not a bottom sheet, and has nowhere to
+/// anchor without it), so tapping Share on an iPad silently did nothing
+/// at all instead of opening anything. Also now shares an actual link to
+/// the business (the website's public business page — the recipient
+/// doesn't need this app installed to open it), not just plain text
+/// naming it, since a "share" with nothing to open past the app itself
+/// wasn't much of one.
+///
+/// Uses the current recommended share_plus API (`SharePlus.instance
+/// .share(ShareParams(...))`) rather than the deprecated static
+/// `Share.share`, which is what actually exposes `sharePositionOrigin`
+/// as a named param on `ShareParams` in this version.
+Future<void> _shareBusiness(BuildContext context, BusinessEntity business) async {
+  final box = context.findRenderObject() as RenderBox?;
+  await SharePlus.instance.share(
+    ShareParams(
+      text: 'business.shareText'.tr(args: [business.name]),
+      uri: Uri.tryParse('${AppConstants.websiteUrl}/businesses/${business.id}'),
+      sharePositionOrigin: box != null ? (box.localToGlobal(Offset.zero) & box.size) : null,
+    ),
+  );
 }
 
 /// Circular semi-transparent icon button used in the hero band's back/

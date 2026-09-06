@@ -70,6 +70,12 @@ dependencies:
   collection: ^1.18.0
   uuid: ^4.4.0
 
+  # Deep links — the "albmap://" custom scheme the website's app-redirect
+  # page opens (see DeepLinkService), used by the business-approval
+  # email's "View my businesses" link so it opens this app instead of
+  # always falling back to the website.
+  app_links: ^6.3.2
+
   # Dependency injection
   get_it: ^7.7.0
 

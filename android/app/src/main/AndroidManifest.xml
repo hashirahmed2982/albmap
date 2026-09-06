@@ -42,6 +42,20 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!--
+              Custom scheme for the "View my businesses" deep link in the
+              business-approval email (see albmap-backend's email.js and
+              the website's /app/my-businesses redirect page) — lets that
+              link open this app directly instead of always landing on
+              the website. Handled in DeepLinkService
+              (lib/core/services/deep_link_service.dart).
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="albmap" android:host="open"/>
+            </intent-filter>
         </activity>
         <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
         <meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/facebook_client_token"/>

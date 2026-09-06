@@ -130,6 +130,22 @@
 				<string>1:258633190602:ios:4390f46040566620ca3833</string>
 			</array>
 		</dict>
+		<dict>
+			<!--
+			  Custom scheme for the "View my businesses" deep link in the
+			  business-approval email (see albmap-backend's email.js and the
+			  website's /app/my-businesses redirect page) — lets that link
+			  open this app directly instead of always landing on the
+			  website. Handled in DeepLinkService
+			  (lib/core/services/deep_link_service.dart).
+			-->
+			<key>CFBundleURLName</key>
+			<string>com.albmap.app.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>albmap</string>
+			</array>
+		</dict>
 	</array>
 	<!--
 	  Lets FCM/APNs wake the app in the background to deliver a push —

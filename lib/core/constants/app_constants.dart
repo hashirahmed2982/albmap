@@ -55,6 +55,18 @@ class AppConstants {
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
 
+  /// The albmap-website deployment — matches that project's own WEBSITE_URL
+  /// env var (see albmap-backend's .env.example, which every emailed link
+  /// is already built from). Used to build a real, working link to share
+  /// for a business/event (see business_details_screen.dart/
+  /// event_details_screen.dart's Share button) — a plain website URL, not
+  /// a deep link, since it needs to open something for whoever receives
+  /// it even if they don't have this app installed.
+  static const String websiteUrl = String.fromEnvironment(
+    'WEBSITE_URL',
+    defaultValue: 'https://albmap.app',
+  );
+
   /// The backend returns uploaded-image paths as relative paths (e.g.
   /// "/uploads/xxx.png"), not absolute URLs — deliberately, so a stored
   /// image reference never goes stale if the backend's externally-
