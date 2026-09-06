@@ -12,27 +12,16 @@ class AppConstants {
     defaultValue: false,
   );
 
-  // Map tile source — using flutter_map (OpenStreetMap-compatible), which
-  // has no native SDK/API-key crash risk unlike Google Maps. Point this at
-  // a tile provider of your choice; OSM's public server is fine for dev
-  // but its usage policy disallows production traffic at scale — swap in
-  // a MapTiler/Stadia Maps/self-hosted URL (with {z}/{x}/{y} placeholders)
-  // before shipping. Google Maps is planned as a follow-up migration once
-  // billing/API keys are set up on the client's side — until then this
-  // stays free/OSM-based.
-  //
-  // Dark Matter (CARTO) rather than plain OSM tiles — the Bold Editorial
-  // redesign's Discover Map mockup shows a near-black map, which the
-  // default bright OSM tiles can't produce; this is still a free,
-  // OpenStreetMap-data-based tile set (CARTO restyles OSM data, doesn't
-  // replace it), just with dark styling baked into the raster tiles
-  // themselves. Requires attributing both OpenStreetMap and CARTO — see
-  // the RichAttributionWidget on each map screen.
-  static const String mapTileUrlTemplate = String.fromEnvironment(
-    'MAP_TILE_URL',
-    defaultValue: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-  );
-  static const String mapTileUserAgentPackageName = 'com.albmap.app';
+  // Map — google_maps_flutter, replacing the previous flutter_map/
+  // OpenStreetMap/CARTO setup now that billing/API keys are set up on the
+  // client's side. The API key itself is native-side config, not read
+  // from Dart: see android/app/src/main/AndroidManifest.xml's
+  // com.google.android.geo.API_KEY meta-data and ios/Runner/AppDelegate
+  // .swift's GMSServices.provideAPIKey() call — both currently hold a
+  // placeholder that needs swapping for the real key. The dark styling
+  // (matching the Bold Editorial redesign's near-black map) is a Google
+  // Maps JSON style array instead of dark map tiles — see
+  // map_style.dart's kGoogleMapsDarkStyle, applied via GoogleMap(style: ).
 
   // API — defaults to the real production backend over HTTPS. Plain HTTP
   // (the previous default, a bare IP) doesn't work in release builds at
@@ -54,6 +43,18 @@ class AppConstants {
   );
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
+
+  /// The albmap-website deployment — matches that project's own WEBSITE_URL
+  /// env var (see albmap-backend's .env.example, which every emailed link
+  /// is already built from). Used to build a real, working link to share
+  /// for a business/event (see business_details_screen.dart/
+  /// event_details_screen.dart's Share button) — a plain website URL, not
+  /// a deep link, since it needs to open something for whoever receives
+  /// it even if they don't have this app installed.
+  static const String websiteUrl = String.fromEnvironment(
+    'WEBSITE_URL',
+    defaultValue: 'https://albmap.app',
+  );
 
   /// The backend returns uploaded-image paths as relative paths (e.g.
   /// "/uploads/xxx.png"), not absolute URLs — deliberately, so a stored

@@ -1,10 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/map_style.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -32,7 +31,7 @@ class LocationPickerScreen extends ConsumerStatefulWidget {
 }
 
 class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
   LatLng _pickedLocation = const LatLng(41.3275, 19.8187); // Tirana default
 
   static const double _defaultZoom = 15;
@@ -49,7 +48,9 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
         if (position != null && mounted) {
           final userLocation = LatLng(position.latitude, position.longitude);
           setState(() => _pickedLocation = userLocation);
-          _mapController.move(userLocation, _defaultZoom);
+          // Null-safe: onMapCreated may not have resolved yet — same
+          // reasoning as Discover Map's _recenterOnUser.
+          _mapController?.animateCamera(CameraUpdate.newLatLngZoom(userLocation, _defaultZoom));
         }
       });
     }
@@ -57,7 +58,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
 
   @override
   void dispose() {
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -70,29 +71,20 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _pickedLocation,
-              initialZoom: _defaultZoom,
-              minZoom: 3,
-              maxZoom: 18,
-              // Fires continuously as the user drags — updates _pickedLocation
-              // to whatever's currently under the fixed center pin.
-              onPositionChanged: (camera, hasGesture) {
-                setState(() => _pickedLocation = camera.center);
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: AppConstants.mapTileUrlTemplate,
-                userAgentPackageName: AppConstants.mapTileUserAgentPackageName,
-                maxNativeZoom: 19,
-              ),
-              const RichAttributionWidget(
-                attributions: [TextSourceAttribution('OpenStreetMap contributors')],
-              ),
-            ],
+          GoogleMap(
+            initialCameraPosition: CameraPosition(target: _pickedLocation, zoom: _defaultZoom),
+            minMaxZoomPreference: const MinMaxZoomPreference(3, 18),
+            style: kGoogleMapsDarkStyle,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            onMapCreated: (controller) => _mapController = controller,
+            // Fires continuously as the user drags — updates
+            // _pickedLocation to whatever's currently under the fixed
+            // center pin, same as the previous onPositionChanged.
+            onCameraMove: (position) {
+              setState(() => _pickedLocation = position.target);
+            },
           ),
 
           // Fixed center pin — this is what "picks" the location, not a tap.
@@ -212,7 +204,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
                 final position = ref.read(locationControllerProvider);
                 if (position != null) {
                   final userLocation = LatLng(position.latitude, position.longitude);
-                  _mapController.move(userLocation, _defaultZoom);
+                  _mapController?.animateCamera(CameraUpdate.newLatLngZoom(userLocation, _defaultZoom));
                 }
               },
               child: const Icon(Icons.my_location),

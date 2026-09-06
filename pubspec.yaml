@@ -43,8 +43,7 @@ dependencies:
   google_fonts: ^6.2.1
 
   # Maps & Location
-  flutter_map: ^7.0.2
-  latlong2: ^0.9.1
+  google_maps_flutter: ^2.9.0
   geolocator: ^12.0.0
   location: ^6.0.2
 
@@ -69,6 +68,12 @@ dependencies:
   equatable: ^2.0.5
   collection: ^1.18.0
   uuid: ^4.4.0
+
+  # Deep links — the "albmap://" custom scheme the website's app-redirect
+  # page opens (see DeepLinkService), used by the business-approval
+  # email's "View my businesses" link so it opens this app instead of
+  # always falling back to the website.
+  app_links: ^6.3.2
 
   # Dependency injection
   get_it: ^7.7.0

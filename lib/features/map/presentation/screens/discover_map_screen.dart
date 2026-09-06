@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/map_style.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -26,16 +26,16 @@ enum _ViewMode { map, list }
 /// between a Map view and a List view via a segmented toggle.
 ///
 /// "Bold Editorial" redesign (see AlbMap_Design_Spec_Bold_Editorial.md +
-/// DiscoverMap.png): dark map tiles (see AppConstants.mapTileUrlTemplate
-/// — CARTO Dark Matter, still OpenStreetMap-based, not Google Maps —
-/// Google Maps is a separate planned migration once the client sets up
-/// billing/API keys), a flat/bordered search bar and category chips
-/// instead of elevated pills, the new marker-business.png pin asset for
-/// every business (replacing the old per-category colored pin widget),
-/// and a persistent bottom preview card for whichever business is
-/// currently selected — replacing the previous tap-to-open-modal-sheet
-/// interaction (BusinessMarkerSheet), which the mockup doesn't show at
-/// all in favor of this persistent card.
+/// DiscoverMap.png): a dark-styled Google Map (see map_style.dart's
+/// kGoogleMapsDarkStyle — previously CARTO Dark Matter OpenStreetMap
+/// tiles, migrated to Google Maps now that the client has billing/API
+/// keys set up), a flat/bordered search bar and category chips instead
+/// of elevated pills, the marker-business.png pin asset for every
+/// business (replacing the old per-category colored pin widget), and a
+/// persistent bottom preview card for whichever business is currently
+/// selected — replacing the previous tap-to-open-modal-sheet interaction
+/// (BusinessMarkerSheet), which the mockup doesn't show at all in favor
+/// of this persistent card.
 class DiscoverMapScreen extends ConsumerStatefulWidget {
   const DiscoverMapScreen({super.key});
 
@@ -44,7 +44,8 @@ class DiscoverMapScreen extends ConsumerStatefulWidget {
 }
 
 class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with WidgetsBindingObserver {
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
+  BitmapDescriptor? _businessIcon;
   final TextEditingController _searchController = TextEditingController();
   String _localQuery = '';
   _ViewMode _viewMode = _ViewMode.map;
@@ -70,11 +71,26 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadBusinessIcon();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(locationControllerProvider.notifier).refresh();
       _recenterOnUser();
       ref.read(businessListControllerProvider.notifier).load();
     });
+  }
+
+  /// GoogleMap markers need an actual bitmap, not an arbitrary widget the
+  /// way flutter_map's Marker.child used to accept — so the pin asset is
+  /// decoded once here and reused for every business marker, rather than
+  /// re-decoding it per marker per rebuild. Markers render with
+  /// BitmapDescriptor.defaultMarker until this resolves (near-instant in
+  /// practice), never blocked/crashed on it.
+  Future<void> _loadBusinessIcon() async {
+    final icon = await BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(40, 40)),
+      'assets/markers/marker-business.png',
+    );
+    if (mounted) setState(() => _businessIcon = icon);
   }
 
   @override
@@ -96,7 +112,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     WidgetsBinding.instance.removeObserver(this);
     _searchDebounce?.cancel();
     _searchController.dispose();
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -117,7 +133,15 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   void _recenterOnUser() {
     final position = ref.read(locationControllerProvider);
     if (position != null) {
-      _mapController.move(LatLng(position.latitude, position.longitude), 14);
+      // Null-safe: this can fire (via initState's postFrameCallback)
+      // before GoogleMap's onMapCreated has resolved yet on a very slow
+      // device — the refresh() awaited just before this call is a
+      // permission prompt + GPS fix, virtually always slower than the
+      // native map view attaching, but there's no reason to crash on the
+      // rare case it isn't.
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng(position.latitude, position.longitude), 14),
+      );
     }
   }
 
@@ -322,68 +346,39 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   }
 
   Widget _buildMap(List<BusinessEntity> businesses, BusinessListState listState) {
-    final position = ref.watch(locationControllerProvider);
     final BusinessEntity? selected = _selectedOrNearest(businesses);
 
     return Stack(
       children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: const MapOptions(
-            initialCenter: _defaultCenter,
-            initialZoom: _defaultZoom,
-            minZoom: 3,
-            maxZoom: 18,
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: AppConstants.mapTileUrlTemplate,
-              userAgentPackageName: AppConstants.mapTileUserAgentPackageName,
-              maxNativeZoom: 19,
-            ),
-            MarkerLayer(
-              markers: [
-                if (position != null)
-                  Marker(
-                    point: LatLng(position.latitude, position.longitude),
-                    width: 22,
-                    height: 22,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.info,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
-                      ),
-                    ),
-                  ),
-                for (final business in businesses)
-                  Marker(
-                    point: LatLng(business.latitude, business.longitude),
-                    width: 40,
-                    height: 40,
-                    // Anchors the pin's visual tip (not its bounding box
-                    // center) to the actual coordinate — marker-business
-                    // .png is a teardrop shape with the point at the very
-                    // bottom, same convention as the old hand-drawn pin.
-                    alignment: Alignment.topCenter,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedBusinessId = business.id),
-                      child: Image.asset('assets/markers/marker-business.png', width: 40, height: 40),
-                    ),
-                  ),
-              ],
-            ),
-            // Required attribution — CARTO restyles OpenStreetMap's own
-            // data into these dark tiles, so both need crediting, not
-            // just one or the other.
-            const RichAttributionWidget(
-              attributions: [
-                TextSourceAttribution('OpenStreetMap contributors'),
-                TextSourceAttribution('CARTO'),
-              ],
-            ),
-          ],
+        GoogleMap(
+          initialCameraPosition: const CameraPosition(target: _defaultCenter, zoom: _defaultZoom),
+          minMaxZoomPreference: const MinMaxZoomPreference(3, 18),
+          style: kGoogleMapsDarkStyle,
+          // Google's own native blue dot — replaces the previous
+          // hand-drawn colored dot (a custom BitmapDescriptor for that
+          // would need a generated bitmap; this is the platform-native
+          // equivalent and needs no extra asset). Only ever shown once
+          // location permission is actually granted; never prompts for
+          // it itself — that's still entirely locationControllerProvider's
+          // job, unchanged, elsewhere in the app.
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+          onMapCreated: (controller) => _mapController = controller,
+          markers: {
+            for (final business in businesses)
+              Marker(
+                markerId: MarkerId(business.id),
+                position: LatLng(business.latitude, business.longitude),
+                // Default anchor (0.5, 1.0) — bottom-center — already
+                // matches marker-business.png being a teardrop shape with
+                // its point at the very bottom, same convention as the
+                // old hand-drawn pin.
+                icon: _businessIcon ?? BitmapDescriptor.defaultMarker,
+                onTap: () => setState(() => _selectedBusinessId = business.id),
+              ),
+          },
         ),
 
         if (listState.isLoading)

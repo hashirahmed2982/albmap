@@ -42,7 +42,34 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!--
+              Custom scheme for the "View my businesses" deep link in the
+              business-approval email (see albmap-backend's email.js and
+              the website's /app/my-businesses redirect page) — lets that
+              link open this app directly instead of always landing on
+              the website. Handled in DeepLinkService
+              (lib/core/services/deep_link_service.dart).
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="albmap" android:host="open"/>
+            </intent-filter>
         </activity>
+        <!--
+          Required by google_maps_flutter — without this meta-data the
+          map renders as a blank gray grid with a "For development
+          purposes only" watermark (or nothing at all), regardless of
+          anything set on the Dart side; this key is native-side config,
+          not read from Dart at all. REPLACE with the real Maps SDK for
+          Android key from Google Cloud Console (APIs & Services →
+          Credentials), restricted to this app's package name
+          (com.albmap.app) + release/debug signing SHA-1 fingerprints.
+        -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
         <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
         <meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/facebook_client_token"/>
         <activity android:name="com.facebook.FacebookActivity"

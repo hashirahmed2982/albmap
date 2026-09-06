@@ -26,6 +26,7 @@ import '../../features/dashboard/presentation/screens/my_businesses_screen.dart'
 import '../../features/dashboard/presentation/screens/business_dashboard_screen.dart';
 import '../../features/dashboard/presentation/screens/my_events_screen.dart';
 import '../../features/add_event/presentation/screens/edit_event_screen.dart';
+import '../services/deep_link_service.dart';
 import '../services/fcm_service.dart';
 import '../widgets/main_shell.dart';
 
@@ -226,6 +227,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   // own) to navigate when a push notification is tapped — see
   // FcmService._handleNotificationTap.
   FcmService.instance.attachRouter(router);
+
+  // Same bridge, for DeepLinkService — see its class doc.
+  DeepLinkService.instance.attachRouter(router);
 
   return router;
 });
