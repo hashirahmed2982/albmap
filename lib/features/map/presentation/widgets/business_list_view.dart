@@ -80,18 +80,10 @@ class BusinessCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => context.push(AppRoutes.businessDetailsPath(business.id)),
@@ -102,19 +94,13 @@ class BusinessCard extends StatelessWidget {
                 Container(
                   width: 56,
                   height: 56,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  color: accent.withValues(alpha: 0.16),
                   child: business.logoUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: AppNetworkImage(
-                            url: AppConstants.resolveMediaUrl(business.logoUrl)!,
-                            width: 56,
-                            height: 56,
-                            backgroundColor: accent.withValues(alpha: 0.12),
-                          ),
+                      ? AppNetworkImage(
+                          url: AppConstants.resolveMediaUrl(business.logoUrl)!,
+                          width: 56,
+                          height: 56,
+                          backgroundColor: accent.withValues(alpha: 0.16),
                         )
                       : Icon(categoryIcon(business.category), color: accent, size: 26),
                 ),
@@ -126,22 +112,15 @@ class BusinessCard extends StatelessWidget {
                       Text(business.name, style: AppTextStyles.h3, maxLines: 1, overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
                       Wrap(
-                        spacing: 6,
+                        spacing: 8,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              localizedCategoryName(context, business.category),
-                              style: AppTextStyles.caption.copyWith(color: accent, fontWeight: FontWeight.w600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                          Text(
+                            localizedCategoryName(context, business.category).toUpperCase(),
+                            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           OpenStatusBadge(openingHours: business.openingHours, dense: true),
                         ],
@@ -150,7 +129,7 @@ class BusinessCard extends StatelessWidget {
                       Row(
                         children: [
                           if (business.rating != null) ...[
-                            const Icon(Icons.star_rounded, size: 16, color: AppColors.warning),
+                            const Icon(Icons.star_rounded, size: 16, color: AppColors.gold),
                             const SizedBox(width: 2),
                             Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodySmall),
                             const SizedBox(width: 12),
