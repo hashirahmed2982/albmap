@@ -15,6 +15,7 @@ import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/state_widgets.dart';
 import '../../../categories/domain/category_translations.dart';
 import '../../../categories/presentation/providers/category_providers.dart';
+import '../../domain/business_open_status.dart';
 import '../../domain/entities/business_entity.dart';
 import '../providers/business_providers.dart';
 import '../widgets/business_list_view.dart';
@@ -52,8 +53,8 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   Timer? _searchDebounce;
 
   // Which business's preview card is showing at the bottom of the map —
-  // null means none picked yet (falls back to the nearest one, see
-  // _selectedOrNearest below).
+  // null means no marker has been tapped yet, so no card shows at all
+  // (see _selectedBusiness below).
   String? _selectedBusinessId;
 
   // Below this length, businessSearchResultsProvider itself short-circuits
@@ -161,24 +162,16 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     return byCategory.where((b) => b.name.toLowerCase().contains(q)).toList();
   }
 
-  /// The business the bottom preview card should show — whichever was
-  /// last tapped, or (matching the mockup, which shows a business
-  /// already selected on first load) the nearest one if nothing's been
-  /// tapped yet.
-  BusinessEntity? _selectedOrNearest(List<BusinessEntity> businesses) {
-    if (businesses.isEmpty) return null;
-    if (_selectedBusinessId != null) {
-      for (final b in businesses) {
-        if (b.id == _selectedBusinessId) return b;
-      }
+  /// The business the bottom preview card should show — only ever one
+  /// the user actually tapped a marker for. Returns null (no card at
+  /// all) until then, rather than defaulting to showing the nearest
+  /// business the moment the screen opens.
+  BusinessEntity? _selectedBusiness(List<BusinessEntity> businesses) {
+    if (_selectedBusinessId == null) return null;
+    for (final b in businesses) {
+      if (b.id == _selectedBusinessId) return b;
     }
-    BusinessEntity nearest = businesses.first;
-    for (final b in businesses.skip(1)) {
-      if ((b.distanceKm ?? double.infinity) < (nearest.distanceKm ?? double.infinity)) {
-        nearest = b;
-      }
-    }
-    return nearest;
+    return null;
   }
 
   @override
@@ -346,7 +339,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   }
 
   Widget _buildMap(List<BusinessEntity> businesses, BusinessListState listState) {
-    final BusinessEntity? selected = _selectedOrNearest(businesses);
+    final BusinessEntity? selected = _selectedBusiness(businesses);
 
     return Stack(
       children: [
@@ -533,24 +526,36 @@ class _BusinessPreviewCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(business.name, style: AppTextStyles.h3, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  // Was missing entirely from this card — a business's
+                  // open/closed status only became visible after tapping
+                  // through to Business Details, not from the map itself
+                  // where it matters most. Same OpenStatusBadge already
+                  // used on the list view's cards and Business Details.
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        localizedCategoryName(context, business.category),
+                        style: AppTextStyles.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      OpenStatusBadge(openingHours: business.openingHours, dense: true),
+                    ],
+                  ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      Flexible(
-                        child: Text(
-                          localizedCategoryName(context, business.category),
-                          style: AppTextStyles.bodySmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
                       if (business.rating != null) ...[
-                        Text(' · ', style: AppTextStyles.bodySmall),
                         const Icon(Icons.star_rounded, size: 14, color: AppColors.gold),
                         Text(business.rating!.toStringAsFixed(1), style: AppTextStyles.bodySmall),
                       ],
-                      if (business.distanceKm != null) ...[
+                      if (business.rating != null && business.distanceKm != null)
                         Text(' · ', style: AppTextStyles.bodySmall),
+                      if (business.distanceKm != null) ...[
                         Text(
                           'common.km_away'.tr(args: [business.distanceKm!.toStringAsFixed(1)]),
                           style: AppTextStyles.bodySmall,
