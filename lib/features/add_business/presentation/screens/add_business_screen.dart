@@ -164,7 +164,6 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
           final proceed = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               title: Text('addBusiness.duplicateTitle'.tr()),
               content: Text(
                 'addBusiness.duplicateBody'.tr(args: [
@@ -285,16 +284,13 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                           height: 120,
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.divider),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+                            border: Border.all(color: AppColors.border, width: 1.5),
                           ),
                           child: Center(
                             child: _isUploadingLogo
                                 ? const CircularProgressIndicator(color: AppColors.primary)
                                 : _logoUrl != null
                                     ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(16),
                                         child: AppConstants.isRemoteMediaPath(_logoUrl)
                                             ? AppNetworkImage(url: AppConstants.resolveMediaUrl(_logoUrl)!, height: 120, width: double.infinity)
                                             : Image.file(File(_logoUrl!), height: 120, width: double.infinity, fit: BoxFit.cover),
@@ -384,16 +380,15 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       // address text above.
                       InkWell(
                         onTap: _openLocationPicker,
-                        borderRadius: BorderRadius.circular(16),
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: _pickedLocation == null
                                 ? AppColors.surface
                                 : AppColors.success.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: _pickedLocation == null ? AppColors.divider : AppColors.success.withValues(alpha: 0.4),
+                              color: _pickedLocation == null ? AppColors.border : AppColors.success.withValues(alpha: 0.4),
+                              width: 1.5,
                             ),
                           ),
                           child: Row(

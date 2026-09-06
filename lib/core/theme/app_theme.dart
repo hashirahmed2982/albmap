@@ -23,6 +23,13 @@ class AppTheme {
   // missed spot.
   static const BorderRadius _sharpCorners = BorderRadius.zero;
   static const double _borderWidth = 1.5;
+  // Buttons were a flat 52px tall with generous default Material3
+  // padding on top of that — reads as oversized/"dull" next to the
+  // sharp-cornered, tightly-bordered rest of this design system.
+  // 46px (+ tighter horizontal padding below) is still comfortably
+  // above both platforms' ~44-48pt minimum tap-target guidance, just
+  // less puffy.
+  static const double _buttonHeight = 46;
 
   static ThemeData get light {
     return ThemeData(
@@ -54,7 +61,8 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.textOnPrimary,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size.fromHeight(_buttonHeight),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: RoundedRectangleBorder(borderRadius: _sharpCorners),
           textStyle: AppTextStyles.button,
           elevation: 0,
@@ -63,7 +71,8 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size.fromHeight(_buttonHeight),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           side: const BorderSide(color: AppColors.borderStrong, width: _borderWidth),
           shape: RoundedRectangleBorder(borderRadius: _sharpCorners),
           textStyle: AppTextStyles.button.copyWith(color: AppColors.textPrimary),

@@ -84,15 +84,12 @@ class AboutUsScreen extends ConsumerWidget {
                       Center(
                         child: Column(
                           children: [
-                            Container(
-                              width: 88, height: 88,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(24),
-                                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
-                              ),
-                              child: const Icon(Icons.map_rounded, color: Colors.white, size: 42),
-                            ),
+                            // The actual AlbMap icon (same image as the app
+                            // icon and Splash screen) instead of a generic
+                            // map glyph in a rounded, glowing badge — the
+                            // pin shape already reads as its own mark, no
+                            // extra container/shadow needed.
+                            Image.asset('assets/icon/icon_master.png', width: 88, height: 88),
                             const SizedBox(height: 16),
                             Text('AlbMap', style: AppTextStyles.h1),
                             const SizedBox(height: 8),
@@ -112,8 +109,7 @@ class AboutUsScreen extends ConsumerWidget {
                       Container(
                         decoration: BoxDecoration(
                           color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+                          border: Border.all(color: AppColors.border, width: 1.5),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Column(
@@ -182,8 +178,7 @@ class _InfoCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

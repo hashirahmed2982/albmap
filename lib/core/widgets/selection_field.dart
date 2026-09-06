@@ -39,7 +39,13 @@ Future<T?> showSelectionBottomSheet<T>({
           return Container(
             decoration: const BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              // Sharp corners, matching every other surface in the app —
+              // this sheet builds its own Container (rather than going
+              // through the app-wide bottomSheetTheme) so it needs its own
+              // border for the same depth cue too; only the top edge is
+              // visible (the rest is flush with the screen), same
+              // convention as the bottom nav bar's top-only border.
+              border: Border(top: BorderSide(color: AppColors.border, width: 1.5)),
             ),
             child: Column(
               children: [
@@ -134,7 +140,6 @@ class SelectionField<T> extends StatelessWidget {
       validator: validator,
       builder: (state) {
         return InkWell(
-          borderRadius: BorderRadius.circular(12),
           onTap: () async {
             final result = await showSelectionBottomSheet<T>(
               context: context,

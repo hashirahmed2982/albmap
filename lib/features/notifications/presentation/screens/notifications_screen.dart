@@ -87,7 +87,6 @@ class NotificationsScreen extends ConsumerWidget {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text('notifications.clearAllConfirmTitle'.tr()),
         content: Text('notifications.clearAllConfirmBody'.tr()),
         actions: [
@@ -176,24 +175,17 @@ class NotificationsScreen extends ConsumerWidget {
                           margin: const EdgeInsets.only(bottom: 12),
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.symmetric(horizontal: 22),
-                          decoration: BoxDecoration(
-                            color: AppColors.error,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
+                          color: AppColors.error,
                           child: const Icon(Icons.delete_outline, color: Colors.white),
                         ),
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
                             color: n.isRead ? AppColors.surface : accent.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3)),
-                            ],
+                            border: Border.all(color: AppColors.border, width: 1.5),
                           ),
                           child: Material(
                             color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(18),
                             clipBehavior: Clip.antiAlias,
                             child: ListTile(
                               onTap: () => _handleTap(context, ref, n),

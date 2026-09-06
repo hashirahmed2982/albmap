@@ -66,7 +66,7 @@ class AppTextStyles {
       );
 
   static TextStyle get button => GoogleFonts.workSans(
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: FontWeight.w700,
         color: AppColors.textOnPrimary,
       );

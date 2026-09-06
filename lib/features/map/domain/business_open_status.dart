@@ -66,10 +66,7 @@ class OpenStatusBadge extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: dense ? 6 : 8, vertical: dense ? 1 : 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      color: color.withValues(alpha: 0.16),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -232,8 +232,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 Container(
                                   decoration: BoxDecoration(
                                     color: AppColors.surface,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+                                    border: Border.all(color: AppColors.border, width: 1.5),
                                   ),
                                   child: Column(
                                     children: [
@@ -278,15 +277,13 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                     height: 100,
                                     decoration: BoxDecoration(
                                       color: AppColors.surface,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.divider),
+                                      border: Border.all(color: AppColors.border, width: 1.5),
                                     ),
                                     child: Center(
                                       child: _isUploadingImage
                                           ? const CircularProgressIndicator(color: AppColors.primary)
                                           : _imageUrl != null
                                               ? ClipRRect(
-                                                  borderRadius: BorderRadius.circular(16),
                                                   child: AppConstants.isRemoteMediaPath(_imageUrl)
                                                       ? AppNetworkImage(url: AppConstants.resolveMediaUrl(_imageUrl)!, height: 100, width: double.infinity)
                                                       : Image.file(File(_imageUrl!), height: 100, width: double.infinity, fit: BoxFit.cover),
