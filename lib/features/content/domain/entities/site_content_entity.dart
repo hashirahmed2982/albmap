@@ -79,6 +79,18 @@ class LegalPageEntity extends Equatable {
 /// Policy/Terms & Conditions each read one field of this, but fetching
 /// them together means one round trip instead of three and lets
 /// siteContentProvider be shared/cached across all of them.
+///
+/// [aboutUs]/[privacyPolicy]/[termsConditions] are keyed by language code
+/// ('en'/'de'/'sq') — an admin must fill in all three on the admin
+/// portal's Content page (see albmap-backend's content.service.js), so a
+/// screen picks its current locale out of the map via [aboutUsFor] etc.
+/// rather than this entity trying to resolve "the" content on its own
+/// (it has no BuildContext to read the locale from, and re-fetching on
+/// every language switch would be wasteful when the data for every
+/// language is already sitting in memory). Falls back to English if the
+/// current locale is somehow missing — defensive, not expected in
+/// practice once an admin has saved all three. [socialLinks] is
+/// deliberately not locale-keyed — a URL isn't translated.
 class SiteContentEntity extends Equatable {
   const SiteContentEntity({
     this.aboutUs,
@@ -87,10 +99,15 @@ class SiteContentEntity extends Equatable {
     this.termsConditions,
   });
 
-  final AboutContentEntity? aboutUs;
+  final Map<String, AboutContentEntity>? aboutUs;
   final SocialLinksEntity? socialLinks;
-  final LegalPageEntity? privacyPolicy;
-  final LegalPageEntity? termsConditions;
+  final Map<String, LegalPageEntity>? privacyPolicy;
+  final Map<String, LegalPageEntity>? termsConditions;
+
+  AboutContentEntity? aboutUsFor(String languageCode) => aboutUs?[languageCode] ?? aboutUs?['en'];
+  LegalPageEntity? privacyPolicyFor(String languageCode) => privacyPolicy?[languageCode] ?? privacyPolicy?['en'];
+  LegalPageEntity? termsConditionsFor(String languageCode) =>
+      termsConditions?[languageCode] ?? termsConditions?['en'];
 
   @override
   List<Object?> get props => [aboutUs, socialLinks, privacyPolicy, termsConditions];

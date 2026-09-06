@@ -3,26 +3,51 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'entities/category_entity.dart';
 
-/// Icon/color for a category name, driven by backend data instead of a
-/// hardcoded `switch (category) { case 'Restaurants': ... }` — the
-/// previous version meant an admin could never add a category without
-/// shipping a new app build, since anything not in that switch's finite
-/// list fell through to a generic default silently.
+/// Icon/color/translated-name for a category name, driven by backend
+/// data instead of a hardcoded `switch (category) { case 'Restaurants':
+/// ... }` (icon/color) or a hardcoded translation map (name) — the
+/// previous version meant an admin could never add or translate a
+/// category without shipping a new app build, since anything not in
+/// those finite lists fell through to a generic default/untranslated
+/// name silently.
 ///
 /// [update] is called once `categoriesProvider` resolves (see
-/// category_providers.dart) to cache the backend's name -> iconName
-/// mapping. Exposed as plain static lookups — rather than a Riverpod
-/// provider — because `categoryIcon`/`categoryColor` are called from
-/// many leaf widgets (map pins, list cards, dashboards) that only have a
-/// category *name* string, not a `WidgetRef`; threading one through
-/// every call site for a lookup this simple isn't worth the churn.
+/// category_providers.dart) to cache the backend's category rows.
+/// Exposed as plain static lookups — rather than a Riverpod provider —
+/// because `categoryIcon`/`categoryColor`/`translatedName` are called
+/// from many leaf widgets (map pins, list cards, dashboards) that only
+/// have a category *name* string, not a `WidgetRef`; threading one
+/// through every call site for a lookup this simple isn't worth the
+/// churn.
 class CategoryVisuals {
   CategoryVisuals._();
 
   static Map<String, String?> _iconNamesByCategory = const {};
+  // Backend-driven replacement for the old hardcoded per-category
+  // translation map (see category_translations.dart) — an admin-added
+  // category is translated the moment they save its German/Albanian
+  // names, no app update required, same reasoning as _iconNamesByCategory.
+  static Map<String, CategoryEntity> _categoriesByName = const {};
 
   static void update(List<CategoryEntity> categories) {
     _iconNamesByCategory = {for (final c in categories) c.name: c.iconName};
+    _categoriesByName = {for (final c in categories) c.name: c};
+  }
+
+  /// The display name for [category] (its canonical/English value) in
+  /// [languageCode] — falls back to [category] itself for English, for a
+  /// category this app instance hasn't loaded yet/doesn't recognize, or
+  /// for a language the admin hasn't filled in a translation for.
+  static String translatedName(String category, String languageCode) {
+    if (languageCode == 'en') return category;
+    final CategoryEntity? entry = _categoriesByName[category];
+    if (entry == null) return category;
+    final String? translated = switch (languageCode) {
+      'de' => entry.nameDe,
+      'sq' => entry.nameSq,
+      _ => null,
+    };
+    return (translated == null || translated.isEmpty) ? category : translated;
   }
 
   /// Recognized `iconName` values a category can carry from the backend.

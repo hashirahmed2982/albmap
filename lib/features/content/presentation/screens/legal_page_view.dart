@@ -32,11 +32,15 @@ class LegalPageView extends ConsumerWidget {
 
   final String title;
   final IconData icon;
-  final LegalPageEntity? Function(SiteContentEntity content) selector;
+  // Takes the current locale too (not just `content`) since privacyPolicy/
+  // termsConditions are now keyed by language — see SiteContentEntity's
+  // privacyPolicyFor/termsConditionsFor.
+  final LegalPageEntity? Function(SiteContentEntity content, String languageCode) selector;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final contentAsync = ref.watch(siteContentProvider);
+    final languageCode = context.locale.languageCode;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -55,7 +59,7 @@ class LegalPageView extends ConsumerWidget {
                   onRetry: () => ref.invalidate(siteContentProvider),
                 ),
                 data: (content) {
-                  final LegalPageEntity? page = content != null ? selector(content) : null;
+                  final LegalPageEntity? page = content != null ? selector(content, languageCode) : null;
                   if (page == null) {
                     return ErrorStateWidget(
                       message: 'common.somethingWrong'.tr(),

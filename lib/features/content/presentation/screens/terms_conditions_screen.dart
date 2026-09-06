@@ -11,7 +11,7 @@ class TermsConditionsScreen extends StatelessWidget {
     return LegalPageView(
       title: 'termsConditions.title'.tr(),
       icon: Icons.description_outlined,
-      selector: (content) => content.termsConditions,
+      selector: (content, lang) => content.termsConditionsFor(lang),
     );
   }
 }

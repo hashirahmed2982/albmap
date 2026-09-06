@@ -11,7 +11,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
     return LegalPageView(
       title: 'privacyPolicy.title'.tr(),
       icon: Icons.privacy_tip_outlined,
-      selector: (content) => content.privacyPolicy,
+      selector: (content, lang) => content.privacyPolicyFor(lang),
     );
   }
 }
