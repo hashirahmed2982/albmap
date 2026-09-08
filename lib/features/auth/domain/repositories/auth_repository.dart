@@ -35,6 +35,8 @@ abstract class AuthRepository {
 
   Future<Either<Failure, UserEntity>> loginWithFacebook();
 
+  Future<Either<Failure, UserEntity>> loginWithApple();
+
   Future<Either<Failure, UserEntity?>> getCurrentUser();
 
   Future<Either<Failure, void>> logout();

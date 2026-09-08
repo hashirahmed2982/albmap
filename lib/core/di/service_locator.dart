@@ -127,6 +127,7 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => ContinueAsGuestUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithFacebookUseCase(sl()));
+  sl.registerLazySingleton(() => LoginWithAppleUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));

@@ -101,6 +101,13 @@ class AuthMockDataSource implements AuthRemoteDataSource {
   }
 
   @override
+  Future<UserModel> loginWithApple() async {
+    await _fakeDelay();
+    await _persistFakeTokens();
+    return _fakeUser;
+  }
+
+  @override
   Future<UserModel> getCurrentUser() async {
     await _fakeDelay();
     return _fakeUser;

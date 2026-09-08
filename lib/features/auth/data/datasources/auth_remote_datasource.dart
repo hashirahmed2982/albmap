@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/error/exceptions.dart';
@@ -24,6 +27,7 @@ abstract class AuthRemoteDataSource {
   Future<void> forgotPassword({required String email});
   Future<UserModel> loginWithGoogle();
   Future<UserModel> loginWithFacebook();
+  Future<UserModel> loginWithApple();
   Future<UserModel> getCurrentUser();
   Future<void> changePassword({required String currentPassword, required String newPassword});
   Future<void> deleteAccount({String? password});
@@ -183,6 +187,54 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return UserModel.fromJson(response.data['user'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ServerException(e.response?.data?['message'] as String? ?? 'Facebook login failed');
+    }
+  }
+
+  @override
+  Future<UserModel> loginWithApple() async {
+    try {
+      final AuthorizationCredentialAppleID credential = await SignInWithApple.getAppleIDCredential(
+        scopes: const [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
+        // Only used on Android — iOS/macOS sign in through the native
+        // AuthenticationServices SDK directly and never touch this. This
+        // must be the Services ID (NOT the app's bundle ID — that's only
+        // for the native iOS flow), configured in the Apple Developer
+        // portal with `redirectUri` below registered as one of its
+        // Return URLs. See docs/APPLE_SIGN_IN_SETUP.md in albmap-backend.
+        webAuthenticationOptions: Platform.isAndroid
+            ? WebAuthenticationOptions(
+                clientId: 'com.albmap.app.web',
+                redirectUri: Uri.parse('${AppConstants.baseUrl}/auth/apple/callback'),
+              )
+            : null,
+      );
+
+      final String? identityToken = credential.identityToken;
+      if (identityToken == null) {
+        throw ServerException('Apple did not return an identity token');
+      }
+
+      final Response<dynamic> response = await _dio.post<dynamic>(
+        '/auth/apple',
+        data: <String, String>{
+          'identityToken': identityToken,
+          // Only ever non-null on the very first authorization — Apple
+          // never sends the name again after that (see the backend's
+          // loginWithApple comment), so this is a no-op on every later
+          // sign-in for the same account.
+          if (credential.givenName != null) 'firstName': credential.givenName!,
+          if (credential.familyName != null) 'lastName': credential.familyName!,
+        },
+      );
+      await _persistTokens(response.data as Map<String, dynamic>);
+      return UserModel.fromJson(response.data['user'] as Map<String, dynamic>);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        throw ServerException('Sign-in cancelled');
+      }
+      throw ServerException(e.message);
+    } on DioException catch (e) {
+      throw ServerException(e.response?.data?['message'] as String? ?? 'Apple login failed');
     }
   }
 
