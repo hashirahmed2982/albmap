@@ -43,6 +43,7 @@ class AuthController extends StateNotifier<AuthState> {
       _continueAsGuestUseCase = sl<ContinueAsGuestUseCase>(),
       _loginWithGoogleUseCase = sl<LoginWithGoogleUseCase>(),
       _loginWithFacebookUseCase = sl<LoginWithFacebookUseCase>(),
+      _loginWithAppleUseCase = sl<LoginWithAppleUseCase>(),
       _getCurrentUserUseCase = sl<GetCurrentUserUseCase>(),
       _logoutUseCase = sl<LogoutUseCase>(),
       _changePasswordUseCase = sl<ChangePasswordUseCase>(),
@@ -59,6 +60,7 @@ class AuthController extends StateNotifier<AuthState> {
   final ContinueAsGuestUseCase _continueAsGuestUseCase;
   final LoginWithGoogleUseCase _loginWithGoogleUseCase;
   final LoginWithFacebookUseCase _loginWithFacebookUseCase;
+  final LoginWithAppleUseCase _loginWithAppleUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final LogoutUseCase _logoutUseCase;
   final ChangePasswordUseCase _changePasswordUseCase;
@@ -177,6 +179,22 @@ class AuthController extends StateNotifier<AuthState> {
   Future<bool> loginWithFacebook() async {
     state = state.copyWith(isLoading: true, clearError: true);
     final result = await _loginWithFacebookUseCase(const NoParams());
+    return result.fold(
+          (failure) {
+        state = state.copyWith(isLoading: false, errorMessage: failure.message);
+        return false;
+      },
+          (user) {
+        state = AuthState(user: user, isLoading: false);
+        unawaited(FcmService.instance.initialize());
+        return true;
+      },
+    );
+  }
+
+  Future<bool> loginWithApple() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    final result = await _loginWithAppleUseCase(const NoParams());
     return result.fold(
           (failure) {
         state = state.copyWith(isLoading: false, errorMessage: failure.message);
