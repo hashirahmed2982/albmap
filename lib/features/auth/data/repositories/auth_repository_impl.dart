@@ -117,6 +117,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, UserEntity>> loginWithApple() {
+    return _guardedCall(_remote.loginWithApple);
+  }
+
+  @override
   Future<Either<Failure, UserEntity?>> getCurrentUser() async {
     try {
       final UserModel? cached = await _local.getCachedUser();

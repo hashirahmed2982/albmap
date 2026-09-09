@@ -75,6 +75,26 @@
         <activity android:name="com.facebook.FacebookActivity"
             android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
             android:label="@string/app_name" />
+        <!--
+          Android has no native "Sign in with Apple" SDK, so
+          sign_in_with_apple opens Apple's own web sign-in page in a
+          Custom Tab instead. Apple can only redirect that page back to
+          an HTTPS URL (not a custom app:// scheme), so it redirects to
+          our backend's /auth/apple/callback, which in turn redirects to
+          THIS activity via the signinwithapple:// scheme the plugin
+          listens for — see auth_remote_datasource.dart's loginWithApple
+          and albmap-backend's docs/APPLE_SIGN_IN_SETUP.md.
+        -->
+        <activity
+            android:name="com.aboutyou.dart_packages.sign_in_with_apple.SignInWithAppleCallback"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="signinwithapple" android:path="callback"/>
+            </intent-filter>
+        </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -328,16 +328,12 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // Sign in with Apple isn't wired up yet (separate task —
-                // it needs its own Apple Developer Services ID + backend
-                // token verification, not just this button). Shown here
-                // to match the mockup visually; tapping surfaces an
-                // honest "coming soon" rather than attempting a sign-in
-                // that would silently fail.
                 _SocialLoginButton(
                   label: 'auth.continueWithApple'.tr(),
                   badge: const Icon(Icons.apple, size: 18),
-                  onPressed: () => AppToast.info(context, 'auth.appleSignInComingSoon'.tr()),
+                  onPressed: () => _handleSocialLogin(
+                    () => ref.read(authControllerProvider.notifier).loginWithApple(),
+                  ),
                 ),
 
                 const SizedBox(height: 20),

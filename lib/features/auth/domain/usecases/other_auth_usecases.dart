@@ -36,6 +36,16 @@ class LoginWithFacebookUseCase implements UseCase<UserEntity, NoParams> {
   }
 }
 
+class LoginWithAppleUseCase implements UseCase<UserEntity, NoParams> {
+  LoginWithAppleUseCase(this._repository);
+  final AuthRepository _repository;
+
+  @override
+  Future<Either<Failure, UserEntity>> call(NoParams params) {
+    return _repository.loginWithApple();
+  }
+}
+
 class GetCurrentUserUseCase implements UseCase<UserEntity?, NoParams> {
   GetCurrentUserUseCase(this._repository);
   final AuthRepository _repository;
