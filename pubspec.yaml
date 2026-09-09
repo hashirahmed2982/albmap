@@ -89,7 +89,7 @@ dependencies:
   # business_details_screen.dart/event_details_screen.dart use; ^10.1.4
   # only has the deprecated static Share.share(...) and doesn't compile
   # against that code at all (ShareParams/SharePlus don't exist in 10.x).
-  share_plus: ^11.0.0
+  share_plus: ^12.0.0
   table_calendar: ^3.1.2
   flutter_rating_bar: ^4.0.1
   add_2_calendar: ^3.0.1
