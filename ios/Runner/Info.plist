@@ -118,16 +118,15 @@
 		</dict>
 		<dict>
 			<!--
-			  Google Sign-In's redirect-back URL scheme. This MUST be the
-			  REVERSED_CLIENT_ID from ios/Runner/GoogleService-Info.plist
-			  once you've added it (see docs/FIREBASE_SOCIAL_LOGIN_SETUP.md)
-			  — it's unique per Firebase iOS app registration, so it can't
-			  ship pre-filled here. Until replaced, Google sign-in will open
-			  the picker but never return control to the app.
+			  Google Sign-In's redirect-back URL scheme — the reversed
+			  form of the real iOS OAuth client ID (project 1011810478555,
+			  the same project the Android Web client ID used as
+			  serverClientId in auth_remote_datasource.dart belongs to).
+			  Must match GIDClientID below exactly (just reversed).
 			-->
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>1:258633190602:ios:4390f46040566620ca3833</string>
+				<string>com.googleusercontent.apps.1011810478555-r12n668mbugrrl3nh643ujqfk8ul38b2</string>
 			</array>
 		</dict>
 		<dict>
@@ -147,6 +146,16 @@
 			</array>
 		</dict>
 	</array>
+	<!--
+	  google_sign_in_ios reads this to know which OAuth client to request
+	  an ID token for — without it, Google Sign-In on iOS either fails
+	  outright or (worse) opens the account picker successfully but never
+	  returns a usable token, since the SDK has no client to mint one
+	  against. Must be the plain (non-reversed) form of the same iOS OAuth
+	  client ID as the CFBundleURLSchemes entry above.
+	-->
+	<key>GIDClientID</key>
+	<string>1011810478555-r12n668mbugrrl3nh643ujqfk8ul38b2.apps.googleusercontent.com</string>
 	<!--
 	  Lets FCM/APNs wake the app in the background to deliver a push —
 	  without this, a remote notification received while the app isn't
