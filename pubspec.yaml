@@ -32,7 +32,15 @@ dependencies:
   flutter_riverpod: ^2.5.1
   google_sign_in: ^6.2.2
   flutter_facebook_auth: ^7.1.1
-  sign_in_with_apple: ^8.2.0
+  # 7.x, not the latest 8.x — 8.0.0+ requires Dart SDK ^3.11.0/^3.12.0,
+  # newer than this project's own `environment: sdk: ^3.8.0` floor.
+  # 7.0.1 needs only ^3.3.0 and has no breaking API differences from 8.x
+  # for anything this app actually uses (getAppleIDCredential,
+  # WebAuthenticationOptions, AuthorizationCredentialAppleID,
+  # SignInWithAppleAuthorizationException/AuthorizationErrorCode) — the
+  # only 8.0.0 breaking change was renaming SignInWithAppleButton's icon
+  # alignment type, and this app doesn't use that built-in button widget.
+  sign_in_with_apple: ^7.0.1
 
   # Navigation
   go_router: ^14.2.0
