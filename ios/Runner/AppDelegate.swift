@@ -17,7 +17,7 @@ import GoogleMaps
     // app's bundle ID. This key is native-side config, not read from
     // Dart — same as the Android manifest's com.google.android.geo
     // .API_KEY meta-data.
-    GMSServices.provideAPIKey("YOUR_GOOGLE_MAPS_API_KEY")
+    GMSServices.provideAPIKey("AIzaSyAC35Yt2CWbrbJu65hUDSZtTk0NeQ5DLIY")
 
     GeneratedPluginRegistrant.register(with: self)
 
