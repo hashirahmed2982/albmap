@@ -86,10 +86,28 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   /// re-decoding it per marker per rebuild. Markers render with
   /// BitmapDescriptor.defaultMarker until this resolves (near-instant in
   /// practice), never blocked/crashed on it.
+  ///
+  /// Uses BitmapDescriptor.asset with explicit width/height, NOT the
+  /// deprecated fromAssetImage(ImageConfiguration(size: ...)) this used to
+  /// call — that `size` is silently ignored on every platform except web
+  /// (see the platform interface source), so it never actually constrained
+  /// anything here. What it rendered at instead was governed by which
+  /// asset variant (1.0x/2.0x/3.0x) got picked, which — since no
+  /// devicePixelRatio was ever set on that bare ImageConfiguration either
+  /// — always fell back to the base 1.0x file regardless of the real
+  /// device. Native marker rendering then sizes the bitmap relative to
+  /// the device's actual screen density, so the same fixed 96px bitmap
+  /// came out a different logical size on different-density devices —
+  /// exactly the "bigger on some devices" being reported. `asset(...)`'s
+  /// width/height are real, honored cross-platform constraints (per its
+  /// own doc: MapBitmapScaling.auto "maintain[s] consistency across
+  /// devices"), so this is now genuinely fixed at 40x40 everywhere.
   Future<void> _loadBusinessIcon() async {
-    final icon = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(40, 40)),
+    final icon = await BitmapDescriptor.asset(
+      const ImageConfiguration(),
       'assets/markers/marker-business.png',
+      width: 40,
+      height: 40,
     );
     if (mounted) setState(() => _businessIcon = icon);
   }

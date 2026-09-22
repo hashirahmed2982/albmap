@@ -37,12 +37,20 @@ final _eventDetailsProvider =
 /// `SharePlus.instance.share(ShareParams(...))` API, which is what
 /// actually exposes that param, and now shares a real link to the
 /// event's website page alongside the text instead of just naming it.
+///
+/// `text` and `uri` are combined into one `text` string rather than
+/// passed as separate params — share_plus's `share()` throws
+/// `ArgumentError('uri and text cannot be provided at the same time')`
+/// the instant both are non-null, which was silently swallowing every
+/// tap of this button on every platform (the error throws from inside
+/// this async callback with nothing to catch or surface it, so the
+/// button just visibly did nothing at all).
 Future<void> _shareEvent(BuildContext context, EventEntity event) async {
   final box = context.findRenderObject() as RenderBox?;
+  final link = '${AppConstants.websiteUrl}/events/${event.id}';
   await SharePlus.instance.share(
     ShareParams(
-      text: 'events.shareText'.tr(args: [event.name, event.businessName]),
-      uri: Uri.tryParse('${AppConstants.websiteUrl}/events/${event.id}'),
+      text: '${'events.shareText'.tr(args: [event.name, event.businessName])}\n$link',
       sharePositionOrigin: box != null ? (box.localToGlobal(Offset.zero) & box.size) : null,
     ),
   );
