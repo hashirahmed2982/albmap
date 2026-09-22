@@ -47,6 +47,7 @@ class DiscoverMapScreen extends ConsumerStatefulWidget {
 class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   BitmapDescriptor? _businessIcon;
+  BitmapDescriptor? _userLocationIcon;
   final TextEditingController _searchController = TextEditingController();
   String _localQuery = '';
   _ViewMode _viewMode = _ViewMode.map;
@@ -73,6 +74,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadBusinessIcon();
+    _loadUserLocationIcon();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(locationControllerProvider.notifier).refresh();
       _recenterOnUser();
@@ -92,6 +94,23 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
       'assets/markers/marker-business.png',
     );
     if (mounted) setState(() => _businessIcon = icon);
+  }
+
+  /// A fixed-size custom marker for "you are here" instead of GoogleMap's
+  /// myLocationEnabled dot — that native indicator's visible size isn't
+  /// actually fixed: it grows to show the current GPS accuracy radius, so
+  /// it renders noticeably bigger on a device/moment with a weak GPS fix
+  /// than one with a tight lock, which is what was reported as
+  /// "bigger on some devices". Loading this the same explicit-Size way
+  /// _loadBusinessIcon does guarantees an identical on-screen size
+  /// everywhere, same asset/style the website's map already uses for its
+  /// own "you are here" dot (MapView.tsx's userLocationIcon).
+  Future<void> _loadUserLocationIcon() async {
+    final icon = await BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(18, 18)),
+      'assets/markers/user-location.png',
+    );
+    if (mounted) setState(() => _userLocationIcon = icon);
   }
 
   @override
@@ -340,6 +359,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
 
   Widget _buildMap(List<BusinessEntity> businesses, BusinessListState listState) {
     final BusinessEntity? selected = _selectedBusiness(businesses);
+    final userPosition = ref.watch(locationControllerProvider);
 
     return Stack(
       children: [
@@ -347,19 +367,29 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
           initialCameraPosition: const CameraPosition(target: _defaultCenter, zoom: _defaultZoom),
           minMaxZoomPreference: const MinMaxZoomPreference(3, 18),
           style: kGoogleMapsDarkStyle,
-          // Google's own native blue dot — replaces the previous
-          // hand-drawn colored dot (a custom BitmapDescriptor for that
-          // would need a generated bitmap; this is the platform-native
-          // equivalent and needs no extra asset). Only ever shown once
-          // location permission is actually granted; never prompts for
-          // it itself — that's still entirely locationControllerProvider's
-          // job, unchanged, elsewhere in the app.
-          myLocationEnabled: true,
+          // Google's own native "my location" dot isn't actually a fixed
+          // size — it grows to visualize the current GPS accuracy radius,
+          // so it renders bigger on a device/moment with a weak fix than
+          // one with a tight lock. Replaced with our own fixed-size
+          // marker below (_userLocationIcon) for a consistent size on
+          // every device, same as _businessIcon already is.
+          myLocationEnabled: false,
           myLocationButtonEnabled: false,
           zoomControlsEnabled: false,
           mapToolbarEnabled: false,
           onMapCreated: (controller) => _mapController = controller,
           markers: {
+            if (userPosition != null)
+              Marker(
+                markerId: const MarkerId('_user_location'),
+                position: LatLng(userPosition.latitude, userPosition.longitude),
+                icon: _userLocationIcon ?? BitmapDescriptor.defaultMarker,
+                anchor: const Offset(0.5, 0.5), // centered dot, not a bottom-anchored pin
+                zIndexInt: -1, // never covers a business marker at the same spot
+                // Not tappable/selectable — this exists purely to show
+                // where the user is, not something to interact with.
+                consumeTapEvents: false,
+              ),
             for (final business in businesses)
               Marker(
                 markerId: MarkerId(business.id),

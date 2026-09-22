@@ -330,12 +330,20 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
 /// .share(ShareParams(...))`) rather than the deprecated static
 /// `Share.share`, which is what actually exposes `sharePositionOrigin`
 /// as a named param on `ShareParams` in this version.
+///
+/// `text` and `uri` are deliberately combined into one `text` string
+/// rather than passed as separate params — share_plus's `share()`
+/// throws `ArgumentError('uri and text cannot be provided at the same
+/// time')` the instant both are non-null (see its source), which was
+/// silently swallowing the button tap on every platform: the error
+/// throws from inside this unawaited-by-its-caller async callback, so
+/// nothing ever visibly failed, the button just did nothing at all.
 Future<void> _shareBusiness(BuildContext context, BusinessEntity business) async {
   final box = context.findRenderObject() as RenderBox?;
+  final link = '${AppConstants.websiteUrl}/businesses/${business.id}';
   await SharePlus.instance.share(
     ShareParams(
-      text: 'business.shareText'.tr(args: [business.name]),
-      uri: Uri.tryParse('${AppConstants.websiteUrl}/businesses/${business.id}'),
+      text: '${'business.shareText'.tr(args: [business.name])}\n$link',
       sharePositionOrigin: box != null ? (box.localToGlobal(Offset.zero) & box.size) : null,
     ),
   );
