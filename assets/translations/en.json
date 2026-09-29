@@ -11,6 +11,7 @@
     "retry": "Retry",
     "loading": "Loading…",
     "search": "Search",
+    "noResults": "No results",
     "required": "Required",
     "optional": "Optional",
     "yes": "Yes",

@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/form_scroll.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
@@ -37,6 +38,18 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
+
+  // One key per required field, in the same top-to-bottom order they
+  // appear on screen — see form_scroll.dart's scrollToFirstError.
+  final _businessKey = GlobalKey<FormFieldState<dynamic>>();
+  final _nameKey = GlobalKey<FormFieldState<dynamic>>();
+  final _descKey = GlobalKey<FormFieldState<dynamic>>();
+  final _categoryKey = GlobalKey<FormFieldState<dynamic>>();
+  // Not a FormField (date + start/end time pickers) — handled as its own
+  // explicit case in _submit(), same pattern as add_business_screen.dart's
+  // location step.
+  final _dateTimeKey = GlobalKey();
+  bool _submitAttempted = false;
 
   BusinessEntity? _selectedBusiness;
   // Was a hardcoded, event-only list ('General', 'Music', ...) disconnected
@@ -115,10 +128,28 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
     );
   }
 
+  void _scrollTo(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut, alignment: 0.2);
+    });
+  }
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedBusiness == null || _startDate == null || _startTime == null || _endTime == null) {
+    setState(() => _submitAttempted = true);
+
+    if (!_formKey.currentState!.validate()) {
+      scrollToFirstError([_businessKey, _nameKey, _descKey, _categoryKey]);
+      return;
+    }
+    // _selectedBusiness is already guaranteed non-null here — it has its
+    // own validator now, so formKey.validate() above would already have
+    // caught and scrolled to it otherwise. Only date/start/end time are
+    // left to check, since none of those three are FormFields.
+    if (_startDate == null || _startTime == null || _endTime == null) {
       AppToast.warning(context, 'addEvent.completeAllFields'.tr());
+      _scrollTo(_dateTimeKey);
       return;
     }
 
@@ -194,6 +225,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 SelectionField<BusinessEntity>(
+                                  key: _businessKey,
                                   label: 'addEvent.associatedBusiness'.tr(),
                                   selectedValue: _selectedBusiness,
                                   options: [
@@ -201,9 +233,11 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                       SelectionOption(value: b, label: b.name, icon: Icons.storefront_outlined),
                                   ],
                                   onChanged: (v) => setState(() => _selectedBusiness = v),
+                                  validator: (v) => v == null ? 'common.required'.tr() : null,
                                 ),
                                 const SizedBox(height: 14),
                                 TextFormField(
+                                  key: _nameKey,
                                   controller: _nameController,
                                   maxLength: 30,
                                   decoration: InputDecoration(labelText: 'addEvent.eventName'.tr()),
@@ -211,6 +245,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 ),
                                 const SizedBox(height: 14),
                                 TextFormField(
+                                  key: _descKey,
                                   controller: _descController,
                                   maxLines: 4,
                                   maxLength: 300,
@@ -219,6 +254,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 ),
                                 const SizedBox(height: 14),
                                 SelectionField<String>(
+                                  key: _categoryKey,
                                   label: 'addEvent.category'.tr(),
                                   selectedValue: _category,
                                   options: [
@@ -230,9 +266,15 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                                 ),
                                 const SizedBox(height: 20),
                                 Container(
+                                  key: _dateTimeKey,
                                   decoration: BoxDecoration(
                                     color: AppColors.surface,
-                                    border: Border.all(color: AppColors.border, width: 1.5),
+                                    border: Border.all(
+                                      color: (_submitAttempted && (_startDate == null || _startTime == null || _endTime == null))
+                                          ? AppColors.error
+                                          : AppColors.border,
+                                      width: 1.5,
+                                    ),
                                   ),
                                   child: Column(
                                     children: [

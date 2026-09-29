@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/form_scroll.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
@@ -30,6 +31,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   bool _obscureNew = true;
   bool _isSubmitting = false;
 
+  final _currentKey = GlobalKey<FormFieldState<dynamic>>();
+  final _newKey = GlobalKey<FormFieldState<dynamic>>();
+  final _confirmKey = GlobalKey<FormFieldState<dynamic>>();
+
   @override
   void dispose() {
     _currentController.dispose();
@@ -39,7 +44,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      scrollToFirstError([_currentKey, _newKey, _confirmKey]);
+      return;
+    }
     if (_currentController.text == _newController.text) {
       AppToast.warning(context, 'changePassword.sameAsCurrent'.tr());
       return;
@@ -86,6 +94,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       TextFormField(
+                        key: _currentKey,
                         controller: _currentController,
                         obscureText: _obscureCurrent,
                         maxLength: 72,
@@ -100,6 +109,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
+                        key: _newKey,
                         controller: _newController,
                         obscureText: _obscureNew,
                         maxLength: 72,
@@ -118,6 +128,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
+                        key: _confirmKey,
                         controller: _confirmController,
                         obscureText: _obscureNew,
                         maxLength: 72,

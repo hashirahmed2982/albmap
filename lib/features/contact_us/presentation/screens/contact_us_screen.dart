@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/form_scroll.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
@@ -27,6 +28,10 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
   String _inquiryType = 'general';
   bool _isSubmitting = false;
 
+  final _nameKey = GlobalKey<FormFieldState<dynamic>>();
+  final _emailKey = GlobalKey<FormFieldState<dynamic>>();
+  final _messageKey = GlobalKey<FormFieldState<dynamic>>();
+
   // Keys map to contactUs.inquiryTypes.* translation entries — kept as
   // stable internal identifiers separate from the displayed (translated)
   // label, so switching language never changes what's actually submitted.
@@ -43,7 +48,10 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      scrollToFirstError([_nameKey, _emailKey, _messageKey]);
+      return;
+    }
     setState(() => _isSubmitting = true);
     await Future<void>.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
@@ -90,6 +98,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             TextFormField(
+                              key: _nameKey,
                               controller: _nameController,
                               maxLength: 150,
                               decoration: InputDecoration(labelText: 'contactUs.name'.tr()),
@@ -97,6 +106,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                             ),
                             const SizedBox(height: 14),
                             TextFormField(
+                              key: _emailKey,
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               maxLength: 255,
@@ -119,6 +129,7 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
                             ),
                             const SizedBox(height: 14),
                             TextFormField(
+                              key: _messageKey,
                               controller: _messageController,
                               maxLines: 5,
                               maxLength: 2000,
