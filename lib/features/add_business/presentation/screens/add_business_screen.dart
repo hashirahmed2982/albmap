@@ -8,10 +8,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/countries.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/form_scroll.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
@@ -58,16 +60,38 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
   final _streetAddressController = TextEditingController();
   final _cityController = TextEditingController();
   final _postalCodeController = TextEditingController();
-  final _countryController = TextEditingController(text: 'Albania');
+  String? _country = 'Albania';
   final _phoneController = TextEditingController();
   final _whatsappController = TextEditingController();
   bool _whatsappSameAsPhone = true;
+
+  // One key per required field, in the same top-to-bottom order they
+  // appear on screen — lets a failed validate() scroll to whichever one
+  // is actually invalid instead of just silently refusing to submit
+  // (see form_scroll.dart's scrollToFirstError).
+  final _nameKey = GlobalKey<FormFieldState<dynamic>>();
+  final _descKey = GlobalKey<FormFieldState<dynamic>>();
+  final _categoryKey = GlobalKey<FormFieldState<dynamic>>();
+  final _streetAddressKey = GlobalKey<FormFieldState<dynamic>>();
+  final _cityKey = GlobalKey<FormFieldState<dynamic>>();
+  final _postalCodeKey = GlobalKey<FormFieldState<dynamic>>();
+  final _countryKey = GlobalKey<FormFieldState<dynamic>>();
+  // Not a FormField (it's a "pick location on map" step, not a text/
+  // selection input), so it can't report hasError the way the others
+  // do — handled as its own explicit case in _submit() instead, but
+  // still gets a key so it can be scrolled to the same way.
+  final _locationKey = GlobalKey();
 
   String? _category;
   LatLng? _pickedLocation;
   String? _logoUrl;
   Map<String, String> _openingHours = {};
   bool _isSubmitting = false;
+  // True once the user has tried to submit at least once — the location
+  // step has no built-in "untouched vs invalid" state the way a
+  // TextFormField does, so this is what turns its border into an error
+  // color instead of showing that red before the user has done anything.
+  bool _submitAttempted = false;
   bool _isUploadingLogo = false;
   bool _submitted = false;
 
@@ -78,7 +102,6 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
     _streetAddressController.dispose();
     _cityController.dispose();
     _postalCodeController.dispose();
-    _countryController.dispose();
     _phoneController.dispose();
     _whatsappController.dispose();
     super.dispose();
@@ -113,13 +136,20 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
   }
 
   Future<void> _submit({bool confirmDuplicate = false}) async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_category == null) {
-      AppToast.warning(context, 'addBusiness.selectCategoryError'.tr());
+    setState(() => _submitAttempted = true);
+
+    if (!_formKey.currentState!.validate()) {
+      scrollToFirstError([_nameKey, _descKey, _categoryKey, _streetAddressKey, _cityKey, _postalCodeKey, _countryKey]);
       return;
     }
     if (_pickedLocation == null) {
       AppToast.warning(context, 'addBusiness.selectLocationError'.tr());
+      final ctx = _locationKey.currentContext;
+      if (ctx != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut, alignment: 0.2);
+        });
+      }
       return;
     }
 
@@ -135,7 +165,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
       streetAddress: _streetAddressController.text.trim(),
       city: _cityController.text.trim(),
       postalCode: _postalCodeController.text.trim(),
-      country: _countryController.text.trim().isEmpty ? 'Albania' : _countryController.text.trim(),
+      country: _country ?? 'Albania',
       latitude: _pickedLocation!.latitude,
       longitude: _pickedLocation!.longitude,
       status: BusinessStatus.pending,
@@ -308,6 +338,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
+                        key: _nameKey,
                         controller: _nameController,
                         maxLength: 30,
                         decoration: InputDecoration(labelText: 'addBusiness.businessName'.tr()),
@@ -315,6 +346,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
+                        key: _descKey,
                         controller: _descController,
                         maxLines: 4,
                         maxLength: 300,
@@ -323,6 +355,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       ),
                       const SizedBox(height: 14),
                       SelectionField<String>(
+                        key: _categoryKey,
                         label: 'addBusiness.category'.tr(),
                         selectedValue: _category,
                         options: [
@@ -334,6 +367,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
+                        key: _streetAddressKey,
                         controller: _streetAddressController,
                         maxLength: 70,
                         decoration: InputDecoration(
@@ -349,6 +383,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                           Expanded(
                             flex: 2,
                             child: TextFormField(
+                              key: _cityKey,
                               controller: _cityController,
                               maxLength: 20,
                               decoration: InputDecoration(labelText: 'addBusiness.city'.tr()),
@@ -358,6 +393,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextFormField(
+                              key: _postalCodeKey,
                               controller: _postalCodeController,
                               maxLength: 10,
                               decoration: InputDecoration(labelText: 'addBusiness.postalCode'.tr()),
@@ -367,11 +403,14 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _countryController,
-                        maxLength: 20,
-                        decoration: InputDecoration(labelText: 'addBusiness.country'.tr()),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'common.required'.tr() : null,
+                      SelectionField<String>(
+                        key: _countryKey,
+                        label: 'addBusiness.country'.tr(),
+                        options: [for (final c in kCountries) SelectionOption(value: c, label: c)],
+                        selectedValue: _country,
+                        searchable: true,
+                        onChanged: (v) => setState(() => _country = v),
+                        validator: (v) => v == null ? 'common.required'.tr() : null,
                       ),
                       const SizedBox(height: 14),
 
@@ -379,6 +418,7 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       // actually determines the marker position, not the
                       // address text above.
                       InkWell(
+                        key: _locationKey,
                         onTap: _openLocationPicker,
                         child: Container(
                           padding: const EdgeInsets.all(14),
@@ -387,7 +427,9 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                                 ? AppColors.surface
                                 : AppColors.success.withValues(alpha: 0.06),
                             border: Border.all(
-                              color: _pickedLocation == null ? AppColors.border : AppColors.success.withValues(alpha: 0.4),
+                              color: _pickedLocation == null
+                                  ? (_submitAttempted ? AppColors.error : AppColors.border)
+                                  : AppColors.success.withValues(alpha: 0.4),
                               width: 1.5,
                             ),
                           ),

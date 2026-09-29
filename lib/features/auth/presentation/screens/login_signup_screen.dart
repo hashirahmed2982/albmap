@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/form_scroll.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -41,6 +42,14 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
   final _nameController = TextEditingController();
   final _otpController = TextEditingController();
 
+  // In on-screen order — only whichever of these is actually rendered for
+  // the current mode (login/signup/verify-otp) will ever report an error,
+  // the rest just stay null and are skipped by scrollToFirstError.
+  final _otpKey = GlobalKey<FormFieldState<dynamic>>();
+  final _nameKey = GlobalKey<FormFieldState<dynamic>>();
+  final _emailKey = GlobalKey<FormFieldState<dynamic>>();
+  final _passwordKey = GlobalKey<FormFieldState<dynamic>>();
+
   bool _isSignUpMode = false;
   bool _isVerifyingOtp = false;
   bool _obscurePassword = true;
@@ -57,7 +66,10 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      scrollToFirstError([_otpKey, _nameKey, _emailKey, _passwordKey]);
+      return;
+    }
     if (_isSignUpMode && !_isVerifyingOtp && !_acceptedTerms) {
       AppToast.warning(context, 'auth.pleaseAcceptTerms'.tr());
       return;
@@ -172,6 +184,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
+                        key: _otpKey,
                         controller: _otpController,
                         keyboardType: TextInputType.number,
                         maxLength: 6,
@@ -189,6 +202,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                         _FieldLabel('auth.fullName'.tr()),
                         const SizedBox(height: 6),
                         TextFormField(
+                          key: _nameKey,
                           controller: _nameController,
                           maxLength: 150,
                           decoration: const InputDecoration(counterText: ''),
@@ -199,6 +213,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                       _FieldLabel('auth.email'.tr()),
                       const SizedBox(height: 6),
                       TextFormField(
+                        key: _emailKey,
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         maxLength: 255,
@@ -217,6 +232,7 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                       _FieldLabel('auth.password'.tr()),
                       const SizedBox(height: 6),
                       TextFormField(
+                        key: _passwordKey,
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         maxLength: 72,
