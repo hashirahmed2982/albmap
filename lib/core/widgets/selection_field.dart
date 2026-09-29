@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -19,11 +20,18 @@ class SelectionOption<T> {
 /// plainly) across Android/iOS and doesn't match the rest of the app's
 /// visual language. Returns the picked value, or null if dismissed
 /// without picking.
+///
+/// [searchable] adds a filter field at the top — off by default (a short
+/// list like categories doesn't need it and stays exactly as it looked
+/// before), but should be turned on for anything long enough that
+/// scrolling to find an entry isn't reasonable (e.g. the ~200-country
+/// list on Add/Edit Business's Country field).
 Future<T?> showSelectionBottomSheet<T>({
   required BuildContext context,
   required String title,
   required List<SelectionOption<T>> options,
   T? selectedValue,
+  bool searchable = false,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -73,31 +81,17 @@ Future<T?> showSelectionBottomSheet<T>({
                 Expanded(
                   child: SafeArea(
                     top: false,
-                    child: ListView.separated(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: options.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1, indent: 20, endIndent: 20),
-                      itemBuilder: (context, index) {
-                        final option = options[index];
-                        final bool isSelected = option.value == selectedValue;
-                        return ListTile(
-                          onTap: () => Navigator.of(context).pop(option.value),
-                          leading: option.icon != null
-                              ? Icon(option.icon, color: isSelected ? AppColors.primary : AppColors.textSecondary)
-                              : null,
-                          title: Text(
-                            option.label,
-                            style: AppTextStyles.bodyLarge.copyWith(
-                              color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                            ),
+                    child: searchable
+                        ? _SearchableOptionList(
+                            scrollController: scrollController,
+                            options: options,
+                            selectedValue: selectedValue,
+                          )
+                        : _OptionList(
+                            scrollController: scrollController,
+                            options: options,
+                            selectedValue: selectedValue,
                           ),
-                          subtitle: option.subtitle != null ? Text(option.subtitle!, style: AppTextStyles.bodySmall) : null,
-                          trailing: isSelected ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20) : null,
-                        );
-                      },
-                    ),
                   ),
                 ),
               ],
@@ -107,6 +101,93 @@ Future<T?> showSelectionBottomSheet<T>({
       );
     },
   );
+}
+
+class _OptionList<T> extends StatelessWidget {
+  const _OptionList({required this.scrollController, required this.options, required this.selectedValue});
+
+  final ScrollController scrollController;
+  final List<SelectionOption<T>> options;
+  final T? selectedValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      controller: scrollController,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: options.length,
+      separatorBuilder: (_, __) => const Divider(height: 1, indent: 20, endIndent: 20),
+      itemBuilder: (context, index) {
+        final option = options[index];
+        final bool isSelected = option.value == selectedValue;
+        return ListTile(
+          onTap: () => Navigator.of(context).pop(option.value),
+          leading: option.icon != null
+              ? Icon(option.icon, color: isSelected ? AppColors.primary : AppColors.textSecondary)
+              : null,
+          title: Text(
+            option.label,
+            style: AppTextStyles.bodyLarge.copyWith(
+              color: isSelected ? AppColors.primary : AppColors.textPrimary,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+          subtitle: option.subtitle != null ? Text(option.subtitle!, style: AppTextStyles.bodySmall) : null,
+          trailing: isSelected ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20) : null,
+        );
+      },
+    );
+  }
+}
+
+/// Same list, with a filter field above it — its own small StatefulWidget
+/// since narrowing the list as the user types needs local state the
+/// (stateless) bottom sheet builder above doesn't otherwise have any
+/// reason to carry.
+class _SearchableOptionList<T> extends StatefulWidget {
+  const _SearchableOptionList({required this.scrollController, required this.options, required this.selectedValue});
+
+  final ScrollController scrollController;
+  final List<SelectionOption<T>> options;
+  final T? selectedValue;
+
+  @override
+  State<_SearchableOptionList<T>> createState() => _SearchableOptionListState<T>();
+}
+
+class _SearchableOptionListState<T> extends State<_SearchableOptionList<T>> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? widget.options
+        : widget.options.where((o) => o.label.toLowerCase().contains(query)).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: TextField(
+            autofocus: false,
+            onChanged: (v) => setState(() => _query = v),
+            style: AppTextStyles.bodyLarge,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search, size: 20),
+              hintText: 'common.search'.tr(),
+              isDense: true,
+            ),
+          ),
+        ),
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(child: Text('common.noResults'.tr(), style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)))
+              : _OptionList(scrollController: widget.scrollController, options: filtered, selectedValue: widget.selectedValue),
+        ),
+      ],
+    );
+  }
 }
 
 /// A form-field-styled button that looks like a text field but opens
@@ -120,6 +201,7 @@ class SelectionField<T> extends StatelessWidget {
     required this.onChanged,
     this.hint,
     this.validator,
+    this.searchable = false,
     super.key,
   });
 
@@ -129,6 +211,9 @@ class SelectionField<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
   final String? hint;
   final String? Function(T?)? validator;
+  /// Adds a filter field to the bottom sheet — see showSelectionBottomSheet's
+  /// doc for when to turn this on.
+  final bool searchable;
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +231,7 @@ class SelectionField<T> extends StatelessWidget {
               title: label,
               options: options,
               selectedValue: selectedValue,
+              searchable: searchable,
             );
             if (result != null) {
               onChanged(result);

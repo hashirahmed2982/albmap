@@ -9,6 +9,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/form_scroll.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
@@ -46,6 +47,12 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
+
+  final _nameKey = GlobalKey<FormFieldState<dynamic>>();
+  final _descKey = GlobalKey<FormFieldState<dynamic>>();
+  final _categoryKey = GlobalKey<FormFieldState<dynamic>>();
+  final _dateTimeKey = GlobalKey();
+  bool _submitAttempted = false;
 
   String? _category;
   DateTime? _startDate;
@@ -131,8 +138,25 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _original == null) return;
-    if (_category == null || _startDate == null || _startTime == null || _endTime == null) return;
+    if (_original == null) return;
+    setState(() => _submitAttempted = true);
+
+    if (!_formKey.currentState!.validate()) {
+      scrollToFirstError([_nameKey, _descKey, _categoryKey]);
+      return;
+    }
+    // _category already validated above — only date/start/end time are
+    // left to check, since none of those three are FormFields.
+    if (_startDate == null || _startTime == null || _endTime == null) {
+      AppToast.warning(context, 'addEvent.completeAllFields'.tr());
+      final ctx = _dateTimeKey.currentContext;
+      if (ctx != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut, alignment: 0.2);
+        });
+      }
+      return;
+    }
 
     final startDateTime = DateTime(
       _startDate!.year, _startDate!.month, _startDate!.day, _startTime!.hour, _startTime!.minute,
@@ -238,6 +262,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         TextFormField(
+                          key: _nameKey,
                           controller: _nameController,
                           maxLength: 30,
                           decoration: InputDecoration(labelText: 'addEvent.eventName'.tr()),
@@ -245,6 +270,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
+                          key: _descKey,
                           controller: _descController,
                           maxLines: 4,
                           maxLength: 300,
@@ -253,6 +279,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
                         ),
                         const SizedBox(height: 14),
                         SelectionField<String>(
+                          key: _categoryKey,
                           label: 'addEvent.category'.tr(),
                           selectedValue: _category,
                           options: [
@@ -264,9 +291,15 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
                         ),
                         const SizedBox(height: 20),
                         Container(
+                          key: _dateTimeKey,
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            border: Border.all(color: AppColors.border, width: 1.5),
+                            border: Border.all(
+                              color: (_submitAttempted && (_startDate == null || _startTime == null || _endTime == null))
+                                  ? AppColors.error
+                                  : AppColors.border,
+                              width: 1.5,
+                            ),
                           ),
                           child: Column(
                             children: [

@@ -111,5 +111,19 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!--
+          Required by add_2_calendar (Event Details' "Add to Calendar"
+          button) on Android 11+ (API 30+) — without this, the plugin's
+          own Intent.resolveActivity() check (see its Add2CalendarPlugin
+          .kt) returns null even when a calendar app IS installed, since
+          package-visibility filtering hides it by default. The button
+          then just silently does nothing (insert() returns false, no
+          exception, no toast) — this is add_2_calendar's own documented
+          fix, from its README's Android 11 section.
+        -->
+        <intent>
+            <action android:name="android.intent.action.INSERT"/>
+            <data android:mimeType="vnd.android.cursor.item/event"/>
+        </intent>
     </queries>
 </manifest>
