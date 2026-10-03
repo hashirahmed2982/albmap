@@ -45,6 +45,11 @@ dependencies:
   # Navigation
   go_router: ^14.2.0
 
+  # Country-dial-code dropdown for every phone number field (profile,
+  # business phone, business WhatsApp number) — see
+  # core/widgets/phone_input_field.dart.
+  country_code_picker: ^3.4.1
+
   # Typography — Bold Editorial design system (Instrument Serif for
   # display/headlines, Work Sans for body/UI). Both fetched from Google
   # Fonts and cached on-device after first load; see AppTextStyles for

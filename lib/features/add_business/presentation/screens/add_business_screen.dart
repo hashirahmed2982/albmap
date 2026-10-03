@@ -20,6 +20,7 @@ import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/opening_hours_editor.dart';
 import '../../../../core/widgets/page_header_title.dart';
+import '../../../../core/widgets/phone_input_field.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/selection_field.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -473,11 +474,9 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       ),
 
                       const SizedBox(height: 14),
-                      TextFormField(
+                      PhoneInputField(
                         controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        maxLength: 20,
-                        decoration: InputDecoration(labelText: 'addBusiness.phoneNumber'.tr()),
+                        label: 'addBusiness.phoneNumber'.tr(),
                         validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         onChanged: (_) => setState(() {}), // refresh WhatsApp preview text below
                       ),
@@ -492,11 +491,9 @@ class _AddBusinessScreenState extends ConsumerState<AddBusinessScreen> {
                       ),
                       if (!_whatsappSameAsPhone) ...[
                         const SizedBox(height: 6),
-                        TextFormField(
+                        PhoneInputField(
                           controller: _whatsappController,
-                          keyboardType: TextInputType.phone,
-                          maxLength: 20,
-                          decoration: InputDecoration(labelText: 'addBusiness.whatsappNumber'.tr()),
+                          label: 'addBusiness.whatsappNumber'.tr(),
                           validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                         ),
                       ],
