@@ -335,14 +335,14 @@ class _LoginSignUpScreenState extends ConsumerState<LoginSignUpScreen> {
                     () => ref.read(authControllerProvider.notifier).loginWithGoogle(),
                   ),
                 ),
-                const SizedBox(height: 10),
-                _SocialLoginButton(
-                  label: 'auth.continueWithFacebook'.tr(),
-                  badge: const Icon(Icons.facebook, size: 16),
-                  onPressed: () => _handleSocialLogin(
-                    () => ref.read(authControllerProvider.notifier).loginWithFacebook(),
-                  ),
-                ),
+                // const SizedBox(height: 10),
+                // _SocialLoginButton(
+                //   label: 'auth.continueWithFacebook'.tr(),
+                //   badge: const Icon(Icons.facebook, size: 16),
+                //   onPressed: () => _handleSocialLogin(
+                //     () => ref.read(authControllerProvider.notifier).loginWithFacebook(),
+                //   ),
+                // ),
                 const SizedBox(height: 10),
                 _SocialLoginButton(
                   label: 'auth.continueWithApple'.tr(),

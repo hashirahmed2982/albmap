@@ -54,7 +54,7 @@ android {
         applicationId = "com.albmap.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23
+        minSdk = 24
         // Explicitly 36 rather than flutter.targetSdkVersion — Google Play now
         // requires new app updates to target API 36, but the Flutter SDK's own
         // bundled default hasn't caught up to that yet (still resolves lower on
