@@ -1,10 +1,17 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_cluster_manager_2/google_maps_cluster_manager_2.dart';
+// google_maps_flutter's own ClusterManager/Cluster types are Google's
+// native marker-clustering API, unused here — hidden so they don't
+// collide with google_maps_cluster_manager_2's own (unrelated) classes
+// of the same name, which this file actually uses.
+import 'package:google_maps_flutter/google_maps_flutter.dart' hide ClusterManager, Cluster;
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/map_style.dart';
@@ -22,6 +29,18 @@ import '../widgets/business_list_view.dart';
 import '../widgets/filter_bottom_sheet.dart';
 
 enum _ViewMode { map, list }
+
+/// Wraps a [BusinessEntity] for google_maps_cluster_manager_2's
+/// [ClusterItem] mixin — kept at the presentation layer rather than
+/// mixing it into BusinessEntity itself, so the domain layer stays free
+/// of a map-rendering-library dependency.
+class _BusinessClusterItem with ClusterItem {
+  _BusinessClusterItem(this.business);
+  final BusinessEntity business;
+
+  @override
+  LatLng get location => LatLng(business.latitude, business.longitude);
+}
 
 /// 3. Discover Map Screen — main app screen. The user explicitly picks
 /// between a Map view and a List view via a segmented toggle.
@@ -52,6 +71,17 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   _ViewMode _viewMode = _ViewMode.map;
   Timer? _searchDebounce;
 
+  // Groups nearby markers at lower zoom levels instead of rendering one
+  // overlapping pin per business — essential once the viewport-bounds
+  // fetch below can return hundreds of businesses in a dense area.
+  late final ClusterManager<_BusinessClusterItem> _clusterManager;
+  Set<Marker> _clusterMarkers = {};
+  Timer? _boundsFetchDebounce;
+  // Guards _syncClusterItems against re-clustering on every rebuild (view
+  // mode toggles, a marker selection, etc.) when the actual business list
+  // feeding the map hasn't changed at all.
+  List<BusinessEntity> _lastClusterInput = const [];
+
   // Which business's preview card is showing at the bottom of the map —
   // null means no marker has been tapped yet, so no card shows at all
   // (see _selectedBusiness below).
@@ -73,6 +103,13 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadBusinessIcon();
+    _clusterManager = ClusterManager<_BusinessClusterItem>(
+      const <_BusinessClusterItem>[],
+      (Set<Marker> markers) {
+        if (mounted) setState(() => _clusterMarkers = markers);
+      },
+      markerBuilder: _buildClusterMarker,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(locationControllerProvider.notifier).refresh();
       _recenterOnUser();
@@ -123,6 +160,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     // the previous "reinitialize app" workaround).
     if (state == AppLifecycleState.resumed) {
       ref.read(businessListControllerProvider.notifier).load();
+      unawaited(_fetchMapBusinessesForCurrentBounds());
     }
   }
 
@@ -130,6 +168,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _searchDebounce?.cancel();
+    _boundsFetchDebounce?.cancel();
     _searchController.dispose();
     _mapController?.dispose();
     super.dispose();
@@ -164,6 +203,108 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     }
   }
 
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+    unawaited(_clusterManager.setMapId(controller.mapId));
+    unawaited(_fetchMapBusinessesForCurrentBounds());
+  }
+
+  /// Re-clusters for the new zoom/position immediately (cheap, purely
+  /// local), then — unless a text search is active, in which case the
+  /// map shows those specific results rather than viewport-driven ones —
+  /// debounces a real network fetch for whatever's now in view. A single
+  /// pan/zoom gesture fires several idle-ish events in quick succession;
+  /// only the last one, once motion actually settles, should trigger a
+  /// fetch.
+  void _onCameraIdle() {
+    _clusterManager.updateMap();
+    if (_localQuery.trim().length >= _minSearchQueryLength) return;
+    _boundsFetchDebounce?.cancel();
+    _boundsFetchDebounce = Timer(const Duration(milliseconds: 400), _fetchMapBusinessesForCurrentBounds);
+  }
+
+  Future<void> _fetchMapBusinessesForCurrentBounds() async {
+    final controller = _mapController;
+    if (controller == null) return;
+    final LatLngBounds bounds = await controller.getVisibleRegion();
+    if (!mounted) return;
+    final String? category = ref.read(businessFilterProvider).category;
+    await ref.read(mapBusinessesControllerProvider.notifier).loadForBounds(
+          swLat: bounds.southwest.latitude,
+          swLng: bounds.southwest.longitude,
+          neLat: bounds.northeast.latitude,
+          neLng: bounds.northeast.longitude,
+          category: category,
+        );
+  }
+
+  /// Feeds whichever business list the map should currently show into the
+  /// cluster manager — guarded against redundant re-clustering when
+  /// `mapDisplayed` is unchanged from the last call (e.g. a rebuild
+  /// triggered by selecting a marker, not by the data itself changing).
+  void _syncClusterItems(List<BusinessEntity> mapDisplayed) {
+    if (listEquals(_lastClusterInput, mapDisplayed)) return;
+    _lastClusterInput = mapDisplayed;
+    _clusterManager.setItems(mapDisplayed.map(_BusinessClusterItem.new).toList());
+  }
+
+  Future<Marker> _buildClusterMarker(Cluster<_BusinessClusterItem> cluster) async {
+    if (!cluster.isMultiple) {
+      final BusinessEntity business = cluster.items.first.business;
+      return Marker(
+        markerId: MarkerId(business.id),
+        position: cluster.location,
+        icon: _businessIcon ?? BitmapDescriptor.defaultMarker,
+        onTap: () => setState(() => _selectedBusinessId = business.id),
+      );
+    }
+    return Marker(
+      markerId: MarkerId(cluster.getId()),
+      position: cluster.location,
+      icon: await _clusterBitmap(cluster.count),
+      // No single business to select for a multi-item cluster — zooming
+      // in is the standard way to let it split back apart into either
+      // smaller clusters or individual markers.
+      onTap: () => _mapController?.animateCamera(CameraUpdate.newLatLngZoom(cluster.location, 16)),
+    );
+  }
+
+  /// A simple red filled circle with the cluster's count, matching the
+  /// app's accent color — drawn once per distinct count/zoom combination
+  /// (ClusterManager calls this per cluster on every re-cluster, so
+  /// there's no caching beyond what's cheap to just redraw each time).
+  Future<BitmapDescriptor> _clusterBitmap(int count) async {
+    const double size = 72;
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, Paint()..color = AppColors.primary);
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+
+    final TextPainter painter = TextPainter(textDirection: ui.TextDirection.ltr)
+      ..text = TextSpan(
+        text: '$count',
+        style: const TextStyle(fontSize: size / 2.6, color: Colors.white, fontWeight: FontWeight.w700),
+      )
+      ..layout();
+    painter.paint(canvas, Offset(size / 2 - painter.width / 2, size / 2 - painter.height / 2));
+
+    final ui.Image image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final ByteData? bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (bytes == null) return BitmapDescriptor.defaultMarker;
+    // Explicit width/height, same reasoning as _loadBusinessIcon's —
+    // without them the rendered size follows the device's pixel ratio
+    // inconsistently instead of a fixed logical size everywhere.
+    return BitmapDescriptor.bytes(bytes.buffer.asUint8List(), width: 36, height: 36);
+  }
+
   List<BusinessEntity> _byCategory(List<BusinessEntity> all, String? category) {
     if (category == null) return all;
     return all.where((b) => b.category == category).toList();
@@ -196,6 +337,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   Widget build(BuildContext context) {
     final listState = ref.watch(businessListControllerProvider);
     final String trimmedQuery = _localQuery.trim();
+    final bool isSearchActive = trimmedQuery.length >= _minSearchQueryLength;
     // Single source of truth for "which category is selected" — shared
     // with FilterBottomSheet via businessFilterProvider (previously this
     // screen's quick-category chips tracked their own separate local
@@ -203,8 +345,19 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     // sheet was opened, and vice versa).
     final String? selectedCategory = ref.watch(businessFilterProvider).category;
 
+    // Re-fetches the map's viewport data the moment the category filter
+    // changes — same bounds, different filter, so last viewport's data
+    // is stale regardless of whether the camera has moved at all. Only
+    // matters outside search mode, where the map shows search results
+    // instead (see mapDisplayed below).
+    ref.listen<BusinessFilter>(businessFilterProvider, (previous, next) {
+      if (previous?.category != next.category && !isSearchActive) {
+        unawaited(_fetchMapBusinessesForCurrentBounds());
+      }
+    });
+
     List<BusinessEntity> displayed;
-    if (trimmedQuery.length >= _minSearchQueryLength) {
+    if (isSearchActive) {
       // A real query is active — search the *entire* backend catalog
       // (searchBusinesses has no radius limit, unlike the normal list
       // load), not just whatever happened to already be loaded for the
@@ -227,6 +380,20 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
       displayed = _localFiltered(listState.businesses, selectedCategory);
     }
 
+    // The map's own marker source — search results when a query is
+    // active (specific, already-fetched matches the map shouldn't
+    // second-guess), otherwise whatever the viewport-bounds fetch
+    // returned (see mapBusinessesControllerProvider), NOT the fixed-size
+    // single page `listState`/`displayed` above was built from.
+    final MapBusinessesState mapState = ref.watch(mapBusinessesControllerProvider);
+    final List<BusinessEntity> mapDisplayed = isSearchActive ? displayed : mapState.businesses;
+    // Only while the map is actually in the widget tree — toggling to
+    // List view disposes the underlying GoogleMap platform view (it's
+    // conditionally built below, not just hidden), and the cluster
+    // manager's internal getVisibleRegion() call would throw against a
+    // map id that no longer exists.
+    if (_viewMode == _ViewMode.map) _syncClusterItems(mapDisplayed);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -244,7 +411,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
                       onRefresh: () async =>
                           ref.read(businessListControllerProvider.notifier).load(),
                     )
-                  : _buildMap(displayed, listState),
+                  : _buildMap(mapDisplayed, listState, isLoadingMap: mapState.isLoading && !isSearchActive),
             ),
           ],
         ),
@@ -356,7 +523,7 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
     );
   }
 
-  Widget _buildMap(List<BusinessEntity> businesses, BusinessListState listState) {
+  Widget _buildMap(List<BusinessEntity> businesses, BusinessListState listState, {required bool isLoadingMap}) {
     final BusinessEntity? selected = _selectedBusiness(businesses);
 
     return Stack(
@@ -376,23 +543,13 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
           myLocationButtonEnabled: false,
           zoomControlsEnabled: false,
           mapToolbarEnabled: false,
-          onMapCreated: (controller) => _mapController = controller,
-          markers: {
-            for (final business in businesses)
-              Marker(
-                markerId: MarkerId(business.id),
-                position: LatLng(business.latitude, business.longitude),
-                // Default anchor (0.5, 1.0) — bottom-center — already
-                // matches marker-business.png being a teardrop shape with
-                // its point at the very bottom, same convention as the
-                // old hand-drawn pin.
-                icon: _businessIcon ?? BitmapDescriptor.defaultMarker,
-                onTap: () => setState(() => _selectedBusinessId = business.id),
-              ),
-          },
+          onMapCreated: _onMapCreated,
+          onCameraMove: _clusterManager.onCameraMove,
+          onCameraIdle: _onCameraIdle,
+          markers: _clusterMarkers,
         ),
 
-        if (listState.isLoading)
+        if (isLoadingMap || listState.isLoading)
           const Positioned(top: 16, left: 0, right: 0, child: LoadingIndicator()),
 
         if (listState.errorMessage != null && listState.businesses.isEmpty)
@@ -421,7 +578,18 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
 
               backgroundColor: AppColors.surface,
               foregroundColor: AppColors.textPrimary,
-              onPressed: () => ref.read(businessListControllerProvider.notifier).load(),
+              // Refreshes whatever's actually driving the markers on
+              // screen right now — the viewport-bounds fetch while
+              // browsing, or a fresh search while one's active — not the
+              // unrelated fixed-page list data, which no longer feeds the
+              // map's markers at all.
+              onPressed: () {
+                if (_localQuery.trim().length >= _minSearchQueryLength) {
+                  ref.invalidate(businessSearchResultsProvider);
+                } else {
+                  _fetchMapBusinessesForCurrentBounds();
+                }
+              },
               child: const Icon(Icons.refresh_rounded),
             ),
           ),

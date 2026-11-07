@@ -91,6 +91,29 @@ class BusinessMockDataSource implements BusinessRemoteDataSource {
   }
 
   @override
+  Future<List<BusinessModel>> getBusinessesInBounds({
+    required double swLat,
+    required double swLng,
+    required double neLat,
+    required double neLng,
+    String? category,
+  }) async {
+    await _fakeDelay();
+    Iterable<BusinessModel> results = _businesses.where(
+      (b) =>
+          b.status == BusinessStatus.approved &&
+          b.latitude >= swLat &&
+          b.latitude <= neLat &&
+          b.longitude >= swLng &&
+          b.longitude <= neLng,
+    );
+    if (category != null) {
+      results = results.where((b) => b.category == category);
+    }
+    return results.toList();
+  }
+
+  @override
   Future<BusinessModel> getBusinessDetails(String id) async {
     await _fakeDelay();
     return _businesses.firstWhere((b) => b.id == id, orElse: () => _businesses.first);

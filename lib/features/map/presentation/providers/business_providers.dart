@@ -130,6 +130,62 @@ final businessListControllerProvider =
   return BusinessListController(ref);
 });
 
+/// Backs the map's viewport-based marker loading (as opposed to
+/// [BusinessListController]'s fixed-size single page, used for the List
+/// view) — see discover_map_screen.dart's onCameraIdle, which calls
+/// [loadForBounds] with the map's current visible region on every pan/
+/// zoom.
+class MapBusinessesState {
+  const MapBusinessesState({this.businesses = const [], this.isLoading = false});
+  final List<BusinessEntity> businesses;
+  final bool isLoading;
+
+  MapBusinessesState copyWith({List<BusinessEntity>? businesses, bool? isLoading}) {
+    return MapBusinessesState(
+      businesses: businesses ?? this.businesses,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+}
+
+class MapBusinessesController extends StateNotifier<MapBusinessesState> {
+  MapBusinessesController() : _getBusinessesInBounds = sl<GetBusinessesInBoundsUseCase>(), super(const MapBusinessesState());
+
+  final GetBusinessesInBoundsUseCase _getBusinessesInBounds;
+
+  // Guards against an older, slower-to-respond request overwriting a
+  // newer one's results — a real risk here since this fires on every
+  // pan/zoom and network latency isn't guaranteed to match request order.
+  int _requestId = 0;
+
+  Future<void> loadForBounds({
+    required double swLat,
+    required double swLng,
+    required double neLat,
+    required double neLng,
+    String? category,
+  }) async {
+    final int requestId = ++_requestId;
+    state = state.copyWith(isLoading: true);
+
+    final result = await _getBusinessesInBounds(GetBusinessesInBoundsParams(
+      swLat: swLat, swLng: swLng, neLat: neLat, neLng: neLng, category: category,
+    ));
+
+    if (requestId != _requestId) return; // superseded by a newer request
+
+    result.fold(
+      (Failure failure) => state = state.copyWith(isLoading: false),
+      (businesses) => state = MapBusinessesState(businesses: businesses, isLoading: false),
+    );
+  }
+}
+
+final mapBusinessesControllerProvider =
+    StateNotifierProvider<MapBusinessesController, MapBusinessesState>((ref) {
+  return MapBusinessesController();
+});
+
 final businessSearchQueryProvider = StateProvider<String>((ref) => '');
 
 final businessSearchResultsProvider = FutureProvider.autoDispose<List<BusinessEntity>>((ref) async {

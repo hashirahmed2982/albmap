@@ -12,6 +12,20 @@ abstract class BusinessRemoteDataSource {
     String sortBy = 'distance',
   });
 
+  /// Powers the map's viewport-based marker loading (business.routes.js's
+  /// GET /businesses/map) — called on initial map load and again on
+  /// every pan/zoom with the map's current visible bounds, instead of
+  /// getBusinesses()'s fixed-size single page, which only ever showed
+  /// whichever handful of rows happened to land on page 1 regardless of
+  /// how many more existed just outside it.
+  Future<List<BusinessModel>> getBusinessesInBounds({
+    required double swLat,
+    required double swLng,
+    required double neLat,
+    required double neLng,
+    String? category,
+  });
+
   Future<BusinessModel> getBusinessDetails(String id);
   Future<List<BusinessModel>> searchBusinesses(String query);
   Future<BusinessModel> submitBusiness(BusinessModel business, {bool confirmDuplicate});
@@ -56,6 +70,36 @@ class BusinessRemoteDataSourceImpl implements BusinessRemoteDataSource {
     } on DioException catch (e) {
       throw ServerException(
         e.response?.data?['message'] as String? ?? 'Failed to load businesses',
+        e.response?.statusCode,
+      );
+    }
+  }
+
+  @override
+  Future<List<BusinessModel>> getBusinessesInBounds({
+    required double swLat,
+    required double swLng,
+    required double neLat,
+    required double neLng,
+    String? category,
+  }) async {
+    try {
+      final Response<dynamic> response = await _dio.get<dynamic>(
+        '/businesses/map',
+        queryParameters: <String, dynamic>{
+          'swLat': swLat,
+          'swLng': swLng,
+          'neLat': neLat,
+          'neLng': neLng,
+          if (category != null) 'category': category,
+        },
+      );
+      return (response.data['data'] as List<dynamic>)
+          .map((dynamic e) => BusinessModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ServerException(
+        e.response?.data?['message'] as String? ?? 'Failed to load businesses for this area',
         e.response?.statusCode,
       );
     }

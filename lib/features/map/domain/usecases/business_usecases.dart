@@ -41,6 +41,44 @@ class GetBusinessesParams extends Equatable {
   List<Object?> get props => [category, radiusKm, userLat, userLng, sortBy];
 }
 
+/// Powers the map's viewport-based marker loading — see
+/// BusinessRepository.getBusinessesInBounds.
+class GetBusinessesInBoundsUseCase
+    implements UseCase<List<BusinessEntity>, GetBusinessesInBoundsParams> {
+  GetBusinessesInBoundsUseCase(this._repository);
+  final BusinessRepository _repository;
+
+  @override
+  Future<Either<Failure, List<BusinessEntity>>> call(GetBusinessesInBoundsParams params) {
+    return _repository.getBusinessesInBounds(
+      swLat: params.swLat,
+      swLng: params.swLng,
+      neLat: params.neLat,
+      neLng: params.neLng,
+      category: params.category,
+    );
+  }
+}
+
+class GetBusinessesInBoundsParams extends Equatable {
+  const GetBusinessesInBoundsParams({
+    required this.swLat,
+    required this.swLng,
+    required this.neLat,
+    required this.neLng,
+    this.category,
+  });
+
+  final double swLat;
+  final double swLng;
+  final double neLat;
+  final double neLng;
+  final String? category;
+
+  @override
+  List<Object?> get props => [swLat, swLng, neLat, neLng, category];
+}
+
 class GetBusinessDetailsUseCase implements UseCase<BusinessEntity, String> {
   GetBusinessDetailsUseCase(this._repository);
   final BusinessRepository _repository;
