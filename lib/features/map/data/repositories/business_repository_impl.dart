@@ -69,6 +69,27 @@ class BusinessRepositoryImpl implements BusinessRepository {
   }
 
   @override
+  Future<Either<Failure, List<BusinessEntity>>> getBusinessesInBounds({
+    required double swLat,
+    required double swLng,
+    required double neLat,
+    required double neLng,
+    String? category,
+  }) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      final List<BusinessModel> businesses = await _remote.getBusinessesInBounds(
+        swLat: swLat, swLng: swLng, neLat: neLat, neLng: neLng, category: category,
+      );
+      return Right(businesses);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (_) {
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, BusinessEntity>> getBusinessDetails(String id) async {
     if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
     try {

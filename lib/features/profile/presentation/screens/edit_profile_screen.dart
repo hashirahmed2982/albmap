@@ -12,6 +12,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/gradient_header.dart';
 import '../../../../core/widgets/page_header_title.dart';
+import '../../../../core/widgets/phone_input_field.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
@@ -166,11 +167,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             validator: (v) => Validators.required(v, 'common.required'.tr()),
                           ),
                           const SizedBox(height: 14),
-                          TextFormField(
+                          PhoneInputField(
                             controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            maxLength: 30,
-                            decoration: InputDecoration(labelText: 'editProfile.phone'.tr()),
+                            label: 'editProfile.phone'.tr(),
                             validator: (v) => Validators.optionalPhone(v, invalidMessage: 'common.invalidPhone'.tr()),
                           ),
                           const SizedBox(height: 8),

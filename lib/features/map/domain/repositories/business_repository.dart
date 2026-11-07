@@ -12,6 +12,19 @@ abstract class BusinessRepository {
     String sortBy = 'distance',
   });
 
+  /// Powers the map's viewport-based marker loading — called on initial
+  /// map load and again on every pan/zoom with the map's current visible
+  /// bounds, instead of [getBusinesses]'s fixed-size single page, which
+  /// only ever showed whichever handful of rows happened to land on page
+  /// 1 regardless of how many more existed just outside it.
+  Future<Either<Failure, List<BusinessEntity>>> getBusinessesInBounds({
+    required double swLat,
+    required double swLng,
+    required double neLat,
+    required double neLng,
+    String? category,
+  });
+
   Future<Either<Failure, BusinessEntity>> getBusinessDetails(String id);
 
   Future<Either<Failure, List<BusinessEntity>>> searchBusinesses(String query);

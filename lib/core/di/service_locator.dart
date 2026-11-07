@@ -148,6 +148,7 @@ Future<void> initServiceLocator() async {
     () => BusinessRepositoryImpl(remoteDataSource: sl(), localDataSource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton(() => GetBusinessesUseCase(sl()));
+  sl.registerLazySingleton(() => GetBusinessesInBoundsUseCase(sl()));
   sl.registerLazySingleton(() => GetBusinessDetailsUseCase(sl()));
   sl.registerLazySingleton(() => SubmitBusinessUseCase(sl()));
   sl.registerLazySingleton(() => UpdateBusinessUseCase(sl()));
