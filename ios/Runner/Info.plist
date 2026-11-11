@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!--
+	  Works around a known google_maps_flutter + Impeller bug: the
+	  GoogleMap platform view can render solid black instead of its tiles,
+	  depending on the exact widget tree it's embedded in (reported
+	  specifically on Discover Map, not the simpler location-picker map).
+	  Impeller is Flutter's default renderer on iOS as of the SDK version
+	  this app targets; falling back to the legacy Metal/Skia renderer
+	  here is the standard stopgap until the platform-view compositing
+	  issue is fixed upstream. Same flag as AndroidManifest.xml's
+	  io.flutter.embedding.android.EnableImpeller.
+	-->
+	<key>FLTEnableImpeller</key>
+	<false/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

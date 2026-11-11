@@ -70,6 +70,19 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBjEMGTS_C0hox5DAi0nIK0iuEtkFkHtQw"/>
+        <!--
+          Works around a known google_maps_flutter + Impeller bug: the
+          GoogleMap platform view can render solid black instead of its
+          tiles, depending on the exact widget tree it's embedded in
+          (reported specifically on Discover Map, not the simpler
+          location-picker map). Impeller is Flutter's default renderer on
+          Android as of the SDK version this app targets; falling back to
+          Skia here is the standard stopgap until the platform-view
+          compositing issue is fixed upstream.
+        -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false"/>
         <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
         <meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/facebook_client_token"/>
         <activity android:name="com.facebook.FacebookActivity"
