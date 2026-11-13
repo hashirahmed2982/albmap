@@ -90,7 +90,8 @@
     "noBusinessesNearby": "Nuk u gjetën biznese aty pranë",
     "mapNotSetUp": "Pamja e hartës nuk është konfiguruar ende",
     "mapNotSetUpDesc": "Një çelës API i Google Maps nuk është konfiguruar për këtë aplikacion. Mund të shfletosh çdo biznes duke përdorur pamjen Listë.",
-    "switchToList": "Kalo te pamja Listë"
+    "switchToList": "Kalo te pamja Listë",
+    "multipleBusinessesHere": "{} biznese në këtë vendndodhje"
   },
   "filter": {
     "title": "Filtro bizneset",

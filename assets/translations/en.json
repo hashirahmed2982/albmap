@@ -90,7 +90,8 @@
     "noBusinessesNearby": "No businesses found nearby",
     "mapNotSetUp": "Map view isn't set up yet",
     "mapNotSetUpDesc": "A Google Maps API key hasn't been configured for this app. You can still browse every business using List view.",
-    "switchToList": "Switch to List view"
+    "switchToList": "Switch to List view",
+    "multipleBusinessesHere": "{} businesses at this location"
   },
   "filter": {
     "title": "Filter businesses",

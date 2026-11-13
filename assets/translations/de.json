@@ -90,7 +90,8 @@
     "noBusinessesNearby": "Keine Unternehmen in der Nähe gefunden",
     "mapNotSetUp": "Kartenansicht ist noch nicht eingerichtet",
     "mapNotSetUpDesc": "Für diese App wurde kein Google Maps API-Schlüssel konfiguriert. Du kannst weiterhin alle Unternehmen in der Listenansicht durchsuchen.",
-    "switchToList": "Zur Listenansicht wechseln"
+    "switchToList": "Zur Listenansicht wechseln",
+    "multipleBusinessesHere": "{} Unternehmen an diesem Standort"
   },
   "filter": {
     "title": "Unternehmen filtern",
