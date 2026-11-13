@@ -262,11 +262,23 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
   Future<Marker> _buildClusterMarker(Cluster<_BusinessClusterItem> cluster) async {
     if (!cluster.isMultiple) {
       final BusinessEntity business = cluster.items.first.business;
+      // Past stopClusteringZoom, every business becomes its own
+      // single-item cluster regardless of how close together they are —
+      // so two businesses at (or within a meter or two of) the exact same
+      // coordinate never get grouped into a "2" badge here, they just end
+      // up as two individual Markers stacked at the identical pixel
+      // position. Normally harmless, but since zooming in further can
+      // never spread them apart (there's no pixel distance between them
+      // to begin with), whichever one ends up on top would otherwise
+      // silently hide the other with no way to ever reach it.
+      final List<BusinessEntity> overlapping = _businessesAtSameLocation(business);
       return Marker(
         markerId: MarkerId(business.id),
         position: cluster.location,
         icon: _businessIcon ?? BitmapDescriptor.defaultMarker,
-        onTap: () => setState(() => _selectedBusinessId = business.id),
+        onTap: overlapping.length > 1
+            ? () => _showOverlappingBusinessesSheet(overlapping)
+            : () => setState(() => _selectedBusinessId = business.id),
       );
     }
     return Marker(
@@ -275,8 +287,64 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
       icon: await _clusterBitmap(cluster.count),
       // No single business to select for a multi-item cluster — zooming
       // in is the standard way to let it split back apart into either
-      // smaller clusters or individual markers.
+      // smaller clusters or individual markers. If the items underneath
+      // genuinely can't separate (same/near-identical coordinates), this
+      // keeps zooming until stopClusteringZoom is hit, at which point
+      // they become individual overlapping markers and the check above
+      // takes over.
       onTap: () => _mapController?.animateCamera(CameraUpdate.newLatLngZoom(cluster.location, 16)),
+    );
+  }
+
+  // ~3m — comfortably smaller than marker-business.png's own footprint
+  // even at the map's maximum zoom, so anything within this distance can
+  // never usefully spread apart on screen no matter how far the user
+  // zooms in (unlike stopClusteringZoom above, which only helps
+  // businesses close together but not this close).
+  static const double _overlapThresholdDegrees = 0.00003;
+
+  List<BusinessEntity> _businessesAtSameLocation(BusinessEntity business) {
+    return _lastClusterInput
+        .where((b) =>
+            (b.latitude - business.latitude).abs() < _overlapThresholdDegrees &&
+            (b.longitude - business.longitude).abs() < _overlapThresholdDegrees)
+        .toList();
+  }
+
+  /// Lets the user pick which of several co-located businesses they
+  /// actually meant to tap, instead of one silently winning by whichever
+  /// happened to render on top. Reuses BusinessCard as-is — tapping an
+  /// entry navigates straight to its details page, same as the List view.
+  void _showOverlappingBusinessesSheet(List<BusinessEntity> businesses) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'discover.multipleBusinessesHere'.tr(args: ['${businesses.length}']),
+                style: AppTextStyles.h3,
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                itemCount: businesses.length,
+                itemBuilder: (_, i) => BusinessCard(business: businesses[i]),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
