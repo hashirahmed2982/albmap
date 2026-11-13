@@ -109,6 +109,17 @@ class _DiscoverMapScreenState extends ConsumerState<DiscoverMapScreen> with Widg
         if (mounted) setState(() => _clusterMarkers = markers);
       },
       markerBuilder: _buildClusterMarker,
+      // The library's default `levels` list only has 9 entries, which
+      // caps geohash-based clustering at geohash precision 9 — cells
+      // roughly 5m×5m — no matter how far past that you zoom. Businesses
+      // within ~5m of each other (neighboring shops in the same small
+      // plaza, say) would stay merged into one cluster forever, even
+      // zoomed in as far as the map's minMaxZoomPreference allows (18).
+      // stopClusteringZoom is the library's own escape hatch: past this
+      // zoom, every item renders as its own individual marker instead of
+      // going through geohash bucketing at all, which is what actually
+      // lets a tight group split apart on zoom-in.
+      stopClusteringZoom: 17,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(locationControllerProvider.notifier).refresh();
